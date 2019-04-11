@@ -1,0 +1,60 @@
+apiVersion: siddhi.io/v1alpha1
+kind: SiddhiProcess
+metadata:
+  name: example-siddhi-deployment
+  version: 1.0.0
+spec:
+  pod:
+   image: siddhiio/siddhi-runner-alphine
+   imageTag: v0.0.1
+  # tls:
+  #   ingressSecret: siddhi-tls
+  env: 
+    - name: RECEIVER_URL
+      value: "http://0.0.0.0:8006/foo"
+    - name: BASIC_AUTH_ENABLED
+      value: "false"
+  # apps:
+  #   - app1
+  #   - app2
+  query: |
+    @App:name("App4")
+    @App:description("Description of the plan") 
+    
+    @sink(type='log', prefix='LOGGER')
+    @source(type='http', receiver.url='http://0.0.0.0:8280/app4', basic.auth.enabled='false', @map(type='json'))
+    define stream DevicePowerStream (type string, deviceID string, power int);
+
+    
+    define stream MonitorDevicesPowerStream(deviceID string, power int);
+
+    @info(name='monitored-filter')
+    from DevicePowerStream[type == 'monitored']
+    select deviceID, power
+    insert into MonitorDevicesPowerStream;
+  siddhi.runner.configs:  
+   wso2.datasources:                           #to update the default deployment.yml
+    dataSources:
+    - name: PERSISTENCE_DB
+      description: The MySQL datasource used for state persistence
+      jndiConfig:
+        name: jdbc/PERSISTENCE_DB
+      definition:
+        type: RDBMS
+        configuration:
+          jdbcUrl: 'jdbc:mysql://mysql:3306/PERSISTENCE_DB?useSSL=false'
+          username: root
+          password: root
+          driverClassName: com.mysql.jdbc.Driver
+          maxPoolSize: 50
+          idleTimeout: 60000
+          connectionTestQuery: SELECT 1
+          validationTimeout: 30000 
+    state.persistence:
+      enabled: true
+      intervalInMin: 10
+      revisionsToKeep: 2
+      persistenceStore: io.siddhi.distribution.core.persistence.DBPersistenceStore
+      config:
+        datasource: PERSISTENCE_DB   
+        table: PERSISTENCE_TABLE
