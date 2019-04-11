@@ -2,9 +2,6 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: siddhi-operator
-  annotations:
-    siddhiRunnerImage: siddhiio/siddhirunner:v0.0.1
-    siddhiRunnerImagePullSecrets: siddhisecret
 spec:
   replicas: 1
   selector:
