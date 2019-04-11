@@ -3,7 +3,7 @@ kind: Deployment
 metadata:
   name: siddhi-operator
   annotations:
-    siddhiRunnerImage: buddhiwathsala/siddhirunner:v0.0.6
+    siddhiRunnerImage: siddhiio/siddhirunner:v0.0.1
     siddhiRunnerImagePullSecrets: siddhisecret
 spec:
   replicas: 1
@@ -18,7 +18,7 @@ spec:
       serviceAccountName: siddhi-operator
       containers:
         - name: siddhi-operator
-          image: docker.io/buddhiwathsala/siddhi-operator:v0.0.3
+          image: docker.io/siddhiio/siddhi-operator:v0.0.1
           command:
           - siddhi-operator
           imagePullPolicy: Always
@@ -36,7 +36,7 @@ spec:
             - name: OPERATOR_VERSION
               value: v0.0.1
             - name: SIDDHI_RUNNER_IMAGE
-              value: pcnfernando/siddhi-runner-alphine
+              value: siddhiio/siddhi-runner-alphine
             - name: SIDDHI_RUNNER_IMAGE_TAG
               value: 1.0.0-m3
             - name: SIDDHI_RUNNER_IMAGE_SECRET
@@ -64,10 +64,8 @@ spec:
   revisionHistoryLimit: 10
   selector:
     matchLabels:
-      instance: siddhi-process-msf4j
-      name: SiddhiProcess
-      part-of: siddhi-process-msf4j
-      version: 1.0.0
+      name: siddhi-parser
+      version: 0.0.1
   strategy:
     rollingUpdate:
       maxSurge: 25%
@@ -77,13 +75,11 @@ spec:
     metadata:
       creationTimestamp: null
       labels:
-        instance: siddhi-process-msf4j
-        name: SiddhiProcess
-        part-of: siddhi-process-msf4j
-        version: 1.0.0
+        name: siddhi-parser
+        version: 0.0.1
     spec:
       containers:
-      - image: pcnfernando/siddhi-parser:v1.0.0
+      - image: siddhiio/siddhi-parser:v0.0.1
         imagePullPolicy: IfNotPresent
         name: siddhirunner-msf4j
         ports:
@@ -102,15 +98,12 @@ spec:
   externalTrafficPolicy: Cluster
   ports:
   - name: msf4j
-    nodePort: 32001
     port: 9090
     protocol: TCP
     targetPort: 9090
   selector:
-    instance: siddhi-process-msf4j
-    name: SiddhiProcess
-    part-of: siddhi-process-msf4j
-    version: 1.0.0
+    name: siddhi-parser
+    version: 0.0.1
   sessionAffinity: None
   type: LoadBalancer
 status:
