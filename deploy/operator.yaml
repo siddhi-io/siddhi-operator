@@ -1,0 +1,117 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: siddhi-operator
+  annotations:
+    siddhiRunnerImage: buddhiwathsala/siddhirunner:v0.0.6
+    siddhiRunnerImagePullSecrets: siddhisecret
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      name: siddhi-operator
+  template:
+    metadata:
+      labels:
+        name: siddhi-operator
+    spec:
+      serviceAccountName: siddhi-operator
+      containers:
+        - name: siddhi-operator
+          image: docker.io/buddhiwathsala/siddhi-operator:v0.0.3
+          command:
+          - siddhi-operator
+          imagePullPolicy: Always
+          env:
+            - name: WATCH_NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+            - name: POD_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
+            - name: OPERATOR_NAME
+              value: siddhi-operator
+            - name: OPERATOR_VERSION
+              value: v0.0.1
+            - name: SIDDHI_RUNNER_IMAGE
+              value: pcnfernando/siddhi-runner-alphine
+            - name: SIDDHI_RUNNER_IMAGE_TAG
+              value: 1.0.0-m3
+            - name: SIDDHI_RUNNER_IMAGE_SECRET
+              value: null
+            - name: SIDDHI_RUNNER_HOME
+              value: /home/siddhi_user/siddhi-runner-1.0.0/
+            - name: SIDDHI_PARSER_URL
+              value: http://siddhi-parser/parse
+            - name: AUTO_INGRESS_CREATION
+              value: "true"
+
+
+---
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  annotations:
+    deployment.kubernetes.io/revision: "1"
+  generation: 1
+  name: siddhi-parser
+  namespace: default
+spec:
+  progressDeadlineSeconds: 600
+  replicas: 1
+  revisionHistoryLimit: 10
+  selector:
+    matchLabels:
+      instance: siddhi-process-msf4j
+      name: SiddhiProcess
+      part-of: siddhi-process-msf4j
+      version: 1.0.0
+  strategy:
+    rollingUpdate:
+      maxSurge: 25%
+      maxUnavailable: 25%
+    type: RollingUpdate
+  template:
+    metadata:
+      creationTimestamp: null
+      labels:
+        instance: siddhi-process-msf4j
+        name: SiddhiProcess
+        part-of: siddhi-process-msf4j
+        version: 1.0.0
+    spec:
+      containers:
+      - image: pcnfernando/siddhi-parser:v1.0.0
+        imagePullPolicy: IfNotPresent
+        name: siddhirunner-msf4j
+        ports:
+        - containerPort: 9090
+          name: port
+          protocol: TCP
+
+---
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: siddhi-parser
+  namespace: default
+spec:
+  externalTrafficPolicy: Cluster
+  ports:
+  - name: msf4j
+    nodePort: 32001
+    port: 9090
+    protocol: TCP
+    targetPort: 9090
+  selector:
+    instance: siddhi-process-msf4j
+    name: SiddhiProcess
+    part-of: siddhi-process-msf4j
+    version: 1.0.0
+  sessionAffinity: None
+  type: LoadBalancer
+status:
+  loadBalancer: {}

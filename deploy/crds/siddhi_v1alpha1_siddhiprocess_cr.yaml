@@ -1,0 +1,43 @@
+apiVersion: siddhi.io/v1alpha1
+kind: SiddhiProcess
+metadata:
+  name: apps
+  version: 1.0.0
+spec:
+  pod:
+   image: pcnfernando/siddhi-runner-alphine
+   imageTag: v1.0.0
+  # tls:
+  #   ingressSecret: siddhi-tls
+  env: 
+    - name: RECEIVER_URL
+      value: "http://0.0.0.0:8006/foo"
+    - name: RECEIVER2_URL
+      value: "http://0.0.0.0:8007/bar"
+    - name: BASIC_AUTH_ENABLED
+      value: "false"
+  # apps:
+  #   - app1
+  #   - app2
+  query: |
+    @App:name("App4")
+    @App:description("Description of the plan") 
+    
+    @sink(type='log', prefix='LOGGER')
+    @source(type='http', receiver.url='http://0.0.0.0:8280/app4', basic.auth.enabled='false', @map(type='json'))
+    define stream DevicePowerStream (type string, deviceID string, power int);
+
+    
+    define stream MonitorDevicesPowerStream(deviceID string, power int);
+
+    @info(name='monitored-filter')
+    from DevicePowerStream[type == 'monitored']
+    select deviceID, power
+    insert into MonitorDevicesPowerStream;
+
+
+  
+
+
+
+
