@@ -45,7 +45,7 @@ Supported Version: nginx 0.22.0
    
    ![Deployed Kubernetes artifacts from sample ](docs/sample-outputs/deployment.png)
 
-   Note :  The Siddhi Operator automatically creates an ingress and exposes the internal endpoints available in the 
+:information_source: Note:  The Siddhi Operator automatically creates an ingress and exposes the internal endpoints available in the 
 Siddhi App by default.
 In order to disable the automatic ingress creation, you can set **AUTO_INGRESS_CREATION** environment variable to false in
  the `./deploy/operator.yaml`
