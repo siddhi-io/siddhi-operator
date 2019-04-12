@@ -53,7 +53,7 @@ import javax.ws.rs.core.Response;
 public class SiddhiParserService {
 
     private static final String CARBON_HOME = "carbon.home";
-    private static final SiddhiManager siddhimanager = new SiddhiManager();
+    private SiddhiManager siddhimanager;
     private static final Logger log = LoggerFactory.getLogger(SiddhiParserService.class);
 
     SiddhiParserService() {
@@ -64,6 +64,7 @@ public class SiddhiParserService {
         masterConfigs.put("source.http.certPassword", "wso2carbon");
         InMemoryConfigManager inMemoryConfigManager = new InMemoryConfigManager(masterConfigs, null);
         inMemoryConfigManager.generateConfigReader("source", "http");
+        siddhimanager = new SiddhiManager();
         siddhimanager.setConfigManager(inMemoryConfigManager);
     }
 
@@ -91,7 +92,7 @@ public class SiddhiParserService {
         }
     }
 
-    private static List<String> populateEnvs(Map<String, String> envMap, List<String> siddhiApps) {
+    private List<String> populateEnvs(Map<String, String> envMap, List<String> siddhiApps) {
         List<String> populatedApps = new ArrayList<>();
         for (String siddhiApp : siddhiApps) {
             if (siddhiApp.contains("$")) {
@@ -116,7 +117,7 @@ public class SiddhiParserService {
         return populatedApps;
     }
 
-    private static AppDeploymentInfo getExposedDeploymentConfigs(List<String> siddhiApps) {
+    private AppDeploymentInfo getExposedDeploymentConfigs(List<String> siddhiApps) {
         AppDeploymentInfo appDeploymentInfo = new AppDeploymentInfo();
         for (String siddhiApp : siddhiApps) {
             SiddhiAppConfig siddhiAppConfig = new SiddhiAppConfig();

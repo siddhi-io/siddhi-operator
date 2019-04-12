@@ -28,7 +28,7 @@
 
     <groupId>io.siddhi.operator</groupId>
     <artifactId>siddhi.parser</artifactId>
-    <version>1.0.0-SNAPSHOT</version>
+    <version>0.1.0-SNAPSHOT</version>
     <name>Siddhi Operator Parser Service</name>
 
     <dependencies>
@@ -136,7 +136,7 @@
         <quartz.version>2.1.1.wso2v1</quartz.version>
         <metrics.version>3.2.5</metrics.version>
         <disruptor.version>3.3.2.wso2v2</disruptor.version>
-        <siddhi.io.http.version>2.0.0</siddhi.io.http.version>
+        <siddhi.io.http.version>2.0.2</siddhi.io.http.version>
         <siddhi.map.text.version>1.1.0</siddhi.map.text.version>
         <siddhi.map.json.version>5.0.1</siddhi.map.json.version>
         <slf4j.version>1.7.12</slf4j.version>
