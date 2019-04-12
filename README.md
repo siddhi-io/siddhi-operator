@@ -47,14 +47,14 @@ Supported Version: nginx 0.22.0
 
 :information_source: Note:  The Siddhi Operator automatically creates an ingress and exposes the internal endpoints available in the 
 Siddhi App by default.
-In order to disable the automatic ingress creation, you can set **AUTO_INGRESS_CREATION** environment variable to false in
+In order to disable the automatic ingress creation, you can set **AUTO_INGRESS_CREATION** environment variable to false/null in
  the `./deploy/operator.yaml`
 
 2. Obtain the external IP (EXTERNAL-IP) of the Ingress resources by listing down the Kubernetes Ingresses.
  
    `kubectl get ing`
 
-3. Add the above host as an entry in /etc/hosts file.
+3. Add the above host (`siddhi`) as an entry in /etc/hosts file.
 
 4. Use following CURL command to publish an event to the sample Siddhi app that's deployed.
 ```
