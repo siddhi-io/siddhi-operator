@@ -5,8 +5,8 @@ metadata:
   version: 1.0.0
 spec:
   pod:
-   image: siddhiio/siddhi-runner-alphine
-   imageTag: v0.0.1
+   image: siddhiio/siddhi-runner
+   imageTag: v0.1.0
   # tls:
   #   ingressSecret: siddhi-tls
   env: 
@@ -18,11 +18,11 @@ spec:
   #   - app1
   #   - app2
   query: |
-    @App:name("App4")
+    @App:name("Example-Siddhi")
     @App:description("Description of the plan") 
     
     @sink(type='log', prefix='LOGGER')
-    @source(type='http', receiver.url='http://0.0.0.0:8280/app4', basic.auth.enabled='false', @map(type='json'))
+    @source(type='http', receiver.url='http://0.0.0.0:8280/example', basic.auth.enabled='false', @map(type='json'))
     define stream DevicePowerStream (type string, deviceID string, power int);
 
     
