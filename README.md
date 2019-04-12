@@ -3,9 +3,10 @@
 Siddhi Operator allows you to run stream processing logic directly on a Kubernetes cluster.
 To use it, you need to be connected to a cloud environment or to a local cluster created for development purposes.
 
-##Configure Kubernetes Cluster
+## Configure Kubernetes Cluster
 ### Local Deployment
-If you need help on how to create a local development environment based on *Minikube*, you can follow the link: [Minikube Installation](https://github.com/kubernetes/minikube#installation).
+If you need help on how to create a local development environment based on *Minikube*,
+   -  Refer: [Minikube Installation Guide](https://github.com/kubernetes/minikube#installation).
 
 ### Google Kubernetes Engine Cluster
 
@@ -22,21 +23,22 @@ Supported Version: nginx 0.22.0
 
 ## Install Siddhi Operator in Kubernetes cluster
 
-1. Clone Siddhi Operator Git repository.
+1. Clone Siddhi Operator Git repository.  
    `git clone https://github.com/siddhi-io/siddhi-operator.git`
 
 
 2. Execute the following commands to setup the Siddhi Operator in the kubernetes cluster.
-
+```
     kubectl create -f ./deploy/crds/siddhi_v1alpha1_siddhiprocess_crd.yaml
     kubectl create -f ./deploy/service_account.yaml
     kubectl create -f ./deploy/role.yaml
     kubectl create -f ./deploy/role_binding.yaml
     kubectl create -f ./deploy/operator.yaml
+```
     
 ## Testing a sample
 
-1. Execute the below command to create a sample siddhi deployment. 
+1. Execute the below command to create a sample siddhi deployment.  
 `kubectl create -f ./deploy/crd/example-siddhi-app.yaml`
 
    Siddhi Operator would create a Siddhi-Runner deployment with the Siddhi app deployed through the example-siddhi-app CRD, a service, and an ingress to expose the http endpoint which is in the Siddhi sample.
@@ -55,16 +57,17 @@ In order to disable the automatic ingress creation, you can set **AUTO_INGRESS_C
 3. Add the above host as an entry in /etc/hosts file.
 
 4. Use following CURL command to publish an event to the sample Siddhi app that's deployed.
-
-    `curl -X POST \
-   http://siddhi/example-siddhi-deployment/8280/example \
+```
+curl -X POST \
+ http://siddhi/example-siddhi-deployment/8280/example \
    -H 'Content-Type: application/json' \
    -d '{
- 	"type": "monitored",
- 	"deviceID": "001",
- 	"power": 39
- }'
-`
+        "type": "monitored",
+ 	     "deviceID": "001",
+ 	     "power": 39
+       }`
+   
+```  
 5. View the logs of the Siddhi Runner pod and observe the entry being printed by the Siddhi sample app accepting event through the `http` endpoint.
    ![Sample log entry ](docs/sample-outputs/pod_log.png)
 
