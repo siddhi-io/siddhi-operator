@@ -5,7 +5,7 @@ metadata:
   version: 1.0.0
 spec:
   pod:
-   image: siddhiio/siddhi-runner
+   image: siddhiio/siddhi-runner-alpine
    imageTag: v0.1.0
   # tls:
   #   ingressSecret: siddhi-tls
