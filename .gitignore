@@ -101,3 +101,17 @@ tags
 .history
 # End of https://www.gitignore.io/api/go,vim,emacs,visualstudiocode
 
+#idea files
+.idea/
+*.iml
+
+#eclipse files
+.project
+.settings/
+
+# Mac OS temp files
+.DS_Store
+
+# idea web pages
+*.iws
+*.ipr
