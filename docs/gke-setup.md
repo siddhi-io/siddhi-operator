@@ -1,0 +1,29 @@
+Configuring a Google Kubernetes Engine (GKE) Cluster
+====================================================
+
+This guide assumes you've already created a Kubernetes Engine cluster on https://console.cloud.google.com.
+
+Make sure you've selected a version of Kubernetes greater than **1.11** when creating the cluster. You can create it in any region.
+
+In the list of clusters for the current project, GKE provides a connection string that you need to execute on a shell to configure the `kubectl` command.
+
+NOTE: the connection string contains a `--project` flag that indicates your **project ID**. You should keep that information for the last step.
+
+After executing the connection string, if everything is installed correctly, you should be able to execute:
+
+```
+kubectl get pod
+```
+
+When the cluster is first installed, you should find that "no pods are present" in the cluster. You can proceed with the installation then.
+
+Before installing Siddhi Operator on a fresh GKE cluster, you need to perform some extra steps to give to your account the required cluster-admin permissions.
+This means executing the following command (**replacing "your-address@gmail.com" with your account email address**):
+
+```
+kubectl create clusterrolebinding user-cluster-admin-binding --clusterrole=cluster-admin --user=your-address@gmail.com
+```
+
+The command above is needed to make sure your user is able to delegate some permissions to Siddhi service accounts.
+
+
