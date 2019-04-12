@@ -15,7 +15,7 @@ spec:
       serviceAccountName: siddhi-operator
       containers:
         - name: siddhi-operator
-          image: docker.io/siddhiio/siddhi-operator:v0.0.1
+          image: docker.io/siddhiio/siddhi-operator:v0.1.0
           command:
           - siddhi-operator
           imagePullPolicy: Always
@@ -33,13 +33,13 @@ spec:
             - name: OPERATOR_VERSION
               value: v0.0.1
             - name: SIDDHI_RUNNER_IMAGE
-              value: siddhiio/siddhi-runner-alphine
+              value: siddhiio/siddhi-runner-alpine
             - name: SIDDHI_RUNNER_IMAGE_TAG
-              value: 1.0.0-m3
+              value: v0.1.0
             - name: SIDDHI_RUNNER_IMAGE_SECRET
               value: null
             - name: SIDDHI_RUNNER_HOME
-              value: /home/siddhi_user/siddhi-runner-1.0.0/
+              value: /home/siddhi_user/siddhi-runner-alpine-0.1.0/
             - name: SIDDHI_PARSER_URL
               value: http://siddhi-parser/parse
             - name: AUTO_INGRESS_CREATION
@@ -62,7 +62,7 @@ spec:
   selector:
     matchLabels:
       name: siddhi-parser
-      version: 0.0.1
+      version: 1.0.0
   strategy:
     rollingUpdate:
       maxSurge: 25%
@@ -73,10 +73,10 @@ spec:
       creationTimestamp: null
       labels:
         name: siddhi-parser
-        version: 0.0.1
+        version: 1.0.0
     spec:
       containers:
-      - image: siddhiio/siddhi-parser:v0.0.1
+      - image: siddhiio/siddhi-parser:v0.1.0
         imagePullPolicy: IfNotPresent
         name: siddhirunner-msf4j
         ports:
@@ -100,7 +100,7 @@ spec:
     targetPort: 9090
   selector:
     name: siddhi-parser
-    version: 0.0.1
+    version: 1.0.0
   sessionAffinity: None
   type: LoadBalancer
 status:
