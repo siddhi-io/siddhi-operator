@@ -39,7 +39,7 @@ Supported Version: nginx 0.22.0
 ## Testing a sample
 
 1. Execute the below command to create a sample siddhi deployment.  
-`kubectl create -f ./deploy/crd/example-siddhi-app.yaml`
+`kubectl create -f ./deploy/crds/example-siddhi-deployment.yaml`
 
    Siddhi Operator would create a Siddhi-Runner deployment with the Siddhi app deployed through the example-siddhi-app CRD, a service, and an ingress to expose the http endpoint which is in the Siddhi sample.
    
