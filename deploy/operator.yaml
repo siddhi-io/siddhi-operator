@@ -39,7 +39,7 @@ spec:
             - name: SIDDHI_RUNNER_IMAGE_SECRET
               value: null
             - name: SIDDHI_RUNNER_HOME
-              value: /home/siddhi_user/siddhi-runner-alpine-0.1.0/
+              value: /home/siddhi_user/siddhi-runner-0.1.0/
             - name: SIDDHI_PARSER_URL
               value: http://siddhi-parser/parse
             - name: AUTO_INGRESS_CREATION
