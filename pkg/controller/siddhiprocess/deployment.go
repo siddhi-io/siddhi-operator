@@ -164,7 +164,7 @@
 			 }
 			 volumeMounts = append(volumeMounts, volumeMount)
 		 }
-		 configParameter = "-Dconfig="  + "tmp/configs/" + deploymentYAMLConfigMapName
+		 configParameter = "-Dconfig="  + siddhiHome + "tmp/configs/" + deploymentYAMLConfigMapName
 	 }
  
 	 if len(siddhiProcess.Spec.EnviromentVariables) > 0 {

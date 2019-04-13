@@ -7,8 +7,8 @@ spec:
   pod:
    image: siddhiio/siddhi-runner-alpine
    imageTag: v0.1.0
-  # tls:
-  #   ingressSecret: siddhi-tls
+  tls:
+    ingressSecret: siddhi-tls
   env: 
     - name: RECEIVER_URL
       value: "http://0.0.0.0:8006/foo"
@@ -32,29 +32,12 @@ spec:
     from DevicePowerStream[type == 'monitored']
     select deviceID, power
     insert into MonitorDevicesPowerStream;
-  siddhi.runner.configs:  
-   wso2.datasources:                           #to update the default deployment.yml
-    dataSources:
-    - name: PERSISTENCE_DB
-      description: The MySQL datasource used for state persistence
-      jndiConfig:
-        name: jdbc/PERSISTENCE_DB
-      definition:
-        type: RDBMS
-        configuration:
-          jdbcUrl: 'jdbc:mysql://mysql:3306/PERSISTENCE_DB?useSSL=false'
-          username: root
-          password: root
-          driverClassName: com.mysql.jdbc.Driver
-          maxPoolSize: 50
-          idleTimeout: 60000
-          connectionTestQuery: SELECT 1
-          validationTimeout: 30000 
+  siddhi.runner.configs: |
     state.persistence:
       enabled: true
-      intervalInMin: 10
+      intervalInMin: 1
       revisionsToKeep: 2
-      persistenceStore: io.siddhi.distribution.core.persistence.DBPersistenceStore
+      persistenceStore: io.siddhi.distribution.core.persistence.FileSystemPersistenceStore
       config:
-        datasource: PERSISTENCE_DB   
-        table: PERSISTENCE_TABLE
+        location: siddhi-app-persistence
+  
