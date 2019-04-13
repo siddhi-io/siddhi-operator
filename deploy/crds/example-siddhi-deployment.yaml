@@ -35,7 +35,7 @@ spec:
   siddhi.runner.configs: |
     state.persistence:
       enabled: true
-      intervalInMin: 1
+      intervalInMin: 5
       revisionsToKeep: 2
       persistenceStore: io.siddhi.distribution.core.persistence.FileSystemPersistenceStore
       config:
