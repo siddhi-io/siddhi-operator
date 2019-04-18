@@ -39,7 +39,7 @@ Supported Version: nginx 0.22.0
 ## Testing a sample
 
 1. Execute the below command to create a sample siddhi deployment.  
-`kubectl create -f ./deploy/crds/example-siddhi-deployment.yaml`
+`kubectl create -f ./deploy/crds/monitor-app.yaml`
 
    Siddhi Operator would create a Siddhi-Runner deployment with the Siddhi app deployed through the example-siddhi-app CRD, a service, and an ingress to expose the http endpoint which is in the Siddhi sample.
    
@@ -59,7 +59,7 @@ In order to disable the automatic ingress creation, you can set **AUTO_INGRESS_C
 4. Use following CURL command to publish an event to the sample Siddhi app that's deployed.
 ```
 curl -X POST \
- http://siddhi/example-siddhi-deployment/8280/example \
+ http://siddhi/monitor-app/8280/example \
    -H 'Content-Type: application/json' \
    -d '{
         "type": "monitored",
