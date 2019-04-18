@@ -6,12 +6,12 @@ metadata:
 spec:
   pod:
    image: siddhiio/siddhi-runner-alpine
-   imageTag: v0.1.0
+   imageTag: 0.1.0
   tls:
     ingressSecret: siddhi-tls
   env: 
     - name: RECEIVER_URL
-      value: "http://0.0.0.0:8006/foo"
+      value: "http://0.0.0.0:8280/example"
     - name: BASIC_AUTH_ENABLED
       value: "false"
   # apps:

@@ -41,7 +41,9 @@
 	 query := siddhiProcess.Spec.Query
 	 siddhiConfig := siddhiProcess.Spec.SiddhiConfig
 	 deploymentYAMLConfigMapName := siddhiProcess.Name + "-deployment.yaml"
-	 siddhiHome := operatorEnvs["SIDDHI_RUNNER_HOME"]
+	 siddhiHome := "/home/siddhi_user/siddhi-runner-0.1.0/"
+	 siddhiRunnerImageName := "siddhiio/siddhi-runner-alpine"
+	 siddhiRunnerImagetag := "v0.1.0"
 	 var volumes []corev1.Volume
 	 var volumeMounts []corev1.VolumeMount
 	 var imagePullSecrets []corev1.LocalObjectReference
@@ -49,10 +51,18 @@
 	 var containerPorts []corev1.ContainerPort
 	 var err error
 	 var sidddhiDeployment *appsv1.Deployment
- 
-	 siddhiRunnerImageName := strings.TrimSpace(operatorEnvs["SIDDHI_RUNNER_IMAGE"])
-	 siddhiRunnerImagetag := strings.TrimSpace(operatorEnvs["SIDDHI_RUNNER_IMAGE_TAG"])
+	
+	 if operatorEnvs["SIDDHI_RUNNER_HOME"] != "" {
+		 siddhiHome = strings.TrimSpace(operatorEnvs["SIDDHI_RUNNER_HOME"])
+	 }
+	 if operatorEnvs["SIDDHI_RUNNER_IMAGE"] != "" {
+		siddhiRunnerImageName = strings.TrimSpace(operatorEnvs["SIDDHI_RUNNER_IMAGE"])
+	 }
+	 if operatorEnvs["SIDDHI_RUNNER_IMAGE_TAG"] != "" {
+		siddhiRunnerImagetag = strings.TrimSpace(operatorEnvs["SIDDHI_RUNNER_IMAGE_TAG"])
+	 }
 	 siddhiRunnerImage := siddhiRunnerImageName + ":" + siddhiRunnerImagetag
+	 
 	 if operatorEnvs["SIDDHI_RUNNER_IMAGE_SECRET"] != "" {
 		 siddhiRunnerImageSecret := strings.TrimSpace(operatorEnvs["SIDDHI_RUNNER_IMAGE_SECRET"])
 		 secret := corev1.LocalObjectReference{
