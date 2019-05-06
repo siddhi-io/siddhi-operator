@@ -215,7 +215,14 @@ func (reconcileSiddhiProcess *ReconcileSiddhiProcess) Reconcile(request reconcil
 		return reconcile.Result{}, err
 	}
 
-	if (operatorEnvs["AUTO_INGRESS_CREATION"] != "") && (operatorEnvs["AUTO_INGRESS_CREATION"] != "false"){
+	createIngress := true
+	if (operatorEnvs["AUTO_INGRESS_CREATION"] != "") && (operatorEnvs["AUTO_INGRESS_CREATION"] != "false") {
+		createIngress = true
+	} else {
+		createIngress = false
+	}
+
+	if createIngress{
 		ingress := &extensionsv1beta1.Ingress{}
 		err = reconcileSiddhiProcess.client.Get(context.TODO(), types.NamespacedName{Name: "siddhi", Namespace: siddhiProcess.Namespace}, ingress)
 		if err != nil && errors.IsNotFound(err) {
@@ -277,7 +284,7 @@ func (reconcileSiddhiProcess *ReconcileSiddhiProcess) Reconcile(request reconcil
 // belonging to the given siddhiProcess CR name.
 func labelsForSiddhiProcess(appName string, operatorEnvs map[string]string) map[string]string {
 	operatorName := "siddhi-operator"
-	operatorVersion := "v0.1.0"
+	operatorVersion := "0.1.0"
 	if operatorEnvs["OPERATOR_NAME"] != "" {
 		operatorName = operatorEnvs["OPERATOR_NAME"]
 	}

@@ -1,7 +1,7 @@
 apiVersion: siddhi.io/v1alpha1
 kind: SiddhiProcess
 metadata:
-  name: example-siddhi-deployment
+  name: monitor-app
   version: 1.0.0
 spec:
   pod:
@@ -18,26 +18,24 @@ spec:
   #   - app1
   #   - app2
   query: |
-    @App:name("Example-Siddhi")
+    @App:name("MonitorApp")
     @App:description("Description of the plan") 
     
     @sink(type='log', prefix='LOGGER')
-    @source(type='http', receiver.url='http://0.0.0.0:8280/example', basic.auth.enabled='false', @map(type='json'))
+    @source(type='http', receiver.url='${RECEIVER_URL}', basic.auth.enabled='${BASIC_AUTH_ENABLED}', @map(type='json'))
     define stream DevicePowerStream (type string, deviceID string, power int);
-
     
     define stream MonitorDevicesPowerStream(deviceID string, power int);
-
     @info(name='monitored-filter')
     from DevicePowerStream[type == 'monitored']
     select deviceID, power
     insert into MonitorDevicesPowerStream;
-  siddhi.runner.configs: |
-    state.persistence:
-      enabled: true
-      intervalInMin: 5
-      revisionsToKeep: 2
-      persistenceStore: io.siddhi.distribution.core.persistence.FileSystemPersistenceStore
-      config:
-        location: siddhi-app-persistence
-  
+  # siddhi.runner.configs: |
+  #   state.persistence:
+  #     enabled: true
+  #     intervalInMin: 5
+  #     revisionsToKeep: 2
+  #     persistenceStore: io.siddhi.distribution.core.persistence.FileSystemPersistenceStore
+  #     config:
+  #       location: siddhi-app-persistence
+ 

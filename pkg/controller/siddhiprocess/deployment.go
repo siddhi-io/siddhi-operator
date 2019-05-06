@@ -43,7 +43,7 @@
 	 deploymentYAMLConfigMapName := siddhiProcess.Name + "-deployment.yaml"
 	 siddhiHome := "/home/siddhi_user/siddhi-runner-0.1.0/"
 	 siddhiRunnerImageName := "siddhiio/siddhi-runner-alpine"
-	 siddhiRunnerImagetag := "v0.1.0"
+	 siddhiRunnerImagetag := "0.1.0"
 	 var volumes []corev1.Volume
 	 var volumeMounts []corev1.VolumeMount
 	 var imagePullSecrets []corev1.LocalObjectReference
