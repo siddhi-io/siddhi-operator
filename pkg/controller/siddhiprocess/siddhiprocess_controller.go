@@ -151,7 +151,6 @@ func (reconcileSiddhiProcess *ReconcileSiddhiProcess) Reconcile(request reconcil
 		if err != nil {
 			reqLogger.Error(err, "Failed to update SiddhiProcess status")
 			siddhiProcess.Status.Status = getStatus(ERROR)
-			return reconcile.Result{}, err
 		}
 		siddhiDeployment, err := reconcileSiddhiProcess.deploymentForSiddhiProcess(siddhiProcess, siddhiApp, operatorEnvs)
 		if err != nil{
@@ -206,7 +205,6 @@ func (reconcileSiddhiProcess *ReconcileSiddhiProcess) Reconcile(request reconcil
 		if err != nil {
 			reqLogger.Error(err, "Failed to update SiddhiProcess status")
 			siddhiProcess.Status.Status = getStatus(ERROR)
-			return reconcile.Result{}, err
 		}
 		return reconcile.Result{Requeue: true}, nil
 	} else if err != nil {
@@ -274,7 +272,6 @@ func (reconcileSiddhiProcess *ReconcileSiddhiProcess) Reconcile(request reconcil
 		err := reconcileSiddhiProcess.client.Status().Update(context.TODO(), siddhiProcess)
 		if err != nil {
 			reqLogger.Error(err, "Failed to update SiddhiProcess status")
-			return reconcile.Result{}, err
 		}
 	}
 	return reconcile.Result{}, err
