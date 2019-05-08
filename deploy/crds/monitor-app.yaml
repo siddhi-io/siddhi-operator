@@ -30,12 +30,12 @@ spec:
     from DevicePowerStream[type == 'monitored']
     select deviceID, power
     insert into MonitorDevicesPowerStream;
-  # siddhi.runner.configs: |
-  #   state.persistence:
-  #     enabled: true
-  #     intervalInMin: 5
-  #     revisionsToKeep: 2
-  #     persistenceStore: io.siddhi.distribution.core.persistence.FileSystemPersistenceStore
-  #     config:
-  #       location: siddhi-app-persistence
+  siddhi.runner.configs: |
+    state.persistence:
+      enabled: true
+      intervalInMin: 5
+      revisionsToKeep: 2
+      persistenceStore: io.siddhi.distribution.core.persistence.FileSystemPersistenceStore
+      config:
+        location: siddhi-app-persistence
  
