@@ -18,21 +18,21 @@
 
 package siddhiprocess
 
-import(
-	"strconv"
-	"strings"
+import (
+	siddhiv1alpha1 "github.com/siddhi-io/siddhi-operator/pkg/apis/siddhi/v1alpha1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	siddhiv1alpha1 "github.com/siddhi-io/siddhi-operator/pkg/apis/siddhi/v1alpha1"
+	"strconv"
+	"strings"
 
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 )
 
 // serviceForSiddhi returns a Siddhi Service object
-func (reconcileSiddhiProcess *ReconcileSiddhiProcess) serviceForSiddhiProcess(siddhiProcess *siddhiv1alpha1.SiddhiProcess, siddhiApp SiddhiApp, operatorEnvs map[string]string) *corev1.Service {
-	labels := labelsForSiddhiProcess(siddhiProcess.Name, operatorEnvs)
+func (rsp *ReconcileSiddhiProcess) serviceForSiddhiProcess(sp *siddhiv1alpha1.SiddhiProcess, siddhiApp SiddhiApp, operatorEnvs map[string]string) *corev1.Service {
+	labels := labelsForSiddhiProcess(sp.Name, operatorEnvs)
 	var servicePorts []corev1.ServicePort
-	for _, port := range siddhiApp.Ports{
+	for _, port := range siddhiApp.Ports {
 		servicePort := corev1.ServicePort{
 			Port: int32(port),
 			Name: strings.ToLower(siddhiApp.Name) + strconv.Itoa(port),
@@ -45,15 +45,15 @@ func (reconcileSiddhiProcess *ReconcileSiddhiProcess) serviceForSiddhiProcess(si
 			Kind:       "Service",
 		},
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      siddhiProcess.Name,
-			Namespace: siddhiProcess.Namespace,
+			Name:      sp.Name,
+			Namespace: sp.Namespace,
 		},
 		Spec: corev1.ServiceSpec{
 			Selector: labels,
-			Ports: servicePorts,
-			Type: "ClusterIP",
+			Ports:    servicePorts,
+			Type:     "ClusterIP",
 		},
 	}
-	controllerutil.SetControllerReference(siddhiProcess, service, reconcileSiddhiProcess.scheme)
+	controllerutil.SetControllerReference(sp, service, rsp.scheme)
 	return service
 }

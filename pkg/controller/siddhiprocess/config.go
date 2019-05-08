@@ -15,20 +15,29 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package siddhiprocess
 
 import (
-	appsv1 "k8s.io/api/apps/v1"
+	"encoding/json"
+	"os"
 )
 
-// populateOperatorEnvs returns a map of ENVs in the operator deployment
-func (rsp *ReconcileSiddhiProcess) populateOperatorEnvs(operatorDeployment *appsv1.Deployment) (envs map[string]string) {
-	envs = make(map[string]string)
-	envStruct := operatorDeployment.Spec.Template.Spec.Containers[0].Env
-	for _, env := range envStruct {
-		envs[env.Name] = env.Value
-	}
+// Configs contains siddhi default configs
+type Configs struct {
+	SiddhiHome           string
+	SiddhiRunnerImage    string
+	SiddhiRunnerImageTag string
+	HostName             string
+}
 
-	return envs
+func configurations() Configs {
+	reqLogger := log.WithValues("Request.Namespace", "siddhi-operator")
+	configFile, _ := os.Open("config.json")
+	defer configFile.Close()
+	decoder := json.NewDecoder(configFile)
+	configs := Configs{}
+	if err := decoder.Decode(&configs); err != nil {
+		reqLogger.Error(err, "Config reader error")
+	}
+	return configs
 }
