@@ -115,3 +115,7 @@ tags
 # idea web pages
 *.iws
 *.ipr
+
+#unwanted java builds
+siddhi-parser/target
+siddhi-parser/.classpath

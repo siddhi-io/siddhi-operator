@@ -24,10 +24,8 @@ spec:
     @sink(type='log', prefix='LOGGER')
     @source(type='http', receiver.url='${RECEIVER_URL}', basic.auth.enabled='${BASIC_AUTH_ENABLED}', @map(type='json'))
     define stream DevicePowerStream (type string, deviceID string, power int);
-
     
     define stream MonitorDevicesPowerStream(deviceID string, power int);
-
     @info(name='monitored-filter')
     from DevicePowerStream[type == 'monitored']
     select deviceID, power
@@ -40,4 +38,4 @@ spec:
       persistenceStore: io.siddhi.distribution.core.persistence.FileSystemPersistenceStore
       config:
         location: siddhi-app-persistence
-  
+ 

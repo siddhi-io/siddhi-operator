@@ -124,13 +124,16 @@ func (reconcileSiddhiProcess *ReconcileSiddhiProcess) Reconcile(request reconcil
 		return reconcile.Result{}, err
 	}
 	
+	var operatorEnvs map[string]string
+	operatorEnvs = make(map[string]string)
 	operatorDeployment := &appsv1.Deployment{}
 	err = reconcileSiddhiProcess.client.Get(context.TODO(), types.NamespacedName{Name: "siddhi-operator", Namespace: siddhiProcess.Namespace}, operatorDeployment)
 	if err != nil{
-		reqLogger.Error(err, err.Error())
-		return reconcile.Result{}, err
+		reqLogger.Info("siddhi-operator deployment not found")
+	} else {
+		operatorEnvs = reconcileSiddhiProcess.populateOperatorEnvs(operatorDeployment)
 	}
-	operatorEnvs := reconcileSiddhiProcess.populateOperatorEnvs(operatorDeployment)
+
 	var siddhiApp SiddhiApp
 	siddhiApp, err = reconcileSiddhiProcess.parseSiddhiApp(siddhiProcess)
 	if err != nil{
@@ -210,7 +213,14 @@ func (reconcileSiddhiProcess *ReconcileSiddhiProcess) Reconcile(request reconcil
 		return reconcile.Result{}, err
 	}
 
-	if (operatorEnvs["AUTO_INGRESS_CREATION"] != "") && (operatorEnvs["AUTO_INGRESS_CREATION"] != "false"){
+	createIngress := true
+	if (operatorEnvs["AUTO_INGRESS_CREATION"] != "") && (operatorEnvs["AUTO_INGRESS_CREATION"] != "false") {
+		createIngress = true
+	} else {
+		createIngress = false
+	}
+
+	if createIngress{
 		ingress := &extensionsv1beta1.Ingress{}
 		err = reconcileSiddhiProcess.client.Get(context.TODO(), types.NamespacedName{Name: "siddhi", Namespace: siddhiProcess.Namespace}, ingress)
 		if err != nil && errors.IsNotFound(err) {
@@ -270,11 +280,19 @@ func (reconcileSiddhiProcess *ReconcileSiddhiProcess) Reconcile(request reconcil
 // labelsForSiddhiProcess returns the labels for selecting the resources
 // belonging to the given siddhiProcess CR name.
 func labelsForSiddhiProcess(appName string, operatorEnvs map[string]string) map[string]string {
+	operatorName := "siddhi-operator"
+	operatorVersion := "0.1.0"
+	if operatorEnvs["OPERATOR_NAME"] != "" {
+		operatorName = operatorEnvs["OPERATOR_NAME"]
+	}
+	if operatorEnvs["OPERATOR_VERSION"] != "" {
+		operatorVersion = operatorEnvs["OPERATOR_VERSION"]
+	}
 	return map[string]string{
 		"siddhi.io/name": "SiddhiProcess",
-		"siddhi.io/instance": operatorEnvs["OPERATOR_NAME"],
-		"siddhi.io/version": operatorEnvs["OPERATOR_VERSION"],
-		"siddhi.io/part-of": appName,
+		"siddhi.io/instance": appName,
+		"siddhi.io/version": operatorVersion,
+		"siddhi.io/part-of": operatorName,
 	}
 }
 
