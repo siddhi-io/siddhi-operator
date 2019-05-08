@@ -88,7 +88,6 @@
 	 var protocols []string
 	 var tls []bool
 	 url := "http://siddhi-parser." + siddhiProcess.Namespace + ".svc.cluster.local:9090/siddhi-parser/parse"
-	 // url = "http://0.0.0.0:9090/siddhi-parser/parse"
 	 configMapData := make(map[string]string)
 	 if (query == "") && (len(siddhiProcess.Spec.Apps) > 0) {
 		 var siddhiApps []string
