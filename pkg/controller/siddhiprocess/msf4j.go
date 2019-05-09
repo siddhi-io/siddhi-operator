@@ -86,7 +86,6 @@ func (rsp *ReconcileSiddhiProcess) parseSiddhiApp(sp *siddhiv1alpha1.SiddhiProce
 	var protocols []string
 	var tls []bool
 	url := "http://siddhi-parser." + sp.Namespace + ".svc.cluster.local:9090/siddhi-parser/parse"
-	url = "http://192.168.99.197:32000/siddhi-parser/parse"
 	configMapData := make(map[string]string)
 	if (query == "") && (len(sp.Spec.Apps) > 0) {
 		var siddhiApps []string
@@ -121,7 +120,7 @@ func (rsp *ReconcileSiddhiProcess) parseSiddhiApp(sp *siddhiv1alpha1.SiddhiProce
 		json.NewDecoder(resp.Body).Decode(&siddhiParserResponse)
 		for _, siddhiApp := range siddhiParserResponse.AppConfig {
 			app := siddhiApp.SiddhiApp
-			appName := strings.TrimSpace(getAppName(app)) + ".siddhi"
+			appName := strings.TrimSpace(GetAppName(app)) + ".siddhi"
 			for _, deploymentConf := range siddhiApp.SiddhiSourceList.SourceDeploymentConfigs {
 				ports = append(ports, deploymentConf.Port)
 				protocols = append(protocols, deploymentConf.ServiceProtocol)
@@ -173,7 +172,7 @@ func (rsp *ReconcileSiddhiProcess) parseSiddhiApp(sp *siddhiv1alpha1.SiddhiProce
 		json.NewDecoder(resp.Body).Decode(&siddhiParserResponse)
 		for _, siddhiApp := range siddhiParserResponse.AppConfig {
 			app := siddhiApp.SiddhiApp
-			appName := strings.TrimSpace(getAppName(app)) + ".siddhi"
+			appName := strings.TrimSpace(GetAppName(app)) + ".siddhi"
 			for _, deploymentConf := range siddhiApp.SiddhiSourceList.SourceDeploymentConfigs {
 				ports = append(ports, deploymentConf.Port)
 				protocols = append(protocols, deploymentConf.ServiceProtocol)

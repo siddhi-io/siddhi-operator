@@ -99,7 +99,7 @@ func (rsp *ReconcileSiddhiProcess) loadBalancerForSiddhiProcess(sp *siddhiv1alph
 	}
 	ingress := &extensionsv1beta1.Ingress{
 		TypeMeta: metav1.TypeMeta{
-			APIVersion: "extensions/v1beta1",
+			APIVersion: extensionsv1beta1.SchemeGroupVersion.String(),
 			Kind:       "Ingress",
 		},
 		ObjectMeta: metav1.ObjectMeta{

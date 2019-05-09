@@ -29,8 +29,8 @@ import (
 )
 
 // serviceForSiddhi returns a Siddhi Service object
-func (rsp *ReconcileSiddhiProcess) serviceForSiddhiProcess(sp *siddhiv1alpha1.SiddhiProcess, siddhiApp SiddhiApp, operatorEnvs map[string]string) *corev1.Service {
-	labels := labelsForSiddhiProcess(sp.Name, operatorEnvs)
+func (rsp *ReconcileSiddhiProcess) serviceForSiddhiProcess(sp *siddhiv1alpha1.SiddhiProcess, siddhiApp SiddhiApp, operatorEnvs map[string]string, configs Configs) *corev1.Service {
+	labels := labelsForSiddhiProcess(sp.Name, operatorEnvs, configs)
 	var servicePorts []corev1.ServicePort
 	for _, port := range siddhiApp.Ports {
 		servicePort := corev1.ServicePort{
@@ -41,7 +41,7 @@ func (rsp *ReconcileSiddhiProcess) serviceForSiddhiProcess(sp *siddhiv1alpha1.Si
 	}
 	service := &corev1.Service{
 		TypeMeta: metav1.TypeMeta{
-			APIVersion: "v1",
+			APIVersion: corev1.SchemeGroupVersion.String(),
 			Kind:       "Service",
 		},
 		ObjectMeta: metav1.ObjectMeta{

@@ -28,6 +28,9 @@ type Configs struct {
 	SiddhiRunnerImage    string
 	SiddhiRunnerImageTag string
 	HostName             string
+	OperatorName         string
+	OperatorVersion      string
+	CRDName              string
 }
 
 func configurations() Configs {

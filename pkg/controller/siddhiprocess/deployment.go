@@ -35,7 +35,7 @@ import (
 
 // deploymentForMSiddhiProcess returns a sp Deployment object
 func (rsp *ReconcileSiddhiProcess) deploymentForSiddhiProcess(sp *siddhiv1alpha1.SiddhiProcess, siddhiApp SiddhiApp, operatorEnvs map[string]string, configs Configs) (*appsv1.Deployment, error) {
-	labels := labelsForSiddhiProcess(sp.Name, operatorEnvs)
+	labels := labelsForSiddhiProcess(sp.Name, operatorEnvs, configs)
 	reqLogger := log.WithValues("Request.Namespace", sp.Namespace, "Request.Name", sp.Name)
 	replicas := int32(1)
 	query := sp.Spec.Query
@@ -115,9 +115,9 @@ func (rsp *ReconcileSiddhiProcess) deploymentForSiddhiProcess(sp *siddhiv1alpha1
 
 	} else if (query != "") && (len(sp.Spec.Apps) <= 0) {
 		query = strings.TrimSpace(query)
-		appName := getAppName(query)
+		appName := GetAppName(query)
 		configMapName := strings.ToLower(sp.Name) + "-siddhi"
-		configMapKey := getAppName(query) + ".siddhi"
+		configMapKey := GetAppName(query) + ".siddhi"
 		data := map[string]string{
 			configMapKey: query,
 		}
@@ -196,7 +196,7 @@ func (rsp *ReconcileSiddhiProcess) deploymentForSiddhiProcess(sp *siddhiv1alpha1
 	userID := int64(802)
 	sidddhiDeployment = &appsv1.Deployment{
 		TypeMeta: metav1.TypeMeta{
-			APIVersion: "apps/v1",
+			APIVersion: appsv1.SchemeGroupVersion.String(),
 			Kind:       "Deployment",
 		},
 		ObjectMeta: metav1.ObjectMeta{
@@ -243,8 +243,8 @@ func (rsp *ReconcileSiddhiProcess) deploymentForSiddhiProcess(sp *siddhiv1alpha1
 	return sidddhiDeployment, err
 }
 
-// getAppName return the app name for given siddhiAPP
-func getAppName(app string) (appName string) {
+// GetAppName return the app name for given siddhiAPP
+func GetAppName(app string) (appName string) {
 	re := regexp.MustCompile(".*@App:name\\(\"(.*)\"\\)")
 	match := re.FindStringSubmatch(app)
 	appName = match[1]

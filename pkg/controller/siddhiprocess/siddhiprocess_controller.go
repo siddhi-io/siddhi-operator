@@ -184,7 +184,7 @@ func (rsp *ReconcileSiddhiProcess) Reconcile(request reconcile.Request) (reconci
 	service := &corev1.Service{}
 	err = rsp.client.Get(context.TODO(), types.NamespacedName{Name: sp.Name, Namespace: sp.Namespace}, service)
 	if err != nil && errors.IsNotFound(err) {
-		siddhiService := rsp.serviceForSiddhiProcess(sp, siddhiApp, operatorEnvs)
+		siddhiService := rsp.serviceForSiddhiProcess(sp, siddhiApp, operatorEnvs, configs)
 		reqLogger.Info("Creating a new Service", "Service.Namespace", siddhiService.Namespace, "Service.Name", siddhiService.Name)
 		err = rsp.client.Create(context.TODO(), siddhiService)
 		if err != nil {
@@ -244,7 +244,7 @@ func (rsp *ReconcileSiddhiProcess) Reconcile(request reconcile.Request) (reconci
 	// Update the SiddhiProcess status with the pod names
 	// List the pods for this sp's deployment
 	podList := &corev1.PodList{}
-	labelSelector := labels.SelectorFromSet(labelsForSiddhiProcess(sp.Name, operatorEnvs))
+	labelSelector := labels.SelectorFromSet(labelsForSiddhiProcess(sp.Name, operatorEnvs, configs))
 	listOps := &client.ListOptions{Namespace: sp.Namespace, LabelSelector: labelSelector}
 	err = rsp.client.List(context.TODO(), listOps, podList)
 	if err != nil {
@@ -266,9 +266,9 @@ func (rsp *ReconcileSiddhiProcess) Reconcile(request reconcile.Request) (reconci
 
 // labelsForSiddhiProcess returns the labels for selecting the resources
 // belonging to the given sp CR name.
-func labelsForSiddhiProcess(appName string, operatorEnvs map[string]string) map[string]string {
-	operatorName := "siddhi-operator"
-	operatorVersion := "0.1.0"
+func labelsForSiddhiProcess(appName string, operatorEnvs map[string]string, configs Configs) map[string]string {
+	operatorName := configs.OperatorName
+	operatorVersion := configs.OperatorVersion
 	if operatorEnvs["OPERATOR_NAME"] != "" {
 		operatorName = operatorEnvs["OPERATOR_NAME"]
 	}
@@ -276,7 +276,7 @@ func labelsForSiddhiProcess(appName string, operatorEnvs map[string]string) map[
 		operatorVersion = operatorEnvs["OPERATOR_VERSION"]
 	}
 	return map[string]string{
-		"siddhi.io/name":     "SiddhiProcess",
+		"siddhi.io/name":     configs.CRDName,
 		"siddhi.io/instance": appName,
 		"siddhi.io/version":  operatorVersion,
 		"siddhi.io/part-of":  operatorName,
