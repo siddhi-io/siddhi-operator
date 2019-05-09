@@ -2,5 +2,10 @@
     "SiddhiHome": "/home/siddhi_user/siddhi-runner-0.1.0/",
     "SiddhiRunnerImage": "siddhiio/siddhi-runner-alpine",
     "SiddhiRunnerImageTag": "0.1.0",
-    "HostName": "siddhi"
+    "HostName": "siddhi",
+    "OperatorName": "siddhi-operator",
+    "OperatorVersion": "0.1.0",
+    "CRDName": "SiddhiProcess"
+
+
 }
