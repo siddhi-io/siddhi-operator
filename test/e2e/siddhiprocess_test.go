@@ -19,12 +19,15 @@
 package e2e
 
 import (
+	"bytes"
 	goctx "context"
+	"encoding/json"
 	framework "github.com/operator-framework/operator-sdk/pkg/test"
 	"github.com/operator-framework/operator-sdk/pkg/test/e2eutil"
 	"github.com/siddhi-io/siddhi-operator/pkg/apis"
 	siddhiv1alpha1 "github.com/siddhi-io/siddhi-operator/pkg/apis/siddhi/v1alpha1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"net/http"
 	"testing"
 	"time"
 )
@@ -35,6 +38,12 @@ var (
 	cleanupRetryInterval = time.Second * 1
 	cleanupTimeout       = time.Second * 5
 )
+
+type MonitorRequest struct {
+	Type     string `json:type`
+	DeviceID string `json:deviceID`
+	Power    int    `json:power`
+}
 
 func TestSiddhiProcess(t *testing.T) {
 	siddhiList := &siddhiv1alpha1.SiddhiProcessList{
@@ -115,6 +124,27 @@ func siddhiDeploymentTest(t *testing.T, f *framework.Framework, ctx *framework.T
 	if err != nil {
 		return err
 	}
+	reqObj := MonitorRequest{
+		Type:     "monitored",
+		DeviceID: "001",
+		Power:    343,
+	}
+	b, err := json.Marshal(reqObj)
+	if err != nil {
+		t.Errorf("JSON marshan error")
+		return err
+	}
+	url := "http://siddhi/monitor-app/8280/example"
+	var jsonStr = []byte(string(b))
+	req, err := http.NewRequest("POST", url, bytes.NewBuffer(jsonStr))
+	req.Header.Set("Content-Type", "application/json")
+	client := &http.Client{}
+	resp, err := client.Do(req)
+	if err != nil {
+		t.Errorf("REST invoking error %s", url)
+		return err
+	}
+	defer resp.Body.Close()
 	return nil
 }
 
