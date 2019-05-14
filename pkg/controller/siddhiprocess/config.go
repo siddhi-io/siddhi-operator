@@ -15,11 +15,18 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+
 package siddhiprocess
 
-import (
-	"encoding/json"
-	"os"
+// Default configs
+const (
+	SiddhiHome           string = "/home/siddhi_user/siddhi-runner-0.1.0/"
+	SiddhiRunnerImage    string = "siddhiio/siddhi-runner-alpine"
+	SiddhiRunnerImageTag string = "0.1.0"
+	HostName             string = "siddhi"
+	OperatorName         string = "siddhi-operator"
+	OperatorVersion      string = "0.1.1"
+	CRDName              string = "SiddhiProcess"
 )
 
 // Configs contains siddhi default configs
@@ -34,13 +41,14 @@ type Configs struct {
 }
 
 func configurations() Configs {
-	reqLogger := log.WithValues("Request.Namespace", "siddhi-operator")
-	configFile, _ := os.Open("config.json")
-	defer configFile.Close()
-	decoder := json.NewDecoder(configFile)
-	configs := Configs{}
-	if err := decoder.Decode(&configs); err != nil {
-		reqLogger.Error(err, "Config reader error")
+	configs := Configs{
+		SiddhiHome:           SiddhiHome,
+		SiddhiRunnerImage:    SiddhiRunnerImage,
+		SiddhiRunnerImageTag: SiddhiRunnerImageTag,
+		HostName:             HostName,
+		OperatorName:         OperatorName,
+		OperatorVersion:      OperatorVersion,
+		CRDName:              CRDName,
 	}
 	return configs
 }
