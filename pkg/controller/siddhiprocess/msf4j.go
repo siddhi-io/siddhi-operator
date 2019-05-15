@@ -40,6 +40,7 @@ type SiddhiApp struct {
 	Protocols []string `json:"protocols"`
 	TLS       []bool   `json:"tls"`
 	App       string   `json:"app"`
+	CreateSVC bool     `json:"createSVC"`
 }
 
 // TemplatedApp contains the templated siddhi app and relevant properties to pass into the parser service
@@ -59,6 +60,7 @@ type SourceDeploymentConfig struct {
 	ServiceProtocol string `json:"serviceProtocol"`
 	Secured         bool   `json:"secured"`
 	Port            int    `json:"port"`
+	Strategy        string `json:"strategy"`
 }
 
 // SourceList hold source list object
@@ -87,6 +89,7 @@ func (rsp *ReconcileSiddhiProcess) parseSiddhiApp(sp *siddhiv1alpha1.SiddhiProce
 	var tls []bool
 	url := "http://siddhi-parser." + sp.Namespace + ".svc.cluster.local:9090/siddhi-parser/parse"
 	configMapData := make(map[string]string)
+	createSVC := false
 	if (query == "") && (len(sp.Spec.Apps) > 0) {
 		var siddhiApps []string
 		for _, siddhiFileConfigMapName := range sp.Spec.Apps {
@@ -122,9 +125,12 @@ func (rsp *ReconcileSiddhiProcess) parseSiddhiApp(sp *siddhiv1alpha1.SiddhiProce
 			app := siddhiApp.SiddhiApp
 			appName := strings.TrimSpace(GetAppName(app)) + ".siddhi"
 			for _, deploymentConf := range siddhiApp.SiddhiSourceList.SourceDeploymentConfigs {
-				ports = append(ports, deploymentConf.Port)
-				protocols = append(protocols, deploymentConf.ServiceProtocol)
-				tls = append(tls, deploymentConf.Secured)
+				if deploymentConf.Strategy == Push {
+					createSVC = true
+					ports = append(ports, deploymentConf.Port)
+					protocols = append(protocols, deploymentConf.ServiceProtocol)
+					tls = append(tls, deploymentConf.Secured)
+				}
 			}
 			configMapData[appName] = app
 		}
@@ -146,6 +152,7 @@ func (rsp *ReconcileSiddhiProcess) parseSiddhiApp(sp *siddhiv1alpha1.SiddhiProce
 			Ports:     ports,
 			Protocols: protocols,
 			TLS:       tls,
+			CreateSVC: createSVC,
 		}
 	} else if (query != "") && (len(sp.Spec.Apps) <= 0) {
 		propertyMap := rsp.populateUserEnvs(sp)
@@ -174,9 +181,12 @@ func (rsp *ReconcileSiddhiProcess) parseSiddhiApp(sp *siddhiv1alpha1.SiddhiProce
 			app := siddhiApp.SiddhiApp
 			appName := strings.TrimSpace(GetAppName(app)) + ".siddhi"
 			for _, deploymentConf := range siddhiApp.SiddhiSourceList.SourceDeploymentConfigs {
-				ports = append(ports, deploymentConf.Port)
-				protocols = append(protocols, deploymentConf.ServiceProtocol)
-				tls = append(tls, deploymentConf.Secured)
+				if deploymentConf.Strategy == Push {
+					createSVC = true
+					ports = append(ports, deploymentConf.Port)
+					protocols = append(protocols, deploymentConf.ServiceProtocol)
+					tls = append(tls, deploymentConf.Secured)
+				}
 			}
 			configMapData[appName] = app
 		}
@@ -185,6 +195,7 @@ func (rsp *ReconcileSiddhiProcess) parseSiddhiApp(sp *siddhiv1alpha1.SiddhiProce
 			Ports:     ports,
 			Protocols: protocols,
 			TLS:       tls,
+			CreateSVC: createSVC,
 		}
 	} else if (query != "") && (len(sp.Spec.Apps) > 0) {
 		err = errors.New("CRD should only contain either query or app entry")
@@ -194,16 +205,6 @@ func (rsp *ReconcileSiddhiProcess) parseSiddhiApp(sp *siddhiv1alpha1.SiddhiProce
 	return siddhiAppStruct, err
 }
 
-// isIn used to find element in a given slice
-func isIn(slice []int, element int) bool {
-	for _, e := range slice {
-		if e == element {
-			return true
-		}
-	}
-	return false
-}
-
 // populateUserEnvs returns a map for the ENVs in CRD
 func (rsp *ReconcileSiddhiProcess) populateUserEnvs(sp *siddhiv1alpha1.SiddhiProcess) (envs map[string]string) {
 	envs = make(map[string]string)
@@ -211,6 +212,5 @@ func (rsp *ReconcileSiddhiProcess) populateUserEnvs(sp *siddhiv1alpha1.SiddhiPro
 	for _, env := range envStruct {
 		envs[env.Name] = env.Value
 	}
-
 	return envs
 }

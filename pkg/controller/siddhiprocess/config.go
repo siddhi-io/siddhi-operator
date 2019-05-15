@@ -29,6 +29,12 @@ const (
 	CRDName              string = "SiddhiProcess"
 )
 
+// Other constants
+const (
+	Push string = "PUSH"
+	Pull string = "PULL"
+)
+
 // Configs contains siddhi default configs
 type Configs struct {
 	SiddhiHome           string
