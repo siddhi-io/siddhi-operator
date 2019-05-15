@@ -3,6 +3,21 @@
 Siddhi Operator allows you to run stream processing logic directly on a Kubernetes cluster.
 To use it, you need to be connected to a cloud environment or to a local cluster created for development purposes.
 
+## Prerequisites
+### Run the Operator
+- Kubernetes v1.10.11+
+- [kubectl](https://kubernetes.io/docs/tasks/tools/install-kubectl/) version v1.11.3+
+
+### Build the Operator
+- [operator-sdk](https://github.com/operator-framework/operator-sdk/blob/master/doc/user/install-operator-sdk.md)
+- [dep](https://golang.github.io/dep/docs/installation.html) version v0.5.0+
+- [git](https://git-scm.com/downloads)
+- [go](https://golang.org/dl/) version v1.12+
+- [docker](https://docs.docker.com/install/) version 17.03+
+- [kubectl](https://kubernetes.io/docs/tasks/tools/install-kubectl/) version v1.11.3+
+- Access to a Kubernetes v1.11.3+ cluster
+
+
 ## Configure Kubernetes Cluster
 ### Local Deployment
 If you need help on how to create a local development environment based on *Minikube*,
@@ -134,3 +149,49 @@ In order to disable the automatic ingress creation, you can set **AUTO_INGRESS_C
    [2019-04-20 04:05:29,741]  INFO {io.siddhi.core.stream.output.sink.LogSink} - LOGGER : Event{timestamp=1555733129736, data=[monitored, 001, 39], isExpired=false}
    ```
 
+## Build from Source
+
+### Build the Operator
+
+Clone the operator.
+```
+$ mkdir $GOPATH/src/github.com/siddhi-io
+$ cd $GOPATH/src/github.com/siddhi-io
+$ git clone https://github.com/siddhi-io/siddhi-operator.git
+```
+
+Build the operator.
+```
+$ operator-sdk build <DOCKER_REGISTRY_URL>/<USER_NAME>/siddhi-operator:<TAG>
+```
+Here `DOCKER_REGISTRY_URL` can be `docker.io`.
+
+Push the operator.
+```
+$ docker push <DOCKER_REGISTRY_URL>/<USER_NAME>/siddhi-operator:<TAG>
+```
+Change image name of the `operator.yaml` file.
+```
+$ sed -i 's|docker.io/siddhiio/siddhi-operator:*|<DOCKER_REGISTRY_URL>/<USER_NAME>/siddhi-operator:<TAG>|g' deploy/operator.yaml
+```
+Now you can install the operator as describe in [previous installation](https://github.com/siddhi-io/siddhi-operator#install-siddhi-operator-in-kubernetes-cluster) section.
+
+### Test the Operator
+
+Run the E2E test.
+
+```
+$ kubectl create namespace operator-test
+$ kubectl create -f ./deploy/crds/siddhi_v1alpha1_siddhiprocess_crd.yaml --namespace operator-test
+$ kubectl create -f ./deploy/service_account.yaml --namespace operator-test
+$ kubectl create -f ./deploy/role.yaml --namespace operator-test
+$ kubectl create -f ./deploy/role_binding.yaml --namespace operator-test
+$ kubectl create -f ./deploy/operator.yaml --namespace operator-test
+$ operator-sdk test local ./test/e2e --namespace operator-test --no-setup
+```
+For more details about operator sdk tests, refer [this](https://github.com/operator-framework/operator-sdk/blob/master/doc/test-framework/writing-e2e-tests.md).
+
+Run the unit test.
+```
+$ go test ./test/unit/
+```

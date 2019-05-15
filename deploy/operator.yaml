@@ -31,7 +31,7 @@ spec:
             - name: OPERATOR_NAME
               value: siddhi-operator
             - name: OPERATOR_VERSION
-              value: 0.1.0
+              value: 0.1.1
             - name: SIDDHI_RUNNER_IMAGE
               value: siddhiio/siddhi-runner-alpine
             - name: SIDDHI_RUNNER_IMAGE_TAG
@@ -54,7 +54,6 @@ metadata:
     deployment.kubernetes.io/revision: "1"
   generation: 1
   name: siddhi-parser
-  namespace: default
 spec:
   progressDeadlineSeconds: 600
   replicas: 1
@@ -90,7 +89,6 @@ apiVersion: v1
 kind: Service
 metadata:
   name: siddhi-parser
-  namespace: default
 spec:
   externalTrafficPolicy: Cluster
   ports:
