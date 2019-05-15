@@ -19,16 +19,25 @@
 package siddhiprocess
 
 import (
-	appsv1 "k8s.io/api/apps/v1"
+	siddhiv1alpha1 "github.com/siddhi-io/siddhi-operator/pkg/apis/siddhi/v1alpha1"
+	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+
+	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 )
 
-// populateOperatorEnvs returns a map of ENVs in the operator deployment
-func (rsp *ReconcileSiddhiProcess) populateOperatorEnvs(operatorDeployment *appsv1.Deployment) (envs map[string]string) {
-	envs = make(map[string]string)
-	envStruct := operatorDeployment.Spec.Template.Spec.Containers[0].Env
-	for _, env := range envStruct {
-		envs[env.Name] = env.Value
+func (r *ReconcileSiddhiProcess) createConfigMap(sp *siddhiv1alpha1.SiddhiProcess, configMapName string, data map[string]string) *corev1.ConfigMap {
+	configMap := &corev1.ConfigMap{
+		TypeMeta: metav1.TypeMeta{
+			APIVersion: corev1.SchemeGroupVersion.String(),
+			Kind:       "ConfigMap",
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      configMapName,
+			Namespace: sp.Namespace,
+		},
+		Data: data,
 	}
-
-	return envs
+	controllerutil.SetControllerReference(sp, configMap, r.scheme)
+	return configMap
 }

@@ -16,19 +16,13 @@
  * under the License.
  */
 
-package siddhiprocess
+package e2e
 
 import (
-	appsv1 "k8s.io/api/apps/v1"
+	framework "github.com/operator-framework/operator-sdk/pkg/test"
+	"testing"
 )
 
-// populateOperatorEnvs returns a map of ENVs in the operator deployment
-func (rsp *ReconcileSiddhiProcess) populateOperatorEnvs(operatorDeployment *appsv1.Deployment) (envs map[string]string) {
-	envs = make(map[string]string)
-	envStruct := operatorDeployment.Spec.Template.Spec.Containers[0].Env
-	for _, env := range envStruct {
-		envs[env.Name] = env.Value
-	}
-
-	return envs
+func TestMain(m *testing.M) {
+	framework.MainEntry(m)
 }

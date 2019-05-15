@@ -15,7 +15,7 @@ spec:
       serviceAccountName: siddhi-operator
       containers:
         - name: siddhi-operator
-          image: docker.io/siddhiio/siddhi-operator:0.1.0
+          image: docker.io/siddhiio/siddhi-operator:0.1.1
           command:
           - siddhi-operator
           imagePullPolicy: Always
@@ -76,7 +76,7 @@ spec:
         version: 1.0.0
     spec:
       containers:
-      - image: siddhiio/siddhi-parser:0.1.0
+      - image: siddhiio/siddhi-parser-alpine:0.1.1
         imagePullPolicy: IfNotPresent
         name: siddhirunner-msf4j
         ports:
