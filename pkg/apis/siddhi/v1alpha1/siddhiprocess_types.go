@@ -49,6 +49,7 @@ type SiddhiProcessSpec struct {
 	EnviromentVariables []EnviromentVariable `json:"env"`
 	SiddhiIngressTLS TLS `json:"tls"`
 	SiddhiPod Pod `json:"pod"`
+	DeploymentMode string `json:"deployment.mode"`
 }
 
 // SiddhiProcessStatus defines the observed state of SiddhiProcess

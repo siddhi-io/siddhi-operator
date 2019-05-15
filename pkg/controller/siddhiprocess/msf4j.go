@@ -205,6 +205,89 @@ func (rsp *ReconcileSiddhiProcess) parseSiddhiApp(sp *siddhiv1alpha1.SiddhiProce
 	return siddhiAppStruct, err
 }
 
+// parseFailoverApp call MSF4J service and parse a given siddhiApp
+func (rsp *ReconcileSiddhiProcess) parseFailoverApp(sp *siddhiv1alpha1.SiddhiProcess) (siddhiAppStruct SiddhiApp, err error) {
+	reqLogger := log.WithValues("Request.Namespace", sp.Namespace, "Request.Name", sp.Name)
+	var resp *http.Response
+	var ports []int
+	var protocols []string
+	var tls []bool
+	url := "http://siddhi-parser." + sp.Namespace + ".svc.cluster.local:9090/siddhi-parser/parse"
+	url = "http://0.0.0.0:9095/siddhi-parser/nats1"
+	configMapData := make(map[string]string)
+	var siddhiApps []string
+	for _, siddhiFileConfigMapName := range sp.Spec.Apps {
+		configMap := &corev1.ConfigMap{}
+		rsp.client.Get(context.TODO(), types.NamespacedName{Name: siddhiFileConfigMapName, Namespace: sp.Namespace}, configMap)
+		for _, siddhiFileContent := range configMap.Data {
+			siddhiApps = append(siddhiApps, siddhiFileContent)
+		}
+	}
+	propertyMap := rsp.populateUserEnvs(sp)
+	siddhiParserRequest := SiddhiParserRequest{
+		SiddhiApps:  siddhiApps,
+		PropertyMap: propertyMap,
+	}
+	var siddhiParserResponse SiddhiParserResponse
+	b, err := json.Marshal(siddhiParserRequest)
+	if err != nil {
+		reqLogger.Error(err, "JSON marshal error in apps config maps")
+		return siddhiAppStruct, err
+	}
+	var jsonStr = []byte(string(b))
+	req, err := http.NewRequest("POST", url, bytes.NewBuffer(jsonStr))
+	req.Header.Set("Content-Type", "application/json")
+	client := &http.Client{}
+	resp, err = client.Do(req)
+	if err != nil {
+		reqLogger.Error(err, "REST invoking error")
+		return siddhiAppStruct, err
+	}
+	defer resp.Body.Close()
+	json.NewDecoder(resp.Body).Decode(&siddhiParserResponse)
+	for _, siddhiApp := range siddhiParserResponse.AppConfig {
+		app := siddhiApp.SiddhiApp
+		appName := strings.TrimSpace(GetAppName(app)) + ".siddhi"
+		for _, deploymentConf := range siddhiApp.SiddhiSourceList.SourceDeploymentConfigs {
+			ports = append(ports, deploymentConf.Port)
+			protocols = append(protocols, deploymentConf.ServiceProtocol)
+			tls = append(tls, deploymentConf.Secured)
+		}
+		configMapData[appName] = app
+	}
+	configMap := &corev1.ConfigMap{}
+	configMapName := strings.ToLower(sp.Name) + "-siddhi"
+	err = rsp.client.Get(context.TODO(), types.NamespacedName{Name: configMapName, Namespace: sp.Namespace}, configMap)
+	if err != nil && apierrors.IsNotFound(err) {
+		configMap = rsp.createConfigMap(sp, configMapName, configMapData)
+		reqLogger.Info("Creating a new CM", "CM.Namespace", configMap.Namespace, "CM.Name", configMap.Name)
+		err = rsp.client.Create(context.TODO(), configMap)
+		if err != nil {
+			reqLogger.Error(err, "Failed to create new CM", "CM.Namespace", configMap.Namespace, "CM.Name", configMap.Name)
+		}
+	} else if err != nil {
+		reqLogger.Error(err, "Failed to get CM")
+	}
+	siddhiAppStruct = SiddhiApp{
+		Name:      strings.ToLower(sp.Name),
+		Ports:     ports,
+		Protocols: protocols,
+		TLS:       tls,
+	}
+	
+	return siddhiAppStruct, err
+}
+
+// isIn used to find element in a given slice
+func isIn(slice []int, element int) bool {
+	for _, e := range slice {
+		if e == element {
+			return true
+		}
+	}
+	return false
+}
+
 // populateUserEnvs returns a map for the ENVs in CRD
 func (rsp *ReconcileSiddhiProcess) populateUserEnvs(sp *siddhiv1alpha1.SiddhiProcess) (envs map[string]string) {
 	envs = make(map[string]string)

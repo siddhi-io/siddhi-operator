@@ -33,6 +33,8 @@ const (
 const (
 	Push string = "PUSH"
 	Pull string = "PULL"
+	Failover string = "failover"
+	Distributed string = "distributed"
 )
 
 // Configs contains siddhi default configs

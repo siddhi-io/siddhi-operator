@@ -133,10 +133,18 @@ func (rsp *ReconcileSiddhiProcess) Reconcile(request reconcile.Request) (reconci
 	}
 
 	var siddhiApp SiddhiApp
-	siddhiApp, err = rsp.parseSiddhiApp(sp)
-	if err != nil {
-		reqLogger.Error(err, err.Error())
-		return reconcile.Result{}, err
+	if sp.Spec.DeploymentMode == Failover {
+		siddhiApp, err = rsp.parseSiddhiApp(sp)
+		if err != nil {
+			reqLogger.Error(err, err.Error())
+			return reconcile.Result{}, err
+		}
+	} else {
+		siddhiApp, err = rsp.parseSiddhiApp(sp)
+		if err != nil {
+			reqLogger.Error(err, err.Error())
+			return reconcile.Result{}, err
+		}
 	}
 
 	// Check if the deployment already exists, if not create a new one
