@@ -19,8 +19,8 @@
 package unit
 
 import (
-	"testing"
 	sp "github.com/siddhi-io/siddhi-operator/pkg/controller/siddhiprocess"
+	"testing"
 )
 
 func TestGetAppName(t *testing.T) {
@@ -37,8 +37,8 @@ func TestGetAppName(t *testing.T) {
     select deviceID, power
     insert into MonitorDevicesPowerStream;`
 
-    appName := sp.GetAppName(app)
-    if appName != "MonitorApp" {
-        t.Error("GetAppName function fails. Expected but found ")
-    } 
+	appName := sp.GetAppName(app)
+	if appName != "MonitorApp" {
+		t.Error("GetAppName function fails. Expected but found ")
+	}
 }
