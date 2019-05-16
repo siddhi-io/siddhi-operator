@@ -75,7 +75,7 @@ spec:
         version: 1.0.0
     spec:
       containers:
-      - image: siddhiio/siddhi-parser-alpine:0.1.1
+      - image: siddhiio/siddhi-parser:0.1.1
         imagePullPolicy: IfNotPresent
         name: siddhirunner-msf4j
         ports:
