@@ -4,11 +4,11 @@ Siddhi Operator allows you to run stream processing logic directly on a Kubernet
 To use it, you need to be connected to a cloud environment or to a local cluster created for development purposes.
 
 ## Prerequisites
-### Run the Operator
+### Running the Operator
 - Kubernetes v1.10.11+
 - [kubectl](https://kubernetes.io/docs/tasks/tools/install-kubectl/) version v1.11.3+
 
-### Build the Operator
+### Building the Operator
 - [operator-sdk](https://github.com/operator-framework/operator-sdk/blob/master/doc/user/install-operator-sdk.md)
 - [dep](https://golang.github.io/dep/docs/installation.html) version v0.5.0+
 - [git](https://git-scm.com/downloads)
@@ -153,20 +153,19 @@ In order to disable the automatic ingress creation, you can set **AUTO_INGRESS_C
 
 ### Build the Operator
 
-Clone the operator.
+Clone the operator source repository by executing the below commands.
 ```
 $ mkdir $GOPATH/src/github.com/siddhi-io
 $ cd $GOPATH/src/github.com/siddhi-io
 $ git clone https://github.com/siddhi-io/siddhi-operator.git
 ```
 
-Build the operator.
+Build the operator by executing the below command. Replace `DOCKER_REGISTRY_URL` with your private/public docker repository URL where you'll be hosting the Siddhi Operator image.
 ```
 $ operator-sdk build <DOCKER_REGISTRY_URL>/<USER_NAME>/siddhi-operator:<TAG>
 ```
-Here `DOCKER_REGISTRY_URL` can be `docker.io`.
 
-Push the operator.
+Push the operator as follow.
 ```
 $ docker push <DOCKER_REGISTRY_URL>/<USER_NAME>/siddhi-operator:<TAG>
 ```
@@ -178,7 +177,8 @@ Now you can install the operator as describe in [previous installation](https://
 
 ### Test the Operator
 
-Run the E2E test.
+If you have manually made any changes to the Operator, you can verify its functionality with the E2E tests.
+Execute the below commands to set up the needed infrastructure for the test-cases.
 
 ```
 $ kubectl create namespace operator-test
@@ -191,7 +191,7 @@ $ operator-sdk test local ./test/e2e --namespace operator-test --no-setup
 ```
 For more details about operator sdk tests, refer [this](https://github.com/operator-framework/operator-sdk/blob/master/doc/test-framework/writing-e2e-tests.md).
 
-Run the unit test.
+Execute the below command to start the unit tests.
 ```
 $ go test ./test/unit/
 ```

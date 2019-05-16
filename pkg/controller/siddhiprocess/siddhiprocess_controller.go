@@ -196,7 +196,7 @@ func (rsp *ReconcileSiddhiProcess) Reconcile(request reconcile.Request) (reconci
 			sp.Status.Status = getStatus(RUNNING)
 			err = rsp.client.Status().Update(context.TODO(), sp)
 			if err != nil {
-				reqLogger.Error(err, "Failed to update SiddhiProcess status")
+				reqLogger.Error(err, "Failed to update SiddhiProcess status", "Service.Namespace", siddhiService.Namespace, "Service.Name", siddhiService.Name)
 				sp.Status.Status = getStatus(ERROR)
 			}
 			return reconcile.Result{Requeue: true}, nil
@@ -237,12 +237,17 @@ func (rsp *ReconcileSiddhiProcess) Reconcile(request reconcile.Request) (reconci
 				reqLogger.Info("Ingress updated successfully")
 				return reconcile.Result{Requeue: true}, nil
 			} else if err != nil {
-				reqLogger.Error(err, "Failed to get Ingress")
+				reqLogger.Error(err, "Failed to get the Ingress", "Ingress.Namespace", sp.Namespace, "Ingress.Name", "siddhi")
 				return reconcile.Result{}, err
 			}
 		}
 	}
-
+	sp.Status.Status = getStatus(RUNNING)
+	err = rsp.client.Status().Update(context.TODO(), sp)
+	if err != nil {
+		reqLogger.Error(err, "Failed to update SiddhiProcess status", "SiddhiProcess.Namespace", sp.Namespace, "SiddhiProcess.Name", sp.Name)
+		sp.Status.Status = getStatus(ERROR)
+	}
 	// Update the SiddhiProcess status with the pod names
 	// List the pods for this sp's deployment
 	podList := &corev1.PodList{}
