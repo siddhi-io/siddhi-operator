@@ -20,8 +20,12 @@ To use it, you need to be connected to a cloud environment or to a local cluster
 
 ## Configure Kubernetes Cluster
 ### Local Deployment
-If you need help on how to create a local development environment based on *Minikube*,
-   -  Refer: [Minikube Installation Guide](https://github.com/kubernetes/minikube#installation).
+
+#### Minikube
+Refer [Minikube Installation Guide](https://github.com/kubernetes/minikube#installation) to setup a local kubernetes cluster with *Minikube*.
+
+#### Docker for Mac 
+Refer [Docker for Mac Installation Guide](https://docs.docker.com/docker-for-mac/install/) setup a local kubernetes cluster with Docker for Mac.
 
 ### Google Kubernetes Engine Cluster
 
