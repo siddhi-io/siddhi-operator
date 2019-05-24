@@ -42,7 +42,7 @@ func (rsp *ReconcileSiddhiProcess) deployApp(sp *siddhiv1alpha1.SiddhiProcess, s
 	reqLogger := log.WithValues("Request.Namespace", sp.Namespace, "Request.Name", sp.Name)
 	replicas := int32(1)
 	siddhiConfig := sp.Spec.SiddhiConfig
-	deploymentYAMLConfigMapName := sp.Name + "-deployment.yaml"
+	deployYAMLCMName := sp.Name + "-deployment.yaml"
 	siddhiHome := configs.SiddhiHome
 	siddhiRunnerImageName := configs.SiddhiRunnerImage
 	siddhiRunnerImagetag := configs.SiddhiRunnerImageTag
@@ -78,9 +78,28 @@ func (rsp *ReconcileSiddhiProcess) deployApp(sp *siddhiv1alpha1.SiddhiProcess, s
 			imagePullSecrets = append(imagePullSecrets, secret)
 		}
 	}
-
-	if (sp.Spec.DeploymentConfigs.PersistenceVolume == siddhiv1alpha1.PersistenceVolume{}) {
-
+	q := siddhiv1alpha1.PersistenceVolume{}
+	if !(sp.Spec.DeploymentConfigs.PersistenceVolume.Equals(&q)) {
+		err = rsp.createPVC(sp, configs)
+		if err != nil {
+			reqLogger.Error(err, "Failed to create new PVC", "PVC.Namespace", sp.Namespace, "PVC.Name", sp.Name)
+		} else {
+			pvcName := sp.Name + configs.PVCExt
+			volume := corev1.Volume{
+				Name: pvcName,
+				VolumeSource: corev1.VolumeSource{
+					PersistentVolumeClaim: &corev1.PersistentVolumeClaimVolumeSource{
+						ClaimName: pvcName,
+					},
+				},
+			}
+			volumes = append(volumes, volume)
+			volumeMount := corev1.VolumeMount{
+				Name:      pvcName,
+				MountPath: siddhiHome + configs.FilePersistentPath,
+			}
+			volumeMounts = append(volumeMounts, volumeMount)
+		}
 	}
 
 	for _, port := range siddhiApp.Ports {
@@ -120,18 +139,18 @@ func (rsp *ReconcileSiddhiProcess) deployApp(sp *siddhiv1alpha1.SiddhiProcess, s
 	configParameter := ""
 	if siddhiConfig != "" {
 		data := map[string]string{
-			deploymentYAMLConfigMapName: siddhiConfig,
+			deployYAMLCMName: siddhiConfig,
 		}
-		err = rsp.createConfigMap(sp, deploymentYAMLConfigMapName, data)
+		err = rsp.createConfigMap(sp, deployYAMLCMName, data)
 		if err != nil {
-			reqLogger.Error(err, "Failed to create new ConfigMap", "ConfigMap.Namespace", sp.Namespace, "ConfigMap.Name", deploymentYAMLConfigMapName)
+			reqLogger.Error(err, "Failed to create new ConfigMap", "ConfigMap.Namespace", sp.Namespace, "ConfigMap.Name", deployYAMLCMName)
 		} else {
 			volume := corev1.Volume{
 				Name: configs.DepConfigName,
 				VolumeSource: corev1.VolumeSource{
 					ConfigMap: &corev1.ConfigMapVolumeSource{
 						LocalObjectReference: corev1.LocalObjectReference{
-							Name: deploymentYAMLConfigMapName,
+							Name: deployYAMLCMName,
 						},
 					},
 				},
@@ -144,7 +163,7 @@ func (rsp *ReconcileSiddhiProcess) deployApp(sp *siddhiv1alpha1.SiddhiProcess, s
 			}
 			volumeMounts = append(volumeMounts, volumeMount)
 		}
-		configParameter = configs.DepConfParameter + siddhiHome + configs.DepConfMountPath + deploymentYAMLConfigMapName
+		configParameter = configs.DepConfParameter + siddhiHome + configs.DepConfMountPath + deployYAMLCMName
 	}
 
 	if len(sp.Spec.EnviromentVariables) > 0 {

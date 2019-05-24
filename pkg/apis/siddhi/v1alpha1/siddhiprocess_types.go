@@ -52,10 +52,10 @@ type PVCResource struct {
 
 // PersistenceVolume contains the configurations of the persistence volume
 type PersistenceVolume struct {
-	AccessMode string      `json:"access.mode"`
-	VolumeMode string      `json:"volume.mode"`
-	Class      string      `json:"class"`
-	Resources  PVCResource `json:"resources"`
+	AccessModes []string    `json:"access.modes"`
+	VolumeMode  string      `json:"volume.mode"`
+	Class       string      `json:"class"`
+	Resources   PVCResource `json:"resources"`
 }
 
 // MessagingSystemConfig contains the configs of the messaging layer

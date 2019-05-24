@@ -36,6 +36,11 @@ const (
 	OperatorName         string = "siddhi-operator"
 	OperatorVersion      string = "0.1.1"
 	CRDName              string = "SiddhiProcess"
+	ReadWriteOnce        string = "ReadWriteOnce"
+	ReadOnlyMany         string = "ReadOnlyMany"
+	ReadWriteMany        string = "ReadWriteMany"
+	PVCExt               string = "-pvc"
+	FilePersistentPath   string = "siddhi-app-persistence"
 )
 
 // Other constants
@@ -64,6 +69,11 @@ type Configs struct {
 	OperatorName         string
 	OperatorVersion      string
 	CRDName              string
+	ReadWriteOnce        string
+	ReadOnlyMany         string
+	ReadWriteMany        string
+	PVCExt               string
+	FilePersistentPath   string
 }
 
 func configurations() Configs {
@@ -84,6 +94,11 @@ func configurations() Configs {
 		OperatorName:         OperatorName,
 		OperatorVersion:      OperatorVersion,
 		CRDName:              CRDName,
+		ReadWriteOnce:        ReadWriteOnce,
+		ReadOnlyMany:         ReadOnlyMany,
+		ReadWriteMany:        ReadWriteMany,
+		PVCExt:               PVCExt,
+		FilePersistentPath:   FilePersistentPath,
 	}
 	return configs
 }

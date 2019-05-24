@@ -264,7 +264,7 @@ func (rsp *ReconcileSiddhiProcess) Reconcile(request reconcile.Request) (reconci
 				return reconcile.Result{Requeue: true}, nil
 			} else if err == nil {
 				siddhiIngress := rsp.updatedLoadBalancerForSiddhiProcess(sp, ingress, siddhiApp, configs)
-				reqLogger.Info("Updating a new Ingress", "Ingress.Namespace", siddhiIngress.Namespace, "Ingress.Name", siddhiIngress.Name)
+				reqLogger.Info("Updating Ingress", "Ingress.Namespace", siddhiIngress.Namespace, "Ingress.Name", siddhiIngress.Name)
 				err = rsp.client.Update(context.TODO(), siddhiIngress)
 				if err != nil {
 					reqLogger.Error(err, "Failed to updated new Ingress", "Ingress.Namespace", siddhiIngress.Namespace, "Ingress.Name", siddhiIngress.Name)
