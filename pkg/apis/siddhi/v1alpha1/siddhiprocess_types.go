@@ -23,40 +23,77 @@ import (
 )
 
 // EnviromentVariable to store env name and value
-type EnviromentVariable struct{
-	Name string `json:"name"`
+type EnviromentVariable struct {
+	Name  string `json:"name"`
 	Value string `json:"value"`
 }
 
 // TLS contains the TLS configuration of ingress
-type TLS struct{
+type TLS struct {
 	SecretName string `json:"ingressSecret"`
 }
 
 // Pod contains the POD details
-type Pod struct{
-	Image string `json:"image"`
-	ImageTag string `json:"imageTag"`
+type Pod struct {
+	Image           string `json:"image"`
+	ImageTag        string `json:"imageTag"`
 	ImagePullSecret string `json:"imagePullSecret"`
+}
+
+// PVCRequest hold resource details of the PVC
+type PVCRequest struct {
+	Storage string `json:"storage"`
+}
+
+// PVCResource contains PVC resource details
+type PVCResource struct {
+	Requests PVCRequest `json:"requests"`
+}
+
+// PersistenceVolume contains the configurations of the persistence volume
+type PersistenceVolume struct {
+	AccessMode string      `json:"access.mode"`
+	VolumeMode string      `json:"volume.mode"`
+	Class      string      `json:"class"`
+	Resources  PVCResource `json:"resources"`
+}
+
+// MessagingSystemConfig contains the configs of the messaging layer
+type MessagingSystemConfig struct {
+	ClusterID        string   `json:"cluster.id"`
+	BootstrapServers []string `json:"bootstrap.servers"`
+}
+
+// MessagingSystem contains the details about the messaging layer
+type MessagingSystem struct {
+	Type   string                `json:"type"`
+	Config MessagingSystemConfig `json:"config"`
+}
+
+// DeploymentConfigs contains the config details of the SiddhiProcess deployment
+type DeploymentConfigs struct {
+	Mode              string            `json:"mode"`
+	MessagingSystem   MessagingSystem   `json:"messaging.system"`
+	PersistenceVolume PersistenceVolume `json:"persistence.volume"`
 }
 
 // SiddhiProcessSpec defines the desired state of SiddhiProcess
 // +k8s:openapi-gen=true
 type SiddhiProcessSpec struct {
-	Apps []string `json:"apps"`
-	Query string `json:"query"`
-	SiddhiConfig string `json:"siddhi.runner.configs"`
+	Apps                []string             `json:"apps"`
+	Query               string               `json:"query"`
+	SiddhiConfig        string               `json:"siddhi.runner.configs"`
 	EnviromentVariables []EnviromentVariable `json:"env"`
-	SiddhiIngressTLS TLS `json:"tls"`
-	SiddhiPod Pod `json:"pod"`
-	DeploymentMode string `json:"deployment.mode"`
+	SiddhiIngressTLS    TLS                  `json:"tls"`
+	SiddhiPod           Pod                  `json:"pod"`
+	DeploymentConfigs   DeploymentConfigs    `json:"deployment.configs"`
 }
 
 // SiddhiProcessStatus defines the observed state of SiddhiProcess
 // +k8s:openapi-gen=true
 type SiddhiProcessStatus struct {
-	Nodes []string `json:"nodes"`
-	Status string `json:"status"`
+	Nodes  []string `json:"nodes"`
+	Status string   `json:"status"`
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object

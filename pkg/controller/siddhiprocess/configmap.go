@@ -19,25 +19,32 @@
 package siddhiprocess
 
 import (
+	"context"
 	siddhiv1alpha1 "github.com/siddhi-io/siddhi-operator/pkg/apis/siddhi/v1alpha1"
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-
+	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 )
 
-func (r *ReconcileSiddhiProcess) createConfigMap(sp *siddhiv1alpha1.SiddhiProcess, configMapName string, data map[string]string) *corev1.ConfigMap {
-	configMap := &corev1.ConfigMap{
-		TypeMeta: metav1.TypeMeta{
-			APIVersion: corev1.SchemeGroupVersion.String(),
-			Kind:       "ConfigMap",
-		},
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      configMapName,
-			Namespace: sp.Namespace,
-		},
-		Data: data,
+func (rsp *ReconcileSiddhiProcess) createConfigMap(sp *siddhiv1alpha1.SiddhiProcess, configMapName string, data map[string]string) error {
+	configMap := &corev1.ConfigMap{}
+	err := rsp.client.Get(context.TODO(), types.NamespacedName{Name: configMapName, Namespace: sp.Namespace}, configMap)
+	if err != nil && errors.IsNotFound(err) {
+		configMap = &corev1.ConfigMap{
+			TypeMeta: metav1.TypeMeta{
+				APIVersion: corev1.SchemeGroupVersion.String(),
+				Kind:       "ConfigMap",
+			},
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      configMapName,
+				Namespace: sp.Namespace,
+			},
+			Data: data,
+		}
+		controllerutil.SetControllerReference(sp, configMap, rsp.scheme)
+		err = rsp.client.Create(context.TODO(), configMap)
 	}
-	controllerutil.SetControllerReference(sp, configMap, r.scheme)
-	return configMap
+	return err
 }

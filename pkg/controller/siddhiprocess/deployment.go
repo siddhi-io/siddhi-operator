@@ -19,8 +19,6 @@
 package siddhiprocess
 
 import (
-	"context"
-	"errors"
 	"regexp"
 	"strings"
 
@@ -29,28 +27,26 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 )
 
-// deploymentForMSiddhiProcess returns a sp Deployment object
-func (rsp *ReconcileSiddhiProcess) deploymentForSiddhiProcess(sp *siddhiv1alpha1.SiddhiProcess, siddhiApp SiddhiApp, operatorEnvs map[string]string, configs Configs) (*appsv1.Deployment, error) {
-	labels := labelsForSiddhiProcess(sp.Name, operatorEnvs, configs)
-	reqLogger := log.WithValues("Request.Namespace", sp.Namespace, "Request.Name", sp.Name)
-	replicas := int32(1)
-	query := sp.Spec.Query
-	siddhiConfig := sp.Spec.SiddhiConfig
-	deploymentYAMLConfigMapName := sp.Name + "-deployment.yaml"
-	siddhiHome := configs.SiddhiHome
-	siddhiRunnerImageName := configs.SiddhiRunnerImage
-	siddhiRunnerImagetag := configs.SiddhiRunnerImageTag
+// deployApp returns a sp Deployment object
+func (rsp *ReconcileSiddhiProcess) deployApp(sp *siddhiv1alpha1.SiddhiProcess, siddhiApp SiddhiApp, operatorEnvs map[string]string, configs Configs) (*appsv1.Deployment, error) {
 	var volumes []corev1.Volume
 	var volumeMounts []corev1.VolumeMount
 	var imagePullSecrets []corev1.LocalObjectReference
 	var enviromentVariables []corev1.EnvVar
 	var containerPorts []corev1.ContainerPort
 	var err error
-	var sidddhiDeployment *appsv1.Deployment
+	configMapData := make(map[string]string)
+	reqLogger := log.WithValues("Request.Namespace", sp.Namespace, "Request.Name", sp.Name)
+	replicas := int32(1)
+	siddhiConfig := sp.Spec.SiddhiConfig
+	deploymentYAMLConfigMapName := sp.Name + "-deployment.yaml"
+	siddhiHome := configs.SiddhiHome
+	siddhiRunnerImageName := configs.SiddhiRunnerImage
+	siddhiRunnerImagetag := configs.SiddhiRunnerImageTag
+	labels := labelsForSiddhiProcess(sp.Name, operatorEnvs, configs)
 
 	if operatorEnvs["SIDDHI_RUNNER_HOME"] != "" {
 		siddhiHome = strings.TrimSpace(operatorEnvs["SIDDHI_RUNNER_HOME"])
@@ -62,7 +58,6 @@ func (rsp *ReconcileSiddhiProcess) deploymentForSiddhiProcess(sp *siddhiv1alpha1
 		siddhiRunnerImagetag = strings.TrimSpace(operatorEnvs["SIDDHI_RUNNER_IMAGE_TAG"])
 	}
 	siddhiRunnerImage := siddhiRunnerImageName + ":" + siddhiRunnerImagetag
-
 	if operatorEnvs["SIDDHI_RUNNER_IMAGE_SECRET"] != "" {
 		siddhiRunnerImageSecret := strings.TrimSpace(operatorEnvs["SIDDHI_RUNNER_IMAGE_SECRET"])
 		secret := corev1.LocalObjectReference{
@@ -70,6 +65,7 @@ func (rsp *ReconcileSiddhiProcess) deploymentForSiddhiProcess(sp *siddhiv1alpha1
 		}
 		imagePullSecrets = append(imagePullSecrets, secret)
 	}
+
 	if (sp.Spec.SiddhiPod.Image != "") && (sp.Spec.SiddhiPod.ImageTag != "") {
 		siddhiRunnerImageName = strings.TrimSpace(sp.Spec.SiddhiPod.Image)
 		siddhiRunnerImagetag = strings.TrimSpace(sp.Spec.SiddhiPod.ImageTag)
@@ -82,17 +78,27 @@ func (rsp *ReconcileSiddhiProcess) deploymentForSiddhiProcess(sp *siddhiv1alpha1
 			imagePullSecrets = append(imagePullSecrets, secret)
 		}
 	}
+
+	if (sp.Spec.DeploymentConfigs.PersistenceVolume == siddhiv1alpha1.PersistenceVolume{}) {
+
+	}
+
 	for _, port := range siddhiApp.Ports {
 		containerPort := corev1.ContainerPort{
 			ContainerPort: int32(port),
 		}
 		containerPorts = append(containerPorts, containerPort)
 	}
-	if (query == "") && (len(sp.Spec.Apps) > 0) {
 
-		configMap := &corev1.ConfigMap{}
-		configMapName := strings.ToLower(sp.Name) + "-siddhi"
-		rsp.client.Get(context.TODO(), types.NamespacedName{Name: configMapName, Namespace: sp.Namespace}, configMap)
+	configMapName := strings.ToLower(siddhiApp.Name) + configs.SiddhiCMExt
+	for k, v := range siddhiApp.Apps {
+		key := k + configs.SiddhiExt
+		configMapData[key] = v
+	}
+	err = rsp.createConfigMap(sp, configMapName, configMapData)
+	if err != nil {
+		reqLogger.Error(err, "Failed to create new ConfigMap", "ConfigMap.Namespace", sp.Namespace, "ConfigMap.Name", configMapName)
+	} else {
 		volume := corev1.Volume{
 			Name: configMapName,
 			VolumeSource: corev1.VolumeSource{
@@ -104,52 +110,11 @@ func (rsp *ReconcileSiddhiProcess) deploymentForSiddhiProcess(sp *siddhiv1alpha1
 			},
 		}
 		volumes = append(volumes, volume)
-		for siddhiFileName := range configMap.Data {
-			volumeMount := corev1.VolumeMount{
-				Name:      configMapName,
-				MountPath: siddhiHome + "wso2/runner/deployment/siddhi-files/" + siddhiFileName,
-				SubPath:   siddhiFileName,
-			}
-			volumeMounts = append(volumeMounts, volumeMount)
+		volumeMount := corev1.VolumeMount{
+			Name:      configMapName,
+			MountPath: siddhiHome + configs.SiddhiFileRPath,
 		}
-
-	} else if (query != "") && (len(sp.Spec.Apps) <= 0) {
-		query = strings.TrimSpace(query)
-		appName := GetAppName(query)
-		configMapName := strings.ToLower(sp.Name) + "-siddhi"
-		configMapKey := GetAppName(query) + ".siddhi"
-		data := map[string]string{
-			configMapKey: query,
-		}
-		configMap := rsp.createConfigMap(sp, configMapName, data)
-		reqLogger.Info("Creating a new ConfigMap", "ConfigMap.Namespace", configMap.Namespace, "ConfigMap.Name", configMap.Name)
-		err := rsp.client.Create(context.TODO(), configMap)
-		if err != nil {
-			reqLogger.Error(err, "Failed to create new ConfigMap", "ConfigMap.Namespace", configMap.Namespace, "ConfigMap.Name", configMap.Name)
-		} else {
-			volume := corev1.Volume{
-				Name: configMapName,
-				VolumeSource: corev1.VolumeSource{
-					ConfigMap: &corev1.ConfigMapVolumeSource{
-						LocalObjectReference: corev1.LocalObjectReference{
-							Name: configMapName,
-						},
-					},
-				},
-			}
-			volumes = append(volumes, volume)
-
-			volumeMount := corev1.VolumeMount{
-				Name:      configMapName,
-				MountPath: siddhiHome + "wso2/runner/deployment/siddhi-files/" + appName + ".siddhi",
-				SubPath:   appName + ".siddhi",
-			}
-			volumeMounts = append(volumeMounts, volumeMount)
-		}
-	} else if (query != "") && (len(sp.Spec.Apps) > 0) {
-		err = errors.New("CRD should only contain either query or app entry")
-	} else {
-		err = errors.New("CRD must have either query or app entry to deploy siddhi apps")
+		volumeMounts = append(volumeMounts, volumeMount)
 	}
 
 	configParameter := ""
@@ -157,14 +122,12 @@ func (rsp *ReconcileSiddhiProcess) deploymentForSiddhiProcess(sp *siddhiv1alpha1
 		data := map[string]string{
 			deploymentYAMLConfigMapName: siddhiConfig,
 		}
-		configMap := rsp.createConfigMap(sp, deploymentYAMLConfigMapName, data)
-		reqLogger.Info("Creating a new ConfigMap", "ConfigMap.Namespace", configMap.Namespace, "ConfigMap.Name", configMap.Name)
-		err := rsp.client.Create(context.TODO(), configMap)
+		err = rsp.createConfigMap(sp, deploymentYAMLConfigMapName, data)
 		if err != nil {
-			reqLogger.Error(err, "Failed to create new ConfigMap", "ConfigMap.Namespace", configMap.Namespace, "ConfigMap.Name", configMap.Name)
+			reqLogger.Error(err, "Failed to create new ConfigMap", "ConfigMap.Namespace", sp.Namespace, "ConfigMap.Name", deploymentYAMLConfigMapName)
 		} else {
 			volume := corev1.Volume{
-				Name: "deploymentconfig",
+				Name: configs.DepConfigName,
 				VolumeSource: corev1.VolumeSource{
 					ConfigMap: &corev1.ConfigMapVolumeSource{
 						LocalObjectReference: corev1.LocalObjectReference{
@@ -176,12 +139,12 @@ func (rsp *ReconcileSiddhiProcess) deploymentForSiddhiProcess(sp *siddhiv1alpha1
 			volumes = append(volumes, volume)
 
 			volumeMount := corev1.VolumeMount{
-				Name:      "deploymentconfig",
-				MountPath: siddhiHome + "tmp/configs",
+				Name:      configs.DepConfigName,
+				MountPath: siddhiHome + configs.DepConfMountPath,
 			}
 			volumeMounts = append(volumeMounts, volumeMount)
 		}
-		configParameter = "-Dconfig=" + siddhiHome + "tmp/configs/" + deploymentYAMLConfigMapName
+		configParameter = configs.DepConfParameter + siddhiHome + configs.DepConfMountPath + deploymentYAMLConfigMapName
 	}
 
 	if len(sp.Spec.EnviromentVariables) > 0 {
@@ -193,15 +156,55 @@ func (rsp *ReconcileSiddhiProcess) deploymentForSiddhiProcess(sp *siddhiv1alpha1
 			enviromentVariables = append(enviromentVariables, env)
 		}
 	}
+
 	userID := int64(802)
-	sidddhiDeployment = &appsv1.Deployment{
+	deployment := createDeployment(
+		strings.ToLower(siddhiApp.Name),
+		sp.Namespace,
+		replicas,
+		labels,
+		siddhiRunnerImage,
+		configs.ContainerName,
+		[]string{configs.Shell},
+		[]string{siddhiHome + configs.RunnerRPath, configParameter},
+		containerPorts,
+		volumeMounts,
+		enviromentVariables,
+		corev1.SecurityContext{RunAsUser: &userID},
+		corev1.PullAlways,
+		imagePullSecrets,
+		volumes,
+	)
+	controllerutil.SetControllerReference(sp, deployment, rsp.scheme)
+	return deployment, err
+}
+
+// createDeployment creates a deployment
+func createDeployment(
+	name string,
+	namespace string,
+	replicas int32,
+	labels map[string]string,
+	image string,
+	containerName string,
+	command []string,
+	args []string,
+	ports []corev1.ContainerPort,
+	vms []corev1.VolumeMount,
+	envs []corev1.EnvVar,
+	sc corev1.SecurityContext,
+	ipp corev1.PullPolicy,
+	secrets []corev1.LocalObjectReference,
+	volumes []corev1.Volume,
+) *appsv1.Deployment {
+	deployment := &appsv1.Deployment{
 		TypeMeta: metav1.TypeMeta{
 			APIVersion: appsv1.SchemeGroupVersion.String(),
 			Kind:       "Deployment",
 		},
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      sp.Name,
-			Namespace: sp.Namespace,
+			Name:      name,
+			Namespace: namespace,
 		},
 		Spec: appsv1.DeploymentSpec{
 			Replicas: &replicas,
@@ -215,32 +218,24 @@ func (rsp *ReconcileSiddhiProcess) deploymentForSiddhiProcess(sp *siddhiv1alpha1
 				Spec: corev1.PodSpec{
 					Containers: []corev1.Container{
 						{
-							Image: siddhiRunnerImage,
-							Name:  "siddhirunner-runtime",
-							Command: []string{
-								"sh",
-							},
-							Args: []string{
-								siddhiHome + "bin/runner.sh",
-								configParameter,
-							},
-							Ports:        containerPorts,
-							VolumeMounts: volumeMounts,
-							Env:          enviromentVariables,
-							SecurityContext: &corev1.SecurityContext{
-								RunAsUser: &userID,
-							},
-							ImagePullPolicy: corev1.PullAlways,
+							Image:           image,
+							Name:            containerName,
+							Command:         command,
+							Args:            args,
+							Ports:           ports,
+							VolumeMounts:    vms,
+							Env:             envs,
+							SecurityContext: &sc,
+							ImagePullPolicy: ipp,
 						},
 					},
-					ImagePullSecrets: imagePullSecrets,
+					ImagePullSecrets: secrets,
 					Volumes:          volumes,
 				},
 			},
 		},
 	}
-	controllerutil.SetControllerReference(sp, sidddhiDeployment, rsp.scheme)
-	return sidddhiDeployment, err
+	return deployment
 }
 
 // GetAppName return the app name for given siddhiAPP

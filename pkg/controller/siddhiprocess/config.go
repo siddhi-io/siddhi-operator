@@ -23,6 +23,15 @@ const (
 	SiddhiHome           string = "/home/siddhi_user/siddhi-runner-0.1.0/"
 	SiddhiRunnerImage    string = "siddhiio/siddhi-runner-alpine"
 	SiddhiRunnerImageTag string = "0.1.0"
+	SiddhiCMExt          string = "-siddhi"
+	SiddhiExt            string = ".siddhi"
+	SiddhiFileRPath      string = "wso2/runner/deployment/siddhi-files/"
+	ContainerName        string = "siddhi-runner-runtime"
+	DepConfigName        string = "deploymentconfig"
+	DepConfMountPath     string = "tmp/configs/"
+	DepConfParameter     string = "-Dconfig="
+	Shell                string = "sh"
+	RunnerRPath          string = "bin/runner.sh"
 	HostName             string = "siddhi"
 	OperatorName         string = "siddhi-operator"
 	OperatorVersion      string = "0.1.1"
@@ -31,9 +40,9 @@ const (
 
 // Other constants
 const (
-	Push string = "PUSH"
-	Pull string = "PULL"
-	Failover string = "failover"
+	Push        string = "PUSH"
+	Pull        string = "PULL"
+	Failover    string = "failover"
 	Distributed string = "distributed"
 )
 
@@ -42,6 +51,15 @@ type Configs struct {
 	SiddhiHome           string
 	SiddhiRunnerImage    string
 	SiddhiRunnerImageTag string
+	SiddhiCMExt          string
+	SiddhiExt            string
+	SiddhiFileRPath      string
+	ContainerName        string
+	DepConfigName        string
+	DepConfMountPath     string
+	DepConfParameter     string
+	Shell                string
+	RunnerRPath          string
 	HostName             string
 	OperatorName         string
 	OperatorVersion      string
@@ -53,6 +71,15 @@ func configurations() Configs {
 		SiddhiHome:           SiddhiHome,
 		SiddhiRunnerImage:    SiddhiRunnerImage,
 		SiddhiRunnerImageTag: SiddhiRunnerImageTag,
+		SiddhiCMExt:          SiddhiCMExt,
+		SiddhiExt:            SiddhiExt,
+		SiddhiFileRPath:      SiddhiFileRPath,
+		ContainerName:        ContainerName,
+		DepConfigName:        DepConfigName,
+		DepConfMountPath:     DepConfMountPath,
+		DepConfParameter:     DepConfParameter,
+		Shell:                Shell,
+		RunnerRPath:          RunnerRPath,
 		HostName:             HostName,
 		OperatorName:         OperatorName,
 		OperatorVersion:      OperatorVersion,
