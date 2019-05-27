@@ -126,7 +126,7 @@ func (rsp *ReconcileSiddhiProcess) Reconcile(request reconcile.Request) (reconci
 	var operatorEnvs map[string]string
 	operatorEnvs = make(map[string]string)
 	operatorDeployment := &appsv1.Deployment{}
-	err = rsp.client.Get(context.TODO(), types.NamespacedName{Name: "siddhi-operator", Namespace: sp.Namespace}, operatorDeployment)
+	err = rsp.client.Get(context.TODO(), types.NamespacedName{Name: configs.OperatorName, Namespace: sp.Namespace}, operatorDeployment)
 	if err != nil {
 		reqLogger.Info("siddhi-operator deployment not found")
 	} else {
@@ -134,12 +134,13 @@ func (rsp *ReconcileSiddhiProcess) Reconcile(request reconcile.Request) (reconci
 	}
 
 	var siddhiApp SiddhiApp
+	siddhiApp, err = rsp.parseApp(sp, configs)
+	if err != nil {
+		reqLogger.Error(err, err.Error())
+		return reconcile.Result{}, err
+	}
+
 	if sp.Spec.DeploymentConfigs.Mode == Failover {
-		siddhiApp, err = rsp.parseFailoverApp(sp, configs)
-		if err != nil {
-			reqLogger.Error(err, err.Error())
-			return reconcile.Result{}, err
-		}
 		if len(siddhiApp.Apps) == 2 {
 			for k, v := range siddhiApp.Apps {
 				deployment := &appsv1.Deployment{}
@@ -176,12 +177,6 @@ func (rsp *ReconcileSiddhiProcess) Reconcile(request reconcile.Request) (reconci
 			}
 		}
 	} else {
-		siddhiApp, err = rsp.parseApp(sp, configs)
-		if err != nil {
-			reqLogger.Error(err, err.Error())
-			return reconcile.Result{}, err
-		}
-		// Check if the deployment already exists, if not create a new one
 		deployment := &appsv1.Deployment{}
 		err = rsp.client.Get(context.TODO(), types.NamespacedName{Name: sp.Name, Namespace: sp.Namespace}, deployment)
 		if err != nil && errors.IsNotFound(err) {
@@ -222,7 +217,7 @@ func (rsp *ReconcileSiddhiProcess) Reconcile(request reconcile.Request) (reconci
 		service := &corev1.Service{}
 		err = rsp.client.Get(context.TODO(), types.NamespacedName{Name: sp.Name, Namespace: sp.Namespace}, service)
 		if err != nil && errors.IsNotFound(err) {
-			siddhiService := rsp.serviceForSiddhiProcess(sp, siddhiApp, operatorEnvs, configs)
+			siddhiService := rsp.createService(sp, siddhiApp, operatorEnvs, configs)
 			reqLogger.Info("Creating a new Service", "Service.Namespace", siddhiService.Namespace, "Service.Name", siddhiService.Name)
 			err = rsp.client.Create(context.TODO(), siddhiService)
 			if err != nil {
@@ -248,12 +243,11 @@ func (rsp *ReconcileSiddhiProcess) Reconcile(request reconcile.Request) (reconci
 		} else {
 			createIngress = false
 		}
-
 		if createIngress {
 			ingress := &extensionsv1beta1.Ingress{}
-			err = rsp.client.Get(context.TODO(), types.NamespacedName{Name: "siddhi", Namespace: sp.Namespace}, ingress)
+			err = rsp.client.Get(context.TODO(), types.NamespacedName{Name: configs.HostName, Namespace: sp.Namespace}, ingress)
 			if err != nil && errors.IsNotFound(err) {
-				siddhiIngress := rsp.loadBalancerForSiddhiProcess(sp, siddhiApp, configs)
+				siddhiIngress := rsp.createIngress(sp, siddhiApp, configs)
 				reqLogger.Info("Creating a new Ingress", "Ingress.Namespace", siddhiIngress.Namespace, "Ingress.Name", siddhiIngress.Name)
 				err = rsp.client.Create(context.TODO(), siddhiIngress)
 				if err != nil {
@@ -263,7 +257,7 @@ func (rsp *ReconcileSiddhiProcess) Reconcile(request reconcile.Request) (reconci
 				reqLogger.Info("Ingress created successfully")
 				return reconcile.Result{Requeue: true}, nil
 			} else if err == nil {
-				siddhiIngress := rsp.updatedLoadBalancerForSiddhiProcess(sp, ingress, siddhiApp, configs)
+				siddhiIngress := rsp.updateIngress(sp, ingress, siddhiApp, configs)
 				reqLogger.Info("Updating Ingress", "Ingress.Namespace", siddhiIngress.Namespace, "Ingress.Name", siddhiIngress.Name)
 				err = rsp.client.Update(context.TODO(), siddhiIngress)
 				if err != nil {
@@ -278,12 +272,12 @@ func (rsp *ReconcileSiddhiProcess) Reconcile(request reconcile.Request) (reconci
 			}
 		}
 	}
-	sp.Status.Status = getStatus(RUNNING)
-	err = rsp.client.Status().Update(context.TODO(), sp)
+	rsp.updateStatus(RUNNING, sp)
 	if err != nil {
 		reqLogger.Error(err, "Failed to update SiddhiProcess status", "SiddhiProcess.Namespace", sp.Namespace, "SiddhiProcess.Name", sp.Name)
-		sp.Status.Status = getStatus(ERROR)
+		rsp.updateStatus(ERROR, sp)
 	}
+
 	// Update the SiddhiProcess status with the pod names
 	// List the pods for this sp's deployment
 	podList := &corev1.PodList{}

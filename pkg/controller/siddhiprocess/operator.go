@@ -19,6 +19,7 @@
 package siddhiprocess
 
 import (
+	siddhiv1alpha1 "github.com/siddhi-io/siddhi-operator/pkg/apis/siddhi/v1alpha1"
 	appsv1 "k8s.io/api/apps/v1"
 )
 
@@ -30,5 +31,15 @@ func (rsp *ReconcileSiddhiProcess) populateOperatorEnvs(operatorDeployment *apps
 		envs[env.Name] = env.Value
 	}
 
+	return envs
+}
+
+// populateUserEnvs returns a map for the ENVs in CRD
+func (rsp *ReconcileSiddhiProcess) populateUserEnvs(sp *siddhiv1alpha1.SiddhiProcess) (envs map[string]string) {
+	envs = make(map[string]string)
+	envStruct := sp.Spec.EnviromentVariables
+	for _, env := range envStruct {
+		envs[env.Name] = env.Value
+	}
 	return envs
 }

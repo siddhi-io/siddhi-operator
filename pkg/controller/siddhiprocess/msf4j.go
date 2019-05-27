@@ -78,98 +78,23 @@ type SiddhiParserResponse struct {
 	AppConfig []SiddhiAppConfig `json:"siddhiAppConfigs"`
 }
 
-// parseApp call MSF4J service and parse a given siddhiApp
+// parseFailoverApp call MSF4J service and parse a given siddhiApp
 func (rsp *ReconcileSiddhiProcess) parseApp(sp *siddhiv1alpha1.SiddhiProcess, configs Configs) (siddhiAppStruct SiddhiApp, err error) {
 	var resp *http.Response
 	var ports []int
 	var protocols []string
 	var tls []bool
-	var siddhiParserResponse SiddhiParserResponse
-	var siddhiParserRequest SiddhiParserRequest
 	var siddhiApps []string
-	query := sp.Spec.Query
-	reqLogger := log.WithValues("Request.Namespace", sp.Namespace, "Request.Name", sp.Name)
-	url := "http://siddhi-parser." + sp.Namespace + ".svc.cluster.local:9090/siddhi-parser/parse"
+	var url string
 	apps := make(map[string]string)
+	reqLogger := log.WithValues("Request.Namespace", sp.Namespace, "Request.Name", sp.Name)
+	query := sp.Spec.Query
 	createSVC := false
-	propertyMap := rsp.populateUserEnvs(sp)
-	if (query == "") && (len(sp.Spec.Apps) > 0) {
-		for _, siddhiCMName := range sp.Spec.Apps {
-			configMap := &corev1.ConfigMap{}
-			rsp.client.Get(context.TODO(), types.NamespacedName{Name: siddhiCMName, Namespace: sp.Namespace}, configMap)
-			for _, siddhiFileContent := range configMap.Data {
-				siddhiApps = append(siddhiApps, siddhiFileContent)
-			}
-		}
-		siddhiParserRequest = SiddhiParserRequest{
-			SiddhiApps:  siddhiApps,
-			PropertyMap: propertyMap,
-		}
-	} else if (query != "") && (len(sp.Spec.Apps) <= 0) {
-		siddhiParserRequest = SiddhiParserRequest{
-			SiddhiApps:  []string{query},
-			PropertyMap: propertyMap,
-		}
-	} else if (query != "") && (len(sp.Spec.Apps) > 0) {
-		err = errors.New("CRD should only contain either query or app entry")
-		return siddhiAppStruct, err
+	if sp.Spec.DeploymentConfigs.Mode == Failover {
+		url = configs.ParserDomain + sp.Namespace + configs.ParserNATSContext
 	} else {
-		err = errors.New("CRD must have either query or app entry to deploy siddhi apps")
-		return siddhiAppStruct, err
+		url = configs.ParserDomain + sp.Namespace + configs.ParserDefaultContext
 	}
-
-	b, err := json.Marshal(siddhiParserRequest)
-	if err != nil {
-		reqLogger.Error(err, "JSON marshal error in query siddhi app")
-		return siddhiAppStruct, err
-	}
-	var jsonStr = []byte(string(b))
-	req, err := http.NewRequest("POST", url, bytes.NewBuffer(jsonStr))
-	req.Header.Set("Content-Type", "application/json")
-	client := &http.Client{}
-	resp, err = client.Do(req)
-	if err != nil {
-		reqLogger.Error(err, "REST invoking error")
-		return siddhiAppStruct, err
-	}
-	defer resp.Body.Close()
-	json.NewDecoder(resp.Body).Decode(&siddhiParserResponse)
-	for _, siddhiApp := range siddhiParserResponse.AppConfig {
-		app := siddhiApp.SiddhiApp
-		appName := strings.TrimSpace(GetAppName(app))
-		for _, deploymentConf := range siddhiApp.SiddhiSourceList.SourceDeploymentConfigs {
-			if deploymentConf.Strategy == Push {
-				createSVC = true
-				ports = append(ports, deploymentConf.Port)
-				protocols = append(protocols, deploymentConf.ServiceProtocol)
-				tls = append(tls, deploymentConf.Secured)
-			}
-		}
-		apps[appName] = app
-	}
-	siddhiAppStruct = SiddhiApp{
-		Name:      strings.ToLower(sp.Name),
-		Ports:     ports,
-		Protocols: protocols,
-		TLS:       tls,
-		CreateSVC: createSVC,
-		Apps:      apps,
-	}
-	return siddhiAppStruct, err
-}
-
-// parseFailoverApp call MSF4J service and parse a given siddhiApp
-func (rsp *ReconcileSiddhiProcess) parseFailoverApp(sp *siddhiv1alpha1.SiddhiProcess, configs Configs) (siddhiAppStruct SiddhiApp, err error) {
-	reqLogger := log.WithValues("Request.Namespace", sp.Namespace, "Request.Name", sp.Name)
-	query := sp.Spec.Query
-	var resp *http.Response
-	var ports []int
-	var protocols []string
-	var tls []bool
-	url := "http://siddhi-parser." + sp.Namespace + ".svc.cluster.local:9090/siddhi-parser/nats"
-	apps := make(map[string]string)
-	var siddhiApps []string
-	createSVC := false
 	if (query == "") && (len(sp.Spec.Apps) > 0) {
 		for _, siddhiCMName := range sp.Spec.Apps {
 			configMap := &corev1.ConfigMap{}
@@ -211,9 +136,12 @@ func (rsp *ReconcileSiddhiProcess) parseFailoverApp(sp *siddhiv1alpha1.SiddhiPro
 		app := siddhiApp.SiddhiApp
 		appName := strings.TrimSpace(GetAppName(app))
 		for _, deploymentConf := range siddhiApp.SiddhiSourceList.SourceDeploymentConfigs {
-			ports = append(ports, deploymentConf.Port)
-			protocols = append(protocols, deploymentConf.ServiceProtocol)
-			tls = append(tls, deploymentConf.Secured)
+			if deploymentConf.Strategy == Push {
+				createSVC = true
+				ports = append(ports, deploymentConf.Port)
+				protocols = append(protocols, deploymentConf.ServiceProtocol)
+				tls = append(tls, deploymentConf.Secured)
+			}
 		}
 		apps[appName] = app
 	}
@@ -239,14 +167,4 @@ func isIn(slice []int, element int) bool {
 		}
 	}
 	return false
-}
-
-// populateUserEnvs returns a map for the ENVs in CRD
-func (rsp *ReconcileSiddhiProcess) populateUserEnvs(sp *siddhiv1alpha1.SiddhiProcess) (envs map[string]string) {
-	envs = make(map[string]string)
-	envStruct := sp.Spec.EnviromentVariables
-	for _, env := range envStruct {
-		envs[env.Name] = env.Value
-	}
-	return envs
 }

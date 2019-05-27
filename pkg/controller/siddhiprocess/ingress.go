@@ -47,7 +47,7 @@ const (
 )
 
 // loadBalancerForSiddhi returns a Siddhi Ingress load balancer object
-func (rsp *ReconcileSiddhiProcess) loadBalancerForSiddhiProcess(sp *siddhiv1alpha1.SiddhiProcess, siddhiApp SiddhiApp, configs Configs) *extensionsv1beta1.Ingress {
+func (rsp *ReconcileSiddhiProcess) createIngress(sp *siddhiv1alpha1.SiddhiProcess, siddhiApp SiddhiApp, configs Configs) *extensionsv1beta1.Ingress {
 	var ingressPaths []extensionsv1beta1.HTTPIngressPath
 	for _, port := range siddhiApp.Ports {
 		path := "/" + strings.ToLower(siddhiApp.Name) + "/" + strconv.Itoa(port) + "/"
@@ -117,7 +117,7 @@ func (rsp *ReconcileSiddhiProcess) loadBalancerForSiddhiProcess(sp *siddhiv1alph
 }
 
 // updatedLoadBalancerForSiddhiProcess returns a Siddhi Ingress load balancer object
-func (rsp *ReconcileSiddhiProcess) updatedLoadBalancerForSiddhiProcess(sp *siddhiv1alpha1.SiddhiProcess, currentIngress *extensionsv1beta1.Ingress, siddhiApp SiddhiApp, configs Configs) *extensionsv1beta1.Ingress {
+func (rsp *ReconcileSiddhiProcess) updateIngress(sp *siddhiv1alpha1.SiddhiProcess, currentIngress *extensionsv1beta1.Ingress, siddhiApp SiddhiApp, configs Configs) *extensionsv1beta1.Ingress {
 	var ingressPaths []extensionsv1beta1.HTTPIngressPath
 	for _, port := range siddhiApp.Ports {
 		path := "/" + strings.ToLower(siddhiApp.Name) + "/" + strconv.Itoa(port) + "/"

@@ -29,7 +29,7 @@ import (
 )
 
 // serviceForSiddhi returns a Siddhi Service object
-func (rsp *ReconcileSiddhiProcess) serviceForSiddhiProcess(sp *siddhiv1alpha1.SiddhiProcess, siddhiApp SiddhiApp, operatorEnvs map[string]string, configs Configs) *corev1.Service {
+func (rsp *ReconcileSiddhiProcess) createService(sp *siddhiv1alpha1.SiddhiProcess, siddhiApp SiddhiApp, operatorEnvs map[string]string, configs Configs) *corev1.Service {
 	labels := labelsForSiddhiProcess(sp.Name, operatorEnvs, configs)
 	var servicePorts []corev1.ServicePort
 	for _, port := range siddhiApp.Ports {

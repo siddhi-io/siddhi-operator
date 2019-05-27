@@ -41,6 +41,9 @@ const (
 	ReadWriteMany        string = "ReadWriteMany"
 	PVCExt               string = "-pvc"
 	FilePersistentPath   string = "siddhi-app-persistence"
+	ParserDomain         string = "http://siddhi-parser."
+	ParserDefaultContext string = ".svc.cluster.local:9090/siddhi-parser/parse"
+	ParserNATSContext    string = ".svc.cluster.local:9090/siddhi-parser/nats"
 )
 
 // Other constants
@@ -74,6 +77,9 @@ type Configs struct {
 	ReadWriteMany        string
 	PVCExt               string
 	FilePersistentPath   string
+	ParserDomain         string
+	ParserDefaultContext string
+	ParserNATSContext    string
 }
 
 func configurations() Configs {
@@ -99,6 +105,9 @@ func configurations() Configs {
 		ReadWriteMany:        ReadWriteMany,
 		PVCExt:               PVCExt,
 		FilePersistentPath:   FilePersistentPath,
+		ParserDomain:         ParserDomain,
+		ParserDefaultContext: ParserDefaultContext,
+		ParserNATSContext:    ParserNATSContext,
 	}
 	return configs
 }
