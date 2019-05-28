@@ -127,15 +127,14 @@ public class SiddhiParserService {
             Collection<List<Source>> sources = siddhiAppRuntime.getSources();
             for (List<Source> sourceList : sources) {
                 for (Source source : sourceList) {
-                    if (source.getType().equalsIgnoreCase("http")) {
                         SourceDeploymentConfig response = new SourceDeploymentConfig();
                         ServiceDeploymentInfo serviceDeploymentInfo = source.getServiceDeploymentInfo();
                         response.setPort(serviceDeploymentInfo.getPort());
                         response.setServiceProtocol(serviceDeploymentInfo.getServiceProtocol().name());
                         response.setSecured(serviceDeploymentInfo.isSecured());
+                        response.setPulling(serviceDeploymentInfo.isPulling());
                         response.setDeploymentProperties(serviceDeploymentInfo.getDeploymentProperties());
                         sourceConfigs.addSourceDeploymentConfig(response);
-                    }
                 }
             }
             siddhiAppConfig.setSourceList(sourceConfigs);
