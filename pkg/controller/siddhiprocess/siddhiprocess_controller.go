@@ -145,7 +145,7 @@ func (rsp *ReconcileSiddhiProcess) Reconcile(request reconcile.Request) (reconci
 		if sp.Spec.DeploymentConfigs.MessagingSystem.Equals(&ms) {
 			err = rsp.createNATS(sp, configs)
 			if err != nil {
-				reqLogger.Error(err, "Failed to create NATS", "CR.Namespace", sp.Name, "CR.Name", siddhiDeployment.Name)
+				reqLogger.Error(err, "Failed to create NATS", "CR.Namespace", sp.Namespace, "CR.Name", sp.Name)
 			}
 		}
 		for k, v := range siddhiApp.Apps {
