@@ -92,10 +92,8 @@ func (rsp *ReconcileSiddhiProcess) parseApp(sp *siddhiv1alpha1.SiddhiProcess, co
 	createSVC := false
 	if sp.Spec.DeploymentConfigs.Mode == Failover {
 		url = configs.ParserDomain + sp.Namespace + configs.ParserNATSContext
-		url = "http://0.0.0.0:9095/siddhi-parser/nats1"
 	} else {
 		url = configs.ParserDomain + sp.Namespace + configs.ParserDefaultContext
-		url = "http://192.168.99.220:32000/siddhi-parser/parse"
 	}
 	if (query == "") && (len(sp.Spec.Apps) > 0) {
 		for _, siddhiCMName := range sp.Spec.Apps {

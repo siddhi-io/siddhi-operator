@@ -22,7 +22,7 @@ package siddhiprocess
 const (
 	SiddhiHome           string = "/home/siddhi_user/siddhi-runner-0.1.0/"
 	SiddhiRunnerImage    string = "siddhiio/siddhi-runner-alpine"
-	SiddhiRunnerPath string = "wso2/runner/"
+	SiddhiRunnerPath     string = "wso2/runner/"
 	SiddhiRunnerImageTag string = "0.1.0"
 	SiddhiCMExt          string = "-siddhi"
 	SiddhiExt            string = ".siddhi"
@@ -45,14 +45,14 @@ const (
 	ParserDomain         string = "http://siddhi-parser."
 	ParserDefaultContext string = ".svc.cluster.local:9090/siddhi-parser/parse"
 	ParserNATSContext    string = ".svc.cluster.local:9090/siddhi-parser/nats"
-	PVCSize string = "1Gi"
-	NATSAPIVersion string = "nats.io/v1alpha2"
-	STANAPIVersion string = "streaming.nats.io/v1alpha1"
-	NATSKind string = "NatsCluster"
-	STANKind string = "NatsStreamingCluster"
-	NATSSize int = 1 
-	NATSExt string = "-nats"
-	STANExt string = "-stan"
+	PVCSize              string = "1Gi"
+	NATSAPIVersion       string = "nats.io/v1alpha2"
+	STANAPIVersion       string = "streaming.nats.io/v1alpha1"
+	NATSKind             string = "NatsCluster"
+	STANKind             string = "NatsStreamingCluster"
+	NATSExt              string = "-nats"
+	STANExt              string = "-stan"
+	NATSSize             int    = 1
 )
 
 // Other constants
@@ -71,7 +71,7 @@ type Configs struct {
 	SiddhiCMExt          string
 	SiddhiExt            string
 	SiddhiFileRPath      string
-	SiddhiRunnerPath string
+	SiddhiRunnerPath     string
 	ContainerName        string
 	DepConfigName        string
 	DepConfMountPath     string
@@ -90,14 +90,14 @@ type Configs struct {
 	ParserDomain         string
 	ParserDefaultContext string
 	ParserNATSContext    string
-	PVCSize string
-	NATSAPIVersion string
-	STANAPIVersion string
-	NATSKind string
-	STANKind string
-	NATSSize int
-	NATSExt string
-	STANExt string
+	PVCSize              string
+	NATSAPIVersion       string
+	STANAPIVersion       string
+	NATSKind             string
+	STANKind             string
+	NATSExt              string
+	STANExt              string
+	NATSSize             int
 }
 
 func configurations() Configs {
@@ -108,7 +108,7 @@ func configurations() Configs {
 		SiddhiCMExt:          SiddhiCMExt,
 		SiddhiExt:            SiddhiExt,
 		SiddhiFileRPath:      SiddhiFileRPath,
-		SiddhiRunnerPath: SiddhiRunnerPath,
+		SiddhiRunnerPath:     SiddhiRunnerPath,
 		ContainerName:        ContainerName,
 		DepConfigName:        DepConfigName,
 		DepConfMountPath:     DepConfMountPath,
@@ -127,14 +127,14 @@ func configurations() Configs {
 		ParserDomain:         ParserDomain,
 		ParserDefaultContext: ParserDefaultContext,
 		ParserNATSContext:    ParserNATSContext,
-		PVCSize: PVCSize,
-		NATSAPIVersion: NATSAPIVersion,
-		STANAPIVersion: STANAPIVersion,
-		NATSKind: NATSKind,
-		STANKind: STANKind,
-		NATSSize: NATSSize,
-		NATSExt: NATSExt,
-		STANExt: STANExt,
+		PVCSize:              PVCSize,
+		NATSAPIVersion:       NATSAPIVersion,
+		STANAPIVersion:       STANAPIVersion,
+		NATSKind:             NATSKind,
+		STANKind:             STANKind,
+		NATSExt:              NATSExt,
+		STANExt:              STANExt,
+		NATSSize:             NATSSize,
 	}
 	return configs
 }

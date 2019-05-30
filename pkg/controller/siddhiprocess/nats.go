@@ -16,26 +16,26 @@
  * under the License.
  */
 
- package siddhiprocess
+package siddhiprocess
 
- import (
-	 "context"
-	 siddhiv1alpha1 "github.com/siddhi-io/siddhi-operator/pkg/apis/siddhi/v1alpha1"
-	 
-	 "k8s.io/apimachinery/pkg/api/errors"
-	 metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	 natsv1alpha2 "github.com/siddhi-io/siddhi-operator/pkg/apis/nats/v1alpha2"
-	 streamingv1alpha1 "github.com/siddhi-io/siddhi-operator/pkg/apis/streaming/v1alpha1"
-	 "k8s.io/apimachinery/pkg/types"
-	 "sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
- )
+import (
+	"context"
 
- func (rsp *ReconcileSiddhiProcess) createNATS(sp *siddhiv1alpha1.SiddhiProcess, configs Configs) error {
-	 natsCluster := natsv1alpha2.NatsCluster{}
-	 natsName := sp.Name + configs.NATSExt
-	 err := rsp.client.Get(context.TODO(), types.NamespacedName{Name: natsName, Namespace: sp.Namespace}, natsCluster)
-	 if err != nil && errors.IsNotFound(err) {
-		 natsCluster = natsv1alpha2.NatsCluster{
+	natsv1alpha2 "github.com/siddhi-io/siddhi-operator/pkg/apis/nats/v1alpha2"
+	siddhiv1alpha1 "github.com/siddhi-io/siddhi-operator/pkg/apis/siddhi/v1alpha1"
+	streamingv1alpha1 "github.com/siddhi-io/siddhi-operator/pkg/apis/streaming/v1alpha1"
+	"k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/types"
+	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
+)
+
+func (rsp *ReconcileSiddhiProcess) createNATS(sp *siddhiv1alpha1.SiddhiProcess, configs Configs) error {
+	natsCluster := &natsv1alpha2.NatsCluster{}
+	natsName := sp.Name + configs.NATSExt
+	err := rsp.client.Get(context.TODO(), types.NamespacedName{Name: natsName, Namespace: sp.Namespace}, natsCluster)
+	if err != nil && errors.IsNotFound(err) {
+		natsCluster = &natsv1alpha2.NatsCluster{
 			TypeMeta: metav1.TypeMeta{
 				APIVersion: configs.NATSAPIVersion,
 				Kind:       configs.NATSKind,
@@ -47,18 +47,21 @@
 			Spec: natsv1alpha2.ClusterSpec{
 				Size: configs.NATSSize,
 			},
-		 }
-		 controllerutil.SetControllerReference(sp, natsCluster, rsp.scheme)
-		 err = rsp.client.Create(context.TODO(), natsCluster)
-		 if err != nil {
-			 return err
-		 }
-	 }
-	 stanCluster := streamingv1alpha1.NatsStreamingCluster{}
-	 stanName := sp.Name + configs.STANExt
-	 err := rsp.client.Get(context.TODO(), types.NamespacedName{Name: stanName, Namespace: sp.Namespace}, stanCluster)
-	 if err != nil && errors.IsNotFound(err) {
-		stanCluster = streamingv1alpha1.NatsStreamingCluster{
+		}
+		controllerutil.SetControllerReference(sp, natsCluster, rsp.scheme)
+		err = rsp.client.Create(context.TODO(), natsCluster)
+		if err != nil {
+			return err
+		}
+	} else if err != nil {
+		return err
+	}
+
+	stanCluster := &streamingv1alpha1.NatsStreamingCluster{}
+	stanName := sp.Name + configs.STANExt
+	err = rsp.client.Get(context.TODO(), types.NamespacedName{Name: stanName, Namespace: sp.Namespace}, stanCluster)
+	if err != nil && errors.IsNotFound(err) {
+		stanCluster = &streamingv1alpha1.NatsStreamingCluster{
 			TypeMeta: metav1.TypeMeta{
 				APIVersion: configs.STANAPIVersion,
 				Kind:       configs.STANKind,
@@ -68,16 +71,15 @@
 				Namespace: sp.Namespace,
 			},
 			Spec: streamingv1alpha1.NatsStreamingClusterSpec{
-				Size: configs.Size,
+				Size:        int32(configs.NATSSize),
 				NatsService: natsName,
 			},
-		 }
-		 controllerutil.SetControllerReference(sp, stanCluster, rsp.scheme)
-		 err = rsp.client.Create(context.TODO(), stanCluster)
-		 if err != nil {
+		}
+		controllerutil.SetControllerReference(sp, stanCluster, rsp.scheme)
+		err = rsp.client.Create(context.TODO(), stanCluster)
+		if err != nil {
 			return err
 		}
-	 }
-	 return err
- }
- 
+	}
+	return err
+}

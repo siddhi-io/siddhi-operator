@@ -181,7 +181,7 @@ func (rsp *ReconcileSiddhiProcess) Reconcile(request reconcile.Request) (reconci
 				return reconcile.Result{}, err
 			}
 		}
-		
+
 	} else {
 		deployment := &appsv1.Deployment{}
 		err = rsp.client.Get(context.TODO(), types.NamespacedName{Name: sp.Name, Namespace: sp.Namespace}, deployment)
@@ -244,11 +244,11 @@ func (rsp *ReconcileSiddhiProcess) Reconcile(request reconcile.Request) (reconci
 		}
 
 		createIngress := true
-		// if (operatorEnvs["AUTO_INGRESS_CREATION"] != "") && (operatorEnvs["AUTO_INGRESS_CREATION"] != "false") {
-		// 	createIngress = true
-		// } else {
-		// 	createIngress = false
-		// }
+		if (operatorEnvs["AUTO_INGRESS_CREATION"] != "") && (operatorEnvs["AUTO_INGRESS_CREATION"] != "false") {
+			createIngress = true
+		} else {
+			createIngress = false
+		}
 		if createIngress {
 			ingress := &extensionsv1beta1.Ingress{}
 			err = rsp.client.Get(context.TODO(), types.NamespacedName{Name: configs.HostName, Namespace: sp.Namespace}, ingress)

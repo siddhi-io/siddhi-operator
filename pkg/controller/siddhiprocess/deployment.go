@@ -27,9 +27,9 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"gopkg.in/yaml.v2"
 	"path/filepath"
+	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 )
 
 // SPConfig contains the state persistence configs
@@ -108,8 +108,8 @@ func (rsp *ReconcileSiddhiProcess) deployApp(sp *siddhiv1alpha1.SiddhiProcess, s
 				reqLogger.Error(err, "Failed to marshal state.persistence YAML", "PVC.Namespace", sp.Namespace, "PVC.Name", sp.Name)
 			}
 			mountPath := siddhiHome + configs.FilePersistentPath
-			if spConf.StatePersistence.SPConfig.Location != "" && filepath.IsAbs(spConf.StatePersistence.SPConfig.Location){
-				 mountPath = spConf.StatePersistence.SPConfig.Location
+			if spConf.StatePersistence.SPConfig.Location != "" && filepath.IsAbs(spConf.StatePersistence.SPConfig.Location) {
+				mountPath = spConf.StatePersistence.SPConfig.Location
 			} else if spConf.StatePersistence.SPConfig.Location != "" {
 				mountPath = siddhiHome + configs.SiddhiRunnerPath + spConf.StatePersistence.SPConfig.Location
 			}
