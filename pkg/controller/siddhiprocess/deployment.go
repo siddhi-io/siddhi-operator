@@ -28,7 +28,24 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
+	"gopkg.in/yaml.v2"
+	"path/filepath"
 )
+
+// SPConfig contains the state persistence configs
+type SPConfig struct {
+	Location string `yaml:"location"`
+}
+
+// StatePersistence contains the StatePersistence config block
+type StatePersistence struct {
+	SPConfig SPConfig `yaml:"config"`
+}
+
+// SiddhiConfig contains the siddhi config block
+type SiddhiConfig struct {
+	StatePersistence StatePersistence `yaml:"state.persistence"`
+}
 
 // deployApp returns a sp Deployment object
 func (rsp *ReconcileSiddhiProcess) deployApp(sp *siddhiv1alpha1.SiddhiProcess, siddhiApp SiddhiApp, operatorEnvs map[string]string, configs Configs) (*appsv1.Deployment, error) {
@@ -80,11 +97,22 @@ func (rsp *ReconcileSiddhiProcess) deployApp(sp *siddhiv1alpha1.SiddhiProcess, s
 	}
 	q := siddhiv1alpha1.PersistenceVolume{}
 	if !(sp.Spec.DeploymentConfigs.PersistenceVolume.Equals(&q)) {
-		err = rsp.createPVC(sp, configs)
+		pvcName := strings.ToLower(siddhiApp.Name + configs.PVCExt)
+		err = rsp.createPVC(sp, configs, pvcName)
 		if err != nil {
 			reqLogger.Error(err, "Failed to create new PVC", "PVC.Namespace", sp.Namespace, "PVC.Name", sp.Name)
 		} else {
-			pvcName := sp.Name + configs.PVCExt
+			spConf := &SiddhiConfig{}
+			err := yaml.Unmarshal([]byte(sp.Spec.SiddhiConfig), spConf)
+			if err != nil {
+				reqLogger.Error(err, "Failed to marshal state.persistence YAML", "PVC.Namespace", sp.Namespace, "PVC.Name", sp.Name)
+			}
+			mountPath := siddhiHome + configs.FilePersistentPath
+			if spConf.StatePersistence.SPConfig.Location != "" && filepath.IsAbs(spConf.StatePersistence.SPConfig.Location){
+				 mountPath = spConf.StatePersistence.SPConfig.Location
+			} else if spConf.StatePersistence.SPConfig.Location != "" {
+				mountPath = siddhiHome + configs.SiddhiRunnerPath + spConf.StatePersistence.SPConfig.Location
+			}
 			volume := corev1.Volume{
 				Name: pvcName,
 				VolumeSource: corev1.VolumeSource{
@@ -96,7 +124,7 @@ func (rsp *ReconcileSiddhiProcess) deployApp(sp *siddhiv1alpha1.SiddhiProcess, s
 			volumes = append(volumes, volume)
 			volumeMount := corev1.VolumeMount{
 				Name:      pvcName,
-				MountPath: siddhiHome + configs.FilePersistentPath,
+				MountPath: mountPath,
 			}
 			volumeMounts = append(volumeMounts, volumeMount)
 		}

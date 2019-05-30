@@ -29,11 +29,10 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 )
 
-func (rsp *ReconcileSiddhiProcess) createPVC(sp *siddhiv1alpha1.SiddhiProcess, configs Configs) error {
+func (rsp *ReconcileSiddhiProcess) createPVC(sp *siddhiv1alpha1.SiddhiProcess, configs Configs, pvcName string) error {
 	var accessModes []corev1.PersistentVolumeAccessMode
 	pvc := &corev1.PersistentVolumeClaim{}
 	p := sp.Spec.DeploymentConfigs.PersistenceVolume
-	pvcName := sp.Name + configs.PVCExt
 	err := rsp.client.Get(context.TODO(), types.NamespacedName{Name: pvcName, Namespace: sp.Namespace}, pvc)
 	if err != nil && errors.IsNotFound(err) {
 		for _, am := range p.AccessModes {

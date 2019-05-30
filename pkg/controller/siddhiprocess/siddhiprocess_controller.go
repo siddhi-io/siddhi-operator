@@ -141,41 +141,47 @@ func (rsp *ReconcileSiddhiProcess) Reconcile(request reconcile.Request) (reconci
 	}
 
 	if sp.Spec.DeploymentConfigs.Mode == Failover {
-		if len(siddhiApp.Apps) == 2 {
-			for k, v := range siddhiApp.Apps {
-				deployment := &appsv1.Deployment{}
-				err = rsp.client.Get(context.TODO(), types.NamespacedName{Name: strings.ToLower(k), Namespace: sp.Namespace}, deployment)
-				if err != nil && errors.IsNotFound(err) {
-					rsp.updateStatus(PENDING, sp)
-					sa := SiddhiApp{
-						Name:      k,
-						Ports:     siddhiApp.Ports,
-						Protocols: siddhiApp.Protocols,
-						TLS:       siddhiApp.TLS,
-						Apps:      map[string]string{k: v},
-						CreateSVC: siddhiApp.CreateSVC,
-					}
-					siddhiDeployment, err := rsp.deployApp(sp, sa, operatorEnvs, configs)
-					if err != nil {
-						reqLogger.Error(err, err.Error())
-						rsp.updateStatus(ERROR, sp)
-						return reconcile.Result{}, err
-					}
-					reqLogger.Info("Creating a new Deployment", "Deployment.Namespace", strings.ToLower(k), "Deployment.Name", siddhiDeployment.Name)
-					err = rsp.client.Create(context.TODO(), siddhiDeployment)
-					if err != nil {
-						reqLogger.Error(err, "Failed to create new Deployment", "Deployment.Namespace", strings.ToLower(k), "Deployment.Name", siddhiDeployment.Name)
-						rsp.updateStatus(ERROR, sp)
-						return reconcile.Result{}, err
-					}
-					return reconcile.Result{Requeue: true}, nil
-				} else if err != nil {
-					reqLogger.Error(err, "Failed to get Deployment")
+		ms := siddhiv1alpha1.MessagingSystem{}
+		if sp.Spec.DeploymentConfigs.MessagingSystem.Equals(&ms) {
+			err = rsp.createNATS(sp, configs)
+			if err != nil {
+				reqLogger.Error(err, "Failed to create NATS", "CR.Namespace", sp.Name, "CR.Name", siddhiDeployment.Name)
+			}
+		}
+		for k, v := range siddhiApp.Apps {
+			deployment := &appsv1.Deployment{}
+			err = rsp.client.Get(context.TODO(), types.NamespacedName{Name: strings.ToLower(k), Namespace: sp.Namespace}, deployment)
+			if err != nil && errors.IsNotFound(err) {
+				rsp.updateStatus(PENDING, sp)
+				sa := SiddhiApp{
+					Name:      k,
+					Ports:     siddhiApp.Ports,
+					Protocols: siddhiApp.Protocols,
+					TLS:       siddhiApp.TLS,
+					Apps:      map[string]string{k: v},
+					CreateSVC: siddhiApp.CreateSVC,
+				}
+				siddhiDeployment, err := rsp.deployApp(sp, sa, operatorEnvs, configs)
+				if err != nil {
+					reqLogger.Error(err, err.Error())
 					rsp.updateStatus(ERROR, sp)
 					return reconcile.Result{}, err
 				}
+				reqLogger.Info("Creating a new Deployment", "Deployment.Namespace", strings.ToLower(k), "Deployment.Name", siddhiDeployment.Name)
+				err = rsp.client.Create(context.TODO(), siddhiDeployment)
+				if err != nil {
+					reqLogger.Error(err, "Failed to create new Deployment", "Deployment.Namespace", strings.ToLower(k), "Deployment.Name", siddhiDeployment.Name)
+					rsp.updateStatus(ERROR, sp)
+					return reconcile.Result{}, err
+				}
+				return reconcile.Result{Requeue: true}, nil
+			} else if err != nil {
+				reqLogger.Error(err, "Failed to get Deployment")
+				rsp.updateStatus(ERROR, sp)
+				return reconcile.Result{}, err
 			}
 		}
+		
 	} else {
 		deployment := &appsv1.Deployment{}
 		err = rsp.client.Get(context.TODO(), types.NamespacedName{Name: sp.Name, Namespace: sp.Namespace}, deployment)
@@ -238,11 +244,11 @@ func (rsp *ReconcileSiddhiProcess) Reconcile(request reconcile.Request) (reconci
 		}
 
 		createIngress := true
-		if (operatorEnvs["AUTO_INGRESS_CREATION"] != "") && (operatorEnvs["AUTO_INGRESS_CREATION"] != "false") {
-			createIngress = true
-		} else {
-			createIngress = false
-		}
+		// if (operatorEnvs["AUTO_INGRESS_CREATION"] != "") && (operatorEnvs["AUTO_INGRESS_CREATION"] != "false") {
+		// 	createIngress = true
+		// } else {
+		// 	createIngress = false
+		// }
 		if createIngress {
 			ingress := &extensionsv1beta1.Ingress{}
 			err = rsp.client.Get(context.TODO(), types.NamespacedName{Name: configs.HostName, Namespace: sp.Namespace}, ingress)
