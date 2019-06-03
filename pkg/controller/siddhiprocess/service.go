@@ -45,7 +45,7 @@ func (rsp *ReconcileSiddhiProcess) createService(sp *siddhiv1alpha1.SiddhiProces
 			Kind:       "Service",
 		},
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      sp.Name,
+			Name:      siddhiApp.Name,
 			Namespace: sp.Namespace,
 		},
 		Spec: corev1.ServiceSpec{

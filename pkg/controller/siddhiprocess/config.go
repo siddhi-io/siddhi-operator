@@ -52,6 +52,8 @@ const (
 	STANKind             string = "NatsStreamingCluster"
 	NATSExt              string = "-nats"
 	STANExt              string = "-stan"
+	NATSClusterName      string = "siddhi-nats"
+	STANClusterName      string = "siddhi-stan"
 	NATSSize             int    = 1
 )
 
@@ -97,6 +99,8 @@ type Configs struct {
 	STANKind             string
 	NATSExt              string
 	STANExt              string
+	NATSClusterName      string
+	STANClusterName      string
 	NATSSize             int
 }
 
@@ -134,6 +138,8 @@ func configurations() Configs {
 		STANKind:             STANKind,
 		NATSExt:              NATSExt,
 		STANExt:              STANExt,
+		NATSClusterName:      NATSClusterName,
+		STANClusterName:      STANClusterName,
 		NATSSize:             NATSSize,
 	}
 	return configs

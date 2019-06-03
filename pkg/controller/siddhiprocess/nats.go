@@ -32,8 +32,7 @@ import (
 
 func (rsp *ReconcileSiddhiProcess) createNATS(sp *siddhiv1alpha1.SiddhiProcess, configs Configs) error {
 	natsCluster := &natsv1alpha2.NatsCluster{}
-	natsName := sp.Name + configs.NATSExt
-	err := rsp.client.Get(context.TODO(), types.NamespacedName{Name: natsName, Namespace: sp.Namespace}, natsCluster)
+	err := rsp.client.Get(context.TODO(), types.NamespacedName{Name: configs.NATSClusterName, Namespace: sp.Namespace}, natsCluster)
 	if err != nil && errors.IsNotFound(err) {
 		natsCluster = &natsv1alpha2.NatsCluster{
 			TypeMeta: metav1.TypeMeta{
@@ -41,7 +40,7 @@ func (rsp *ReconcileSiddhiProcess) createNATS(sp *siddhiv1alpha1.SiddhiProcess, 
 				Kind:       configs.NATSKind,
 			},
 			ObjectMeta: metav1.ObjectMeta{
-				Name:      natsName,
+				Name:      configs.NATSClusterName,
 				Namespace: sp.Namespace,
 			},
 			Spec: natsv1alpha2.ClusterSpec{
@@ -58,8 +57,7 @@ func (rsp *ReconcileSiddhiProcess) createNATS(sp *siddhiv1alpha1.SiddhiProcess, 
 	}
 
 	stanCluster := &streamingv1alpha1.NatsStreamingCluster{}
-	stanName := sp.Name + configs.STANExt
-	err = rsp.client.Get(context.TODO(), types.NamespacedName{Name: stanName, Namespace: sp.Namespace}, stanCluster)
+	err = rsp.client.Get(context.TODO(), types.NamespacedName{Name: configs.STANClusterName, Namespace: sp.Namespace}, stanCluster)
 	if err != nil && errors.IsNotFound(err) {
 		stanCluster = &streamingv1alpha1.NatsStreamingCluster{
 			TypeMeta: metav1.TypeMeta{
@@ -67,12 +65,12 @@ func (rsp *ReconcileSiddhiProcess) createNATS(sp *siddhiv1alpha1.SiddhiProcess, 
 				Kind:       configs.STANKind,
 			},
 			ObjectMeta: metav1.ObjectMeta{
-				Name:      stanName,
+				Name:      configs.STANClusterName,
 				Namespace: sp.Namespace,
 			},
 			Spec: streamingv1alpha1.NatsStreamingClusterSpec{
 				Size:        int32(configs.NATSSize),
-				NatsService: natsName,
+				NatsService: configs.NATSClusterName,
 			},
 		}
 		controllerutil.SetControllerReference(sp, stanCluster, rsp.scheme)
