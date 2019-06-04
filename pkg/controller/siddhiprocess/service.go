@@ -19,18 +19,19 @@
 package siddhiprocess
 
 import (
+	"strconv"
+	"strings"
+
 	siddhiv1alpha1 "github.com/siddhi-io/siddhi-operator/pkg/apis/siddhi/v1alpha1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"strconv"
-	"strings"
 
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 )
 
 // serviceForSiddhi returns a Siddhi Service object
 func (rsp *ReconcileSiddhiProcess) createService(sp *siddhiv1alpha1.SiddhiProcess, siddhiApp SiddhiApp, operatorEnvs map[string]string, configs Configs) *corev1.Service {
-	labels := labelsForSiddhiProcess(sp.Name, operatorEnvs, configs)
+	labels := labelsForSiddhiProcess(strings.ToLower(siddhiApp.Name), operatorEnvs, configs)
 	var servicePorts []corev1.ServicePort
 	for _, port := range siddhiApp.Ports {
 		servicePort := corev1.ServicePort{

@@ -20,16 +20,18 @@ package e2e
 
 import (
 	"bytes"
-	goctx "context"
 	"encoding/json"
-	framework "github.com/operator-framework/operator-sdk/pkg/test"
-	"github.com/operator-framework/operator-sdk/pkg/test/e2eutil"
-	"github.com/siddhi-io/siddhi-operator/pkg/apis"
-	siddhiv1alpha1 "github.com/siddhi-io/siddhi-operator/pkg/apis/siddhi/v1alpha1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"net/http"
 	"testing"
 	"time"
+
+	goctx "context"
+	framework "github.com/operator-framework/operator-sdk/pkg/test"
+	siddhiv1alpha1 "github.com/siddhi-io/siddhi-operator/pkg/apis/siddhi/v1alpha1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+
+	"github.com/operator-framework/operator-sdk/pkg/test/e2eutil"
+	"github.com/siddhi-io/siddhi-operator/pkg/apis"
 )
 
 var (
@@ -40,9 +42,9 @@ var (
 )
 
 type MonitorRequest struct {
-	Type     string `json:type`
-	DeviceID string `json:deviceID`
-	Power    int    `json:power`
+	Type     string `json:"type"`
+	DeviceID string `json:"deviceID"`
+	Power    int    `json:"power"`
 }
 
 func TestSiddhiProcess(t *testing.T) {

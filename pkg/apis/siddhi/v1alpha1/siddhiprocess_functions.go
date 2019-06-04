@@ -44,6 +44,9 @@ func (p *PersistenceVolume) Equals(q *PersistenceVolume) bool {
 func (p *MessagingSystem) Equals(q *MessagingSystem) bool {
 	typeEq := p.Type == q.Type
 	cidEq := p.Config.ClusterID == q.Config.ClusterID
+	if len(p.Config.BootstrapServers) != len(q.Config.BootstrapServers) {
+		return false
+	}
 	sort.Strings(p.Config.BootstrapServers)
 	sort.Strings(q.Config.BootstrapServers)
 	for i := range p.Config.BootstrapServers {

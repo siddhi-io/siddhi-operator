@@ -32,7 +32,7 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 )
 
-// SiddhiApp contains details about the siddhi app which need by K8s
+// SiddhiApp contains details about the siddhi app which need by K8s deployment
 type SiddhiApp struct {
 	Name      string            `json:"appName"`
 	Ports     []int             `json:"ports"`
@@ -55,7 +55,7 @@ type SiddhiParserRequest struct {
 	MessagingSystem siddhiv1alpha1.MessagingSystem `json:"messagingSystem"`
 }
 
-// SourceDeploymentConfig hold deployment configs
+// SourceDeploymentConfig hold deployment configs of a particular siddhi app
 type SourceDeploymentConfig struct {
 	ServiceProtocol string `json:"serviceProtocol"`
 	Secured         bool   `json:"secured"`
@@ -63,31 +63,31 @@ type SourceDeploymentConfig struct {
 	IsPulling       bool   `json:"isPulling"`
 }
 
-// SourceList hold source list object
+// SourceList hold list of object which contains configurations of a siddhi app
 type SourceList struct {
 	SourceDeploymentConfigs []SourceDeploymentConfig `json:"sourceDeploymentConfigs"`
 }
 
-// SiddhiAppConfig holds siddhi app config details
+// SiddhiAppConfig holds siddhi app and the relevant SourceList
 type SiddhiAppConfig struct {
 	SiddhiApp        string     `json:"siddhiApp"`
 	SiddhiSourceList SourceList `json:"sourceList"`
 }
 
-// SiddhiFAppConfig holds siddhi app config details
+// SiddhiFAppConfig holds siddhi apps of the failover scenario and relevant SourceList
 type SiddhiFAppConfig struct {
 	PassthroughApp   string     `json:"passthroughApp"`
 	QueryApp         string     `json:"queryApp"`
 	SiddhiSourceList SourceList `json:"sourceList"`
 }
 
-// SiddhiParserResponse siddhi-parser response
+// SiddhiParserResponse is the response object of siddhi-parser
 type SiddhiParserResponse struct {
 	AppConfig           []SiddhiAppConfig  `json:"siddhiAppConfigs"`
 	FailoverDeployments []SiddhiFAppConfig `json:"failoverDeployments"`
 }
 
-// parseFailoverApp call MSF4J service and parse a given siddhiApp
+// parseFailoverApp call MSF4J service and parse a given siddhiApp - default and failover
 func (rsp *ReconcileSiddhiProcess) parseApp(sp *siddhiv1alpha1.SiddhiProcess, configs Configs) (siddhiAppStructs []SiddhiApp, err error) {
 	var resp *http.Response
 	var siddhiApps []string
@@ -118,10 +118,31 @@ func (rsp *ReconcileSiddhiProcess) parseApp(sp *siddhiv1alpha1.SiddhiProcess, co
 	}
 	propertyMap := rsp.populateUserEnvs(sp)
 	siddhiParserRequest := SiddhiParserRequest{
-		SiddhiApps:      siddhiApps,
-		PropertyMap:     propertyMap,
-		MessagingSystem: sp.Spec.DeploymentConfigs.MessagingSystem,
+		SiddhiApps:  siddhiApps,
+		PropertyMap: propertyMap,
 	}
+	if sp.Spec.DeploymentConfigs.Mode == Failover {
+		ms := siddhiv1alpha1.MessagingSystem{}
+		if sp.Spec.DeploymentConfigs.MessagingSystem.Equals(&ms) {
+			ms = siddhiv1alpha1.MessagingSystem{
+				Type: configs.NATSMSType,
+				Config: siddhiv1alpha1.MessagingSystemConfig{
+					ClusterID: configs.NATSClusterName,
+					BootstrapServers: []string{
+						configs.NATSDefaultURL,
+					},
+				},
+			}
+		} else {
+			ms = sp.Spec.DeploymentConfigs.MessagingSystem
+		}
+		siddhiParserRequest = SiddhiParserRequest{
+			SiddhiApps:      siddhiApps,
+			PropertyMap:     propertyMap,
+			MessagingSystem: ms,
+		}
+	}
+
 	var siddhiParserResponse SiddhiParserResponse
 	b, err := json.Marshal(siddhiParserRequest)
 	if err != nil {
@@ -152,29 +173,33 @@ func (rsp *ReconcileSiddhiProcess) parseApp(sp *siddhiv1alpha1.SiddhiProcess, co
 					tls = append(tls, deploymentConf.Secured)
 				}
 			}
-			pApp := fApp.PassthroughApp
-			pAppName := GetAppName(pApp)
-			qApp := fApp.QueryApp
-			qAppName := GetAppName(qApp)
-			pAppStruct := SiddhiApp{
-				Name:      strings.ToLower(pAppName),
-				Ports:     ports,
-				Protocols: protocols,
-				TLS:       tls,
-				CreateSVC: createSVC,
-				Apps: map[string]string{
-					pAppName: pApp,
-				},
+			if fApp.PassthroughApp != "" {
+				pApp := fApp.PassthroughApp
+				pAppName := GetAppName(pApp)
+				pAppStruct := SiddhiApp{
+					Name:      strings.ToLower(pAppName),
+					Ports:     ports,
+					Protocols: protocols,
+					TLS:       tls,
+					CreateSVC: createSVC,
+					Apps: map[string]string{
+						pAppName: pApp,
+					},
+				}
+				siddhiAppStructs = append(siddhiAppStructs, pAppStruct)
 			}
-			qAppStruct := SiddhiApp{
-				Name:      strings.ToLower(qAppName),
-				CreateSVC: false,
-				Apps: map[string]string{
-					qAppName: qApp,
-				},
+			if fApp.QueryApp != "" {
+				qApp := fApp.QueryApp
+				qAppName := GetAppName(qApp)
+				qAppStruct := SiddhiApp{
+					Name:      strings.ToLower(qAppName),
+					CreateSVC: false,
+					Apps: map[string]string{
+						qAppName: qApp,
+					},
+				}
+				siddhiAppStructs = append(siddhiAppStructs, qAppStruct)
 			}
-			siddhiAppStructs = append(siddhiAppStructs, pAppStruct)
-			siddhiAppStructs = append(siddhiAppStructs, qAppStruct)
 		}
 	} else {
 		var ports []int

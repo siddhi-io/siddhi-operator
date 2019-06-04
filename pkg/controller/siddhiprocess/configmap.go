@@ -20,14 +20,17 @@ package siddhiprocess
 
 import (
 	"context"
+
 	siddhiv1alpha1 "github.com/siddhi-io/siddhi-operator/pkg/apis/siddhi/v1alpha1"
 	corev1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+
+	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 )
 
+// createConfigMap create a k8s config map for given set of data
 func (rsp *ReconcileSiddhiProcess) createConfigMap(sp *siddhiv1alpha1.SiddhiProcess, configMapName string, data map[string]string) error {
 	configMap := &corev1.ConfigMap{}
 	err := rsp.client.Get(context.TODO(), types.NamespacedName{Name: configMapName, Namespace: sp.Namespace}, configMap)

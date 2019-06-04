@@ -18,7 +18,7 @@
 
 package siddhiprocess
 
-// Default configs
+// Default configurations
 const (
 	SiddhiHome           string = "/home/siddhi_user/siddhi-runner-0.1.0/"
 	SiddhiRunnerImage    string = "siddhiio/siddhi-runner-alpine"
@@ -31,6 +31,7 @@ const (
 	DepConfigName        string = "deploymentconfig"
 	DepConfMountPath     string = "tmp/configs/"
 	DepConfParameter     string = "-Dconfig="
+	DepCMExt             string = "-deployment.yaml"
 	Shell                string = "sh"
 	RunnerRPath          string = "bin/runner.sh"
 	HostName             string = "siddhi"
@@ -54,7 +55,10 @@ const (
 	STANExt              string = "-stan"
 	NATSClusterName      string = "siddhi-nats"
 	STANClusterName      string = "siddhi-stan"
+	NATSDefaultURL       string = "nats://siddhi-nats:4222"
+	NATSMSType           string = "nats"
 	NATSSize             int    = 1
+	DeploymentSize       int32  = 1
 )
 
 // Other constants
@@ -65,7 +69,7 @@ const (
 	Distributed string = "distributed"
 )
 
-// Configs contains siddhi default configs
+// Configs contains entries to the siddhi default configs
 type Configs struct {
 	SiddhiHome           string
 	SiddhiRunnerImage    string
@@ -78,6 +82,7 @@ type Configs struct {
 	DepConfigName        string
 	DepConfMountPath     string
 	DepConfParameter     string
+	DepCMExt             string
 	Shell                string
 	RunnerRPath          string
 	HostName             string
@@ -101,9 +106,13 @@ type Configs struct {
 	STANExt              string
 	NATSClusterName      string
 	STANClusterName      string
+	NATSDefaultURL       string
+	NATSMSType           string
 	NATSSize             int
+	DeploymentSize       int32
 }
 
+// configuration function returns the default config object
 func configurations() Configs {
 	configs := Configs{
 		SiddhiHome:           SiddhiHome,
@@ -117,6 +126,7 @@ func configurations() Configs {
 		DepConfigName:        DepConfigName,
 		DepConfMountPath:     DepConfMountPath,
 		DepConfParameter:     DepConfParameter,
+		DepCMExt:             DepCMExt,
 		Shell:                Shell,
 		RunnerRPath:          RunnerRPath,
 		HostName:             HostName,
@@ -140,7 +150,10 @@ func configurations() Configs {
 		STANExt:              STANExt,
 		NATSClusterName:      NATSClusterName,
 		STANClusterName:      STANClusterName,
+		NATSDefaultURL:       NATSDefaultURL,
+		NATSMSType:           NATSMSType,
 		NATSSize:             NATSSize,
+		DeploymentSize:       DeploymentSize,
 	}
 	return configs
 }

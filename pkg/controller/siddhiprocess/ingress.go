@@ -24,10 +24,12 @@ import (
 	"strings"
 
 	siddhiv1alpha1 "github.com/siddhi-io/siddhi-operator/pkg/apis/siddhi/v1alpha1"
+	appsv1 "k8s.io/api/apps/v1"
 	extensionsv1beta1 "k8s.io/api/extensions/v1beta1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"k8s.io/apimachinery/pkg/util/intstr"
+	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 )
 
 // IntOrString integer or string
@@ -46,15 +48,15 @@ const (
 	String
 )
 
-// loadBalancerForSiddhi returns a Siddhi Ingress load balancer object
-func (rsp *ReconcileSiddhiProcess) createIngress(sp *siddhiv1alpha1.SiddhiProcess, siddhiApp SiddhiApp, configs Configs) *extensionsv1beta1.Ingress {
+// createIngress returns a Siddhi Ingress load balancer object
+func (rsp *ReconcileSiddhiProcess) createIngress(sp *siddhiv1alpha1.SiddhiProcess, siddhiApp SiddhiApp, configs Configs, operator *appsv1.Deployment) *extensionsv1beta1.Ingress {
 	var ingressPaths []extensionsv1beta1.HTTPIngressPath
 	for _, port := range siddhiApp.Ports {
 		path := "/" + strings.ToLower(siddhiApp.Name) + "/" + strconv.Itoa(port) + "/"
 		ingressPath := extensionsv1beta1.HTTPIngressPath{
 			Path: path,
 			Backend: extensionsv1beta1.IngressBackend{
-				ServiceName: sp.Name,
+				ServiceName: strings.ToLower(siddhiApp.Name),
 				ServicePort: intstr.IntOrString{
 					Type:   Int,
 					IntVal: int32(port),
@@ -113,10 +115,11 @@ func (rsp *ReconcileSiddhiProcess) createIngress(sp *siddhiv1alpha1.SiddhiProces
 		},
 		Spec: ingressSpec,
 	}
+	controllerutil.SetControllerReference(operator, ingress, rsp.scheme)
 	return ingress
 }
 
-// updatedLoadBalancerForSiddhiProcess returns a Siddhi Ingress load balancer object
+// updateIngress returns a Siddhi Ingress load balancer object
 func (rsp *ReconcileSiddhiProcess) updateIngress(sp *siddhiv1alpha1.SiddhiProcess, currentIngress *extensionsv1beta1.Ingress, siddhiApp SiddhiApp, configs Configs) *extensionsv1beta1.Ingress {
 	var ingressPaths []extensionsv1beta1.HTTPIngressPath
 	for _, port := range siddhiApp.Ports {
@@ -124,7 +127,7 @@ func (rsp *ReconcileSiddhiProcess) updateIngress(sp *siddhiv1alpha1.SiddhiProces
 		ingressPath := extensionsv1beta1.HTTPIngressPath{
 			Path: path,
 			Backend: extensionsv1beta1.IngressBackend{
-				ServiceName: sp.Name,
+				ServiceName: strings.ToLower(siddhiApp.Name),
 				ServicePort: intstr.IntOrString{
 					Type:   Int,
 					IntVal: int32(port),
