@@ -45,7 +45,7 @@ const (
 	FilePersistentPath   string = "wso2/runner/siddhi-app-persistence"
 	ParserDomain         string = "http://siddhi-parser."
 	ParserDefaultContext string = ".svc.cluster.local:9090/siddhi-parser/parse"
-	ParserNATSContext    string = ".svc.cluster.local:9090/siddhi-parser/nats"
+	ParserNATSContext    string = ".svc.cluster.local:9090/siddhi-parser/failover"
 	PVCSize              string = "1Gi"
 	NATSAPIVersion       string = "nats.io/v1alpha2"
 	STANAPIVersion       string = "streaming.nats.io/v1alpha1"
@@ -113,7 +113,7 @@ type Configs struct {
 }
 
 // configuration function returns the default config object
-func configurations() Configs {
+func Configurations() Configs {
 	configs := Configs{
 		SiddhiHome:           SiddhiHome,
 		SiddhiRunnerImage:    SiddhiRunnerImage,

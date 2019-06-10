@@ -148,7 +148,7 @@ func (rsp *ReconcileSiddhiProcess) Reconcile(request reconcile.Request) (reconci
 		return reconcile.Result{}, nil
 	}
 
-	configs := configurations()
+	configs := Configurations()
 
 	var operatorEnvs map[string]string
 	operatorEnvs = make(map[string]string)

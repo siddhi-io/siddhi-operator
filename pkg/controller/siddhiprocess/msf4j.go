@@ -101,6 +101,7 @@ func (rsp *ReconcileSiddhiProcess) parseApp(sp *siddhiv1alpha1.SiddhiProcess, co
 	} else {
 		url = configs.ParserDomain + sp.Namespace + configs.ParserDefaultContext
 	}
+
 	if (query == "") && (len(sp.Spec.Apps) > 0) {
 		for _, siddhiCMName := range sp.Spec.Apps {
 			configMap := &corev1.ConfigMap{}
@@ -116,6 +117,7 @@ func (rsp *ReconcileSiddhiProcess) parseApp(sp *siddhiv1alpha1.SiddhiProcess, co
 	} else {
 		err = errors.New("CRD must have either query or app entry to deploy siddhi apps")
 	}
+	
 	propertyMap := rsp.populateUserEnvs(sp)
 	siddhiParserRequest := SiddhiParserRequest{
 		SiddhiApps:  siddhiApps,
@@ -155,10 +157,14 @@ func (rsp *ReconcileSiddhiProcess) parseApp(sp *siddhiv1alpha1.SiddhiProcess, co
 	client := &http.Client{}
 	resp, err = client.Do(req)
 	if err != nil {
-		reqLogger.Error(err, "REST invoking error")
+		reqLogger.Error(err, "Siddhi-parser invoking error")
 		return siddhiAppStructs, err
 	}
 	defer resp.Body.Close()
+	if resp.StatusCode/100 != 2 {
+		reqLogger.Error(err, "Siddhi-parser invalid response ", resp.Status)
+		return siddhiAppStructs, errors.New(resp.Status)
+	}
 	json.NewDecoder(resp.Body).Decode(&siddhiParserResponse)
 	if sp.Spec.DeploymentConfigs.Mode == Failover {
 		for _, fApp := range siddhiParserResponse.FailoverDeployments {
