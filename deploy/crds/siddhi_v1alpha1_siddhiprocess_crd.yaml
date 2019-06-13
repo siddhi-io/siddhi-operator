@@ -35,10 +35,18 @@ spec:
     served: true
     storage: true
   additionalPrinterColumns:
+    - name: Type
+      type: string
+      description: Deployment type
+      JSONPath: .status.type
     - name: Status
       type: string
       description: Status
       JSONPath: .status.status
+    - name: Ready
+      type: string
+      description: Ready deployments
+      JSONPath: .status.ready
     - name: Age
       type: date
       description: Age

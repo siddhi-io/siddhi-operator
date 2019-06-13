@@ -23,6 +23,7 @@ import (
 	"reflect"
 	"strconv"
 	"strings"
+	"time"
 
 	siddhiv1alpha1 "github.com/siddhi-io/siddhi-operator/pkg/apis/siddhi/v1alpha1"
 	appsv1 "k8s.io/api/apps/v1"
@@ -44,21 +45,20 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/source"
 )
 
-// Status of a Siddhi process
-type Status int
-
-// Tye of status
-const (
-	PENDING Status = iota
-	READY
-	RUNNING
-	ERROR
-)
-
 var log = logf.Log.WithName("controller_siddhiprocess")
+
+// EventLog contains the relevant events that happened to the SiddhiProcess
+type EventLog struct {
+	Type    string `json:"type"`
+	Age     string `json:"age"`
+	Message string `json:"message"`
+}
 
 // SPContainer holds siddhi apps
 var SPContainer map[string][]SiddhiApp
+
+// SPErrLog contains error messages
+var SPErrLog map[string][]EventLog
 
 // Add creates a new SiddhiProcess Controller and adds it to the Manager. The Manager will set fields on the Controller
 // and Start it when the Manager is Started.
@@ -74,6 +74,7 @@ func newReconciler(mgr manager.Manager) reconcile.Reconciler {
 // add adds a new Controller to mgr with r as the reconcile.Reconciler
 func add(mgr manager.Manager, r reconcile.Reconciler) error {
 	SPContainer = make(map[string][]SiddhiApp)
+	SPErrLog = make(map[string][]EventLog)
 
 	// Create a new controller
 	c, err := controller.New("siddhiprocess-controller", mgr, controller.Options{Reconciler: r})
@@ -137,15 +138,15 @@ type ReconcileSiddhiProcess struct {
 func (rsp *ReconcileSiddhiProcess) Reconcile(request reconcile.Request) (reconcile.Result, error) {
 	reqLogger := log.WithValues("Request.Namespace", request.Namespace, "Request.Name", request.Name)
 	reqLogger.Info("Reconciling SiddhiProcess")
+	em := ""
 
-	// Fetch the SiddhiProcess instance
 	sp := &siddhiv1alpha1.SiddhiProcess{}
 	err := rsp.client.Get(context.TODO(), request.NamespacedName, sp)
 	if err != nil {
 		if errors.IsNotFound(err) {
-			return reconcile.Result{}, nil
+			return reconcile.Result{}, err
 		}
-		return reconcile.Result{}, nil
+		return reconcile.Result{}, err
 	}
 
 	configs := Configurations()
@@ -155,7 +156,7 @@ func (rsp *ReconcileSiddhiProcess) Reconcile(request reconcile.Request) (reconci
 	operatorDeployment := &appsv1.Deployment{}
 	err = rsp.client.Get(context.TODO(), types.NamespacedName{Name: configs.OperatorName, Namespace: sp.Namespace}, operatorDeployment)
 	if err != nil {
-		reqLogger.Info("siddhi-operator deployment not found")
+		sp, SPErrLog = rsp.updateStatus(WARNING, "siddhi-operator deployment not found", SPErrLog, err, sp)
 	} else {
 		operatorEnvs = rsp.populateOperatorEnvs(operatorDeployment)
 	}
@@ -164,70 +165,74 @@ func (rsp *ReconcileSiddhiProcess) Reconcile(request reconcile.Request) (reconci
 	if _, ok := SPContainer[sp.Name]; ok {
 		siddhiApps = SPContainer[sp.Name]
 	} else {
+		sp, SPErrLog = rsp.updateStatus(PENDING, "", SPErrLog, nil, sp)
 		siddhiApps, err = rsp.parseApp(sp, configs)
 		SPContainer[sp.Name] = siddhiApps
 		if err != nil {
-			reqLogger.Error(err, err.Error())
+			sp, SPErrLog = rsp.updateStatus(ERROR, err.Error(), SPErrLog, err, sp)
 			return reconcile.Result{}, err
 		}
 	}
 
 	if sp.Spec.DeploymentConfigs.Mode == Failover {
+		sp = rsp.updateType(Failover, sp)
 		ms := siddhiv1alpha1.MessagingSystem{}
 		if sp.Spec.DeploymentConfigs.MessagingSystem.Equals(&ms) {
 			err = rsp.createNATS(sp, configs, operatorDeployment)
 			if err != nil {
-				reqLogger.Error(err, "Failed to create NATS", "CR.Name", sp.Name)
+				sp, SPErrLog = rsp.updateStatus(WARNING, "Failed automatic NATS creation", SPErrLog, err, sp)
 			}
 		}
+	} else {
+		sp = rsp.updateType(Default, sp)
 	}
 
+	needDep := 0
+	availableDep := 0
 	for i, siddhiApp := range siddhiApps {
-		reqLogger.Info(strconv.Itoa(i))
-		reqLogger.Info(siddhiApp.Name)
+		needDep++
 		var siddhiDeployment *appsv1.Deployment
 		deployment := &appsv1.Deployment{}
 		err = rsp.client.Get(context.TODO(), types.NamespacedName{Name: strings.ToLower(siddhiApp.Name), Namespace: sp.Namespace}, deployment)
-		if err != nil && errors.IsNotFound(err) {
-			rsp.updateStatus(PENDING, sp)
+		if i != 0 && err != nil && errors.IsNotFound(err) {
 			siddhiDeployment, err = rsp.deployApp(sp, siddhiApp, operatorEnvs, configs)
 			if err != nil {
-				reqLogger.Error(err, err.Error())
-				rsp.updateStatus(ERROR, sp)
+				sp, SPErrLog = rsp.updateStatus(ERROR, err.Error(), SPErrLog, err, sp)
 				continue
 			}
-			reqLogger.Info("Creating a new Deployment", "Deployment.Namespace", siddhiDeployment.Namespace, "Deployment.Name", siddhiDeployment.Name)
 			err = rsp.client.Create(context.TODO(), siddhiDeployment)
 			if err != nil {
-				reqLogger.Error(err, "Failed to create new Deployment", "Deployment.Name", siddhiDeployment.Name)
-				rsp.updateStatus(ERROR, sp)
+				em = "Failed to create a new deployment : " + siddhiDeployment.Name
+				sp, SPErrLog = rsp.updateStatus(ERROR, em, SPErrLog, err, sp)
 				continue
 			}
+			reqLogger.Info("New deployment created successfully", "Deployment.Namespace", siddhiDeployment.Namespace, "Deployment.Name", siddhiDeployment.Name)
+			availableDep++
+			sp, SPErrLog = rsp.updateStatus(RUNNING, "", SPErrLog, nil, sp)
 		} else if err != nil {
-			reqLogger.Error(err, "Failed to get Deployment")
-			rsp.updateStatus(ERROR, sp)
+			em = "Failed to get the deployment : " + strings.ToLower(siddhiApp.Name)
+			sp, SPErrLog = rsp.updateStatus(ERROR, em, SPErrLog, err, sp)
 			continue
+		} else {
+			availableDep++
 		}
+
 		if siddhiApp.CreateSVC {
 			service := &corev1.Service{}
 			err = rsp.client.Get(context.TODO(), types.NamespacedName{Name: siddhiApp.Name, Namespace: sp.Namespace}, service)
 			if err != nil && errors.IsNotFound(err) {
 				siddhiService := rsp.createService(sp, siddhiApp, operatorEnvs, configs)
-				reqLogger.Info("Creating a new Service", "Service.Namespace", siddhiService.Namespace, "Service.Name", siddhiService.Name)
 				err = rsp.client.Create(context.TODO(), siddhiService)
 				if err != nil {
-					reqLogger.Error(err, "Failed to create new Service", "Service.Name", siddhiService.Name)
-					rsp.updateStatus(ERROR, sp)
+					em = "Failed to create a new service : " + siddhiService.Name
+					sp, SPErrLog = rsp.updateStatus(WARNING, em, SPErrLog, err, sp)
 					continue
 				}
-				rsp.updateStatus(RUNNING, sp)
-				if err != nil {
-					reqLogger.Error(err, "Failed to update SiddhiProcess status", "Service.Name", siddhiService.Name)
-					rsp.updateStatus(ERROR, sp)
-				}
+				reqLogger.Info("New service created successfully", "Service.Name", siddhiService.Name)
+				sp, SPErrLog = rsp.updateStatus(RUNNING, "", SPErrLog, nil, sp)
 			} else if err != nil {
-				reqLogger.Error(err, "Failed to get Service")
-				rsp.updateStatus(ERROR, sp)
+				em = "Failed to find the service : " + siddhiApp.Name
+				sp, SPErrLog = rsp.updateStatus(ERROR, em, SPErrLog, err, sp)
 				continue
 			}
 
@@ -242,29 +247,27 @@ func (rsp *ReconcileSiddhiProcess) Reconcile(request reconcile.Request) (reconci
 				err = rsp.client.Get(context.TODO(), types.NamespacedName{Name: configs.HostName, Namespace: sp.Namespace}, ingress)
 				if err != nil && errors.IsNotFound(err) {
 					siddhiIngress := rsp.createIngress(sp, siddhiApp, configs, operatorDeployment)
-					reqLogger.Info("Creating a new Ingress", "Ingress.Namespace", siddhiIngress.Namespace, "Ingress.Name", siddhiIngress.Name)
 					err = rsp.client.Create(context.TODO(), siddhiIngress)
 					if err != nil {
-						reqLogger.Error(err, "Failed to create new Ingress", "Ingress.Name", siddhiIngress.Name)
+						em = "Failed to create a new ingress : " + siddhiIngress.Name
+						sp, SPErrLog = rsp.updateStatus(ERROR, em, SPErrLog, err, sp)
 						continue
 					}
-					reqLogger.Info("Ingress created successfully")
-				} else if err == nil {
+					reqLogger.Info("New ingress created successfully", "Ingress.Name", siddhiIngress.Name)
+				} else if err != nil {
 					siddhiIngress := rsp.updateIngress(sp, ingress, siddhiApp, configs)
-					reqLogger.Info("Updating Ingress", "Ingress.Name", siddhiIngress.Name)
 					err = rsp.client.Update(context.TODO(), siddhiIngress)
 					if err != nil {
-						reqLogger.Error(err, "Failed to updated new Ingress", "Ingress.Name", siddhiIngress.Name)
+						em = "Failed to updated the ingress : " + siddhiIngress.Name
+						sp, SPErrLog = rsp.updateStatus(ERROR, em, SPErrLog, err, sp)
 						continue
 					}
-					reqLogger.Info("Ingress updated successfully")
-				} else if err != nil {
-					reqLogger.Error(err, "Failed to get the Ingress", "Ingress.Name", "siddhi")
-					continue
+					reqLogger.Info("Ingress updated successfully", "Ingress.Name", siddhiIngress.Name)
 				}
 			}
 		}
 	}
+	sp = rsp.updateReady(availableDep, needDep, sp)
 
 	for _, siddhiApp := range siddhiApps {
 		deployment := &appsv1.Deployment{}
@@ -273,7 +276,8 @@ func (rsp *ReconcileSiddhiProcess) Reconcile(request reconcile.Request) (reconci
 			deployment.Spec.Replicas = &configs.DeploymentSize
 			err = rsp.client.Update(context.TODO(), deployment)
 			if err != nil {
-				reqLogger.Error(err, "Failed to update Deployment", "Deployment.Name", deployment.Name)
+				em = "Failed to update deployment : " + deployment.Name
+				sp, SPErrLog = rsp.updateStatus(ERROR, em, SPErrLog, err, sp)
 				return reconcile.Result{}, nil
 			}
 		}
@@ -299,58 +303,13 @@ func (rsp *ReconcileSiddhiProcess) Reconcile(request reconcile.Request) (reconci
 			reqLogger.Error(err, "Failed to update SiddhiProcess status")
 		}
 	}
-	return reconcile.Result{}, nil
-}
 
-// labelsForSiddhiProcess returns the labels for selecting the resources
-// belonging to the given sp CR name.
-func labelsForSiddhiProcess(appName string, operatorEnvs map[string]string, configs Configs) map[string]string {
-	operatorName := configs.OperatorName
-	operatorVersion := configs.OperatorVersion
-	if operatorEnvs["OPERATOR_NAME"] != "" {
-		operatorName = operatorEnvs["OPERATOR_NAME"]
+	rPeriod := time.Minute * time.Duration(configs.DefaultRTime)
+	if operatorEnvs["RECONCILE_PERIOD"] != "" {
+		p, err := strconv.Atoi(operatorEnvs["RECONCILE_PERIOD"])
+		if err == nil {
+			rPeriod = time.Second * time.Duration(p)
+		}
 	}
-	if operatorEnvs["OPERATOR_VERSION"] != "" {
-		operatorVersion = operatorEnvs["OPERATOR_VERSION"]
-	}
-	return map[string]string{
-		"siddhi.io/name":     configs.CRDName,
-		"siddhi.io/instance": appName,
-		"siddhi.io/version":  operatorVersion,
-		"siddhi.io/part-of":  operatorName,
-	}
-}
-
-// podNames returns the pod names of the array of pods passed in
-func podNames(pods []corev1.Pod) []string {
-	var podNames []string
-	for _, pod := range pods {
-		podNames = append(podNames, pod.Name)
-	}
-	return podNames
-}
-
-// Status array
-var status = []string{
-	"Pending",
-	"Ready",
-	"Running",
-	"Error",
-}
-
-// getStatus return relevant status to a given int
-func getStatus(n Status) string {
-	return status[n]
-}
-
-// updateStatus
-func (rsp *ReconcileSiddhiProcess) updateStatus(n Status, sp *siddhiv1alpha1.SiddhiProcess) {
-	reqLogger := log.WithValues("Request.Namespace", sp.Namespace, "Request.Name", sp.Name)
-	sp.Status.Status = getStatus(n)
-	err := rsp.client.Status().Update(context.TODO(), sp)
-	if err != nil {
-		reqLogger.Error(err, "Failed to update SiddhiProcess status")
-		sp.Status.Status = getStatus(ERROR)
-		rsp.client.Status().Update(context.TODO(), sp)
-	}
+	return reconcile.Result{RequeueAfter: rPeriod}, nil
 }

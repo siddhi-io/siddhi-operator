@@ -113,11 +113,11 @@ func (rsp *ReconcileSiddhiProcess) parseApp(sp *siddhiv1alpha1.SiddhiProcess, co
 	} else if (query != "") && (len(sp.Spec.Apps) <= 0) {
 		siddhiApps = append(siddhiApps, query)
 	} else if (query != "") && (len(sp.Spec.Apps) > 0) {
-		err = errors.New("CRD should only contain either query or app entry")
+		err = errors.New("Custom resource should only contain either query or app entry")
 	} else {
-		err = errors.New("CRD must have either query or app entry to deploy siddhi apps")
+		err = errors.New("Custom resource must have either query or app entry to deploy siddhi apps")
 	}
-	
+
 	propertyMap := rsp.populateUserEnvs(sp)
 	siddhiParserRequest := SiddhiParserRequest{
 		SiddhiApps:  siddhiApps,
@@ -148,7 +148,7 @@ func (rsp *ReconcileSiddhiProcess) parseApp(sp *siddhiv1alpha1.SiddhiProcess, co
 	var siddhiParserResponse SiddhiParserResponse
 	b, err := json.Marshal(siddhiParserRequest)
 	if err != nil {
-		reqLogger.Error(err, "JSON marshal error in apps config maps")
+		reqLogger.Error(err, ("JSON marshal error in SiddhiProcess : " + sp.Name))
 		return siddhiAppStructs, err
 	}
 	var jsonStr = []byte(string(b))
@@ -157,12 +157,12 @@ func (rsp *ReconcileSiddhiProcess) parseApp(sp *siddhiv1alpha1.SiddhiProcess, co
 	client := &http.Client{}
 	resp, err = client.Do(req)
 	if err != nil {
-		reqLogger.Error(err, "Siddhi-parser invoking error")
+		reqLogger.Error(err, ("Siddhi parser invoking error in URL : " + url))
 		return siddhiAppStructs, err
 	}
 	defer resp.Body.Close()
 	if resp.StatusCode/100 != 2 {
-		reqLogger.Error(err, "Siddhi-parser invalid response ", resp.Status)
+		err = errors.New("Siddhi parser invalid response from : " + url + ". Status : " + resp.Status)
 		return siddhiAppStructs, errors.New(resp.Status)
 	}
 	json.NewDecoder(resp.Body).Decode(&siddhiParserResponse)
@@ -181,7 +181,10 @@ func (rsp *ReconcileSiddhiProcess) parseApp(sp *siddhiv1alpha1.SiddhiProcess, co
 			}
 			if fApp.PassthroughApp != "" {
 				pApp := fApp.PassthroughApp
-				pAppName := GetAppName(pApp)
+				pAppName, err := GetAppName(pApp)
+				if err != nil {
+					return siddhiAppStructs, err
+				}
 				pAppStruct := SiddhiApp{
 					Name:      strings.ToLower(pAppName),
 					Ports:     ports,
@@ -196,7 +199,10 @@ func (rsp *ReconcileSiddhiProcess) parseApp(sp *siddhiv1alpha1.SiddhiProcess, co
 			}
 			if fApp.QueryApp != "" {
 				qApp := fApp.QueryApp
-				qAppName := GetAppName(qApp)
+				qAppName, err := GetAppName(qApp)
+				if err != nil {
+					return siddhiAppStructs, err
+				}
 				qAppStruct := SiddhiApp{
 					Name:      strings.ToLower(qAppName),
 					CreateSVC: false,
@@ -213,7 +219,10 @@ func (rsp *ReconcileSiddhiProcess) parseApp(sp *siddhiv1alpha1.SiddhiProcess, co
 		var tls []bool
 		for _, siddhiApp := range siddhiParserResponse.AppConfig {
 			app := siddhiApp.SiddhiApp
-			appName := strings.TrimSpace(GetAppName(app))
+			appName, err := GetAppName(app)
+			if err != nil {
+				return siddhiAppStructs, err
+			}
 			for _, deploymentConf := range siddhiApp.SiddhiSourceList.SourceDeploymentConfigs {
 				if !deploymentConf.IsPulling {
 					createSVC = true
@@ -239,14 +248,4 @@ func (rsp *ReconcileSiddhiProcess) parseApp(sp *siddhiv1alpha1.SiddhiProcess, co
 	}
 
 	return siddhiAppStructs, err
-}
-
-// isIn used to find element in a given slice
-func isIn(slice []int, element int) bool {
-	for _, e := range slice {
-		if e == element {
-			return true
-		}
-	}
-	return false
 }

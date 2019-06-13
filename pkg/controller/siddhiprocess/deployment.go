@@ -19,7 +19,6 @@
 package siddhiprocess
 
 import (
-	"regexp"
 	"strings"
 
 	siddhiv1alpha1 "github.com/siddhi-io/siddhi-operator/pkg/apis/siddhi/v1alpha1"
@@ -283,12 +282,4 @@ func createDeployment(
 		},
 	}
 	return deployment
-}
-
-// GetAppName return the app name for given siddhiAPP
-func GetAppName(app string) (appName string) {
-	re := regexp.MustCompile(".*@App:name\\(\"(.*)\"\\)")
-	match := re.FindStringSubmatch(app)
-	appName = match[1]
-	return appName
 }

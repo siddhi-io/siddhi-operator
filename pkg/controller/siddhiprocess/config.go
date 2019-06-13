@@ -58,6 +58,7 @@ const (
 	NATSDefaultURL       string = "nats://siddhi-nats:4222"
 	NATSMSType           string = "nats"
 	NATSSize             int    = 1
+	DefaultRTime         int    = 1
 	DeploymentSize       int32  = 1
 )
 
@@ -66,6 +67,7 @@ const (
 	Push        string = "PUSH"
 	Pull        string = "PULL"
 	Failover    string = "failover"
+	Default     string = "default"
 	Distributed string = "distributed"
 )
 
@@ -109,6 +111,7 @@ type Configs struct {
 	NATSDefaultURL       string
 	NATSMSType           string
 	NATSSize             int
+	DefaultRTime         int
 	DeploymentSize       int32
 }
 
@@ -153,6 +156,7 @@ func Configurations() Configs {
 		NATSDefaultURL:       NATSDefaultURL,
 		NATSMSType:           NATSMSType,
 		NATSSize:             NATSSize,
+		DefaultRTime:         DefaultRTime,
 		DeploymentSize:       DeploymentSize,
 	}
 	return configs
