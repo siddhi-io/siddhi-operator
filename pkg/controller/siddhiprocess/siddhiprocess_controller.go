@@ -189,12 +189,12 @@ func (rsp *ReconcileSiddhiProcess) Reconcile(request reconcile.Request) (reconci
 
 	needDep := 0
 	availableDep := 0
-	for i, siddhiApp := range siddhiApps {
+	for _, siddhiApp := range siddhiApps {
 		needDep++
 		var siddhiDeployment *appsv1.Deployment
 		deployment := &appsv1.Deployment{}
 		err = rsp.client.Get(context.TODO(), types.NamespacedName{Name: strings.ToLower(siddhiApp.Name), Namespace: sp.Namespace}, deployment)
-		if i != 0 && err != nil && errors.IsNotFound(err) {
+		if err != nil && errors.IsNotFound(err) {
 			siddhiDeployment, err = rsp.deployApp(sp, siddhiApp, operatorEnvs, configs)
 			if err != nil {
 				sp, SPErrLog = rsp.updateStatus(ERROR, err.Error(), SPErrLog, err, sp)
