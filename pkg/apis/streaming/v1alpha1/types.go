@@ -11,6 +11,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+// Taken from: https://github.com/nats-io/nats-streaming-operator/blob/v0.2.2/pkg/apis/streaming/v1alpha1/types.go
+
 package v1alpha1
 
 import (

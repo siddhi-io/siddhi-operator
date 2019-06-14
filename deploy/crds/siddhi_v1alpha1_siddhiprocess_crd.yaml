@@ -13,6 +13,8 @@ spec:
     shortNames:
       - sp
       - sps
+      - siddhi
+      - siddhis
   scope: Namespaced
   subresources:
     status: {}

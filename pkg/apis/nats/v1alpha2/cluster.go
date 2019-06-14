@@ -12,6 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+// Taken from: https://github.com/nats-io/nats-operator/blob/v0.5.0/pkg/apis/nats/v1alpha2/cluster.go
+
 package v1alpha2
 
 import (
