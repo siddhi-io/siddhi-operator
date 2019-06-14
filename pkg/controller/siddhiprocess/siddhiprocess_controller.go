@@ -144,7 +144,7 @@ func (rsp *ReconcileSiddhiProcess) Reconcile(request reconcile.Request) (reconci
 	err := rsp.client.Get(context.TODO(), request.NamespacedName, sp)
 	if err != nil {
 		if errors.IsNotFound(err) {
-			return reconcile.Result{}, err
+			return reconcile.Result{}, nil
 		}
 		return reconcile.Result{}, err
 	}
