@@ -21,12 +21,12 @@ package siddhiprocess
 import (
 	"context"
 	"strconv"
-	"time"
 
 	siddhiv1alpha1 "github.com/siddhi-io/siddhi-operator/pkg/apis/siddhi/v1alpha1"
 	appsv1 "k8s.io/api/apps/v1"
 
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/client-go/tools/record"
 )
 
 // populateOperatorEnvs returns a map of ENVs in the operator deployment
@@ -51,52 +51,29 @@ func (rsp *ReconcileSiddhiProcess) populateUserEnvs(sp *siddhiv1alpha1.SiddhiPro
 }
 
 // updateStatus update the status of the CR object
-func (rsp *ReconcileSiddhiProcess) updateStatus(n Status, em string, spErrLog map[string][]EventLog, er error, sp *siddhiv1alpha1.SiddhiProcess) (s *siddhiv1alpha1.SiddhiProcess, spErrLg map[string][]EventLog) {
+func (rsp *ReconcileSiddhiProcess) updateStatus(n Status, reason string, message string, eventRecorder record.EventRecorder, er error, sp *siddhiv1alpha1.SiddhiProcess) (s *siddhiv1alpha1.SiddhiProcess) {
 	s = &siddhiv1alpha1.SiddhiProcess{}
 	reqLogger := log.WithValues("Request.Namespace", sp.Namespace, "Request.Name", sp.Name)
 	err := rsp.client.Get(context.TODO(), types.NamespacedName{Name: sp.Name, Namespace: sp.Namespace}, s)
 	if err != nil {
-		return sp, spErrLog
+		return sp
 	}
 	st := getStatus(n)
 	s.Status.Status = st
 
 	if n == ERROR || n == WARNING {
-		if s.Status.Logs == "" {
-			s.Status.Logs = "\n   Type \t Age \t\t Message \n   ---- \t ---- \t\t ---- \n"
-		}
-		emExists := false
-		events := spErrLog[sp.Name]
-		for _, e := range events {
-			if e.Message == em {
-				emExists = true
-				break
-			}
-		}
-		if !emExists {
-			cTime := time.Now().Format(time.RFC3339)
-			s.Status.Logs += "   " + st + "\t " + cTime + " \t\t " + em + " \n"
-			events = append(
-				events,
-				EventLog{
-					Type:    st,
-					Age:     cTime,
-					Message: em,
-				},
-			)
-			spErrLog[sp.Name] = events
-		}
+		eventRecorder.Event(sp, getStatus(WARNING), reason, message)
 		if n == ERROR {
-			reqLogger.Error(er, em)
+			reqLogger.Error(er, message)
 		} else {
-			reqLogger.Info(em)
+			reqLogger.Info(message)
 		}
 	}
 	err = rsp.client.Status().Update(context.TODO(), s)
 	if err != nil {
-		return sp, spErrLog
+		return sp
 	}
-	return s, spErrLog
+	return s
 }
 
 // updateType update the type of the CR object

@@ -96,7 +96,6 @@ type SiddhiProcessStatus struct {
 	Status string   `json:"status"`
 	Type   string   `json:"type"`
 	Ready  string   `json:"ready"`
-	Logs   string   `json:"logs"`
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object

@@ -45,7 +45,7 @@ spec:
             - name: AUTO_INGRESS_CREATION
               value: "true"
             - name: RECONCILE_PERIOD
-              value: "60"
+              value: "300"
 
 
 ---
