@@ -36,6 +36,7 @@ const (
 	RUNNING
 	ERROR
 	WARNING
+	NORMAL
 )
 
 // labelsForSiddhiProcess returns the labels for selecting the resources
@@ -73,6 +74,7 @@ var status = []string{
 	"Running",
 	"Error",
 	"Warning",
+	"Normal",
 }
 
 // getStatus return relevant status to a given int

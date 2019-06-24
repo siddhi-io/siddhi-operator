@@ -69,6 +69,10 @@ func (rsp *ReconcileSiddhiProcess) updateStatus(n Status, reason string, message
 			reqLogger.Info(message)
 		}
 	}
+	if n == RUNNING {
+		eventRecorder.Event(sp, getStatus(NORMAL), reason, message)
+		reqLogger.Info(message)
+	}
 	err = rsp.client.Status().Update(context.TODO(), s)
 	if err != nil {
 		return sp

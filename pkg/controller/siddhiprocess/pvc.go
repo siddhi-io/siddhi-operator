@@ -68,6 +68,7 @@ func (rsp *ReconcileSiddhiProcess) createPVC(sp *siddhiv1alpha1.SiddhiProcess, c
 						corev1.ResourceStorage: resource.MustParse(p.Resources.Requests.Storage),
 					},
 				},
+				StorageClassName: &p.Class,
 			},
 		}
 		controllerutil.SetControllerReference(sp, pvc, rsp.scheme)

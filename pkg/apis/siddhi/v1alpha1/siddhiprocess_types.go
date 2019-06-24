@@ -54,7 +54,7 @@ type PVCResource struct {
 type PersistenceVolume struct {
 	AccessModes []string    `json:"access.modes"`
 	VolumeMode  string      `json:"volume.mode"`
-	Class       string      `json:"class"`
+	Class       string      `json:"storageClassName"`
 	Resources   PVCResource `json:"resources"`
 }
 

@@ -113,9 +113,11 @@ func (rsp *ReconcileSiddhiProcess) parseApp(sp *siddhiv1alpha1.SiddhiProcess, co
 	} else if (query != "") && (len(sp.Spec.Apps) <= 0) {
 		siddhiApps = append(siddhiApps, query)
 	} else if (query != "") && (len(sp.Spec.Apps) > 0) {
-		err = errors.New("Custom resource should only contain either query or app entry")
+		err = errors.New("Custom resource " + sp.Name + " should only contain either query or app entry")
+		return siddhiAppStructs, err
 	} else {
-		err = errors.New("Custom resource must have either query or app entry to deploy siddhi apps")
+		err = errors.New("Custom resource " + sp.Name + " must have either query or app entry to deploy siddhi apps")
+		return siddhiAppStructs, err
 	}
 
 	propertyMap := rsp.populateUserEnvs(sp)
@@ -129,7 +131,7 @@ func (rsp *ReconcileSiddhiProcess) parseApp(sp *siddhiv1alpha1.SiddhiProcess, co
 			ms = siddhiv1alpha1.MessagingSystem{
 				Type: configs.NATSMSType,
 				Config: siddhiv1alpha1.MessagingSystemConfig{
-					ClusterID: configs.NATSClusterName,
+					ClusterID: configs.STANClusterName,
 					BootstrapServers: []string{
 						configs.NATSDefaultURL,
 					},
@@ -186,7 +188,7 @@ func (rsp *ReconcileSiddhiProcess) parseApp(sp *siddhiv1alpha1.SiddhiProcess, co
 					return siddhiAppStructs, err
 				}
 				pAppStruct := SiddhiApp{
-					Name:      strings.ToLower(pAppName),
+					Name:      strings.ToLower(sp.Name + configs.FExtOne),
 					Ports:     ports,
 					Protocols: protocols,
 					TLS:       tls,
@@ -204,7 +206,7 @@ func (rsp *ReconcileSiddhiProcess) parseApp(sp *siddhiv1alpha1.SiddhiProcess, co
 					return siddhiAppStructs, err
 				}
 				qAppStruct := SiddhiApp{
-					Name:      strings.ToLower(qAppName),
+					Name:      strings.ToLower(sp.Name + configs.FExtTwo),
 					CreateSVC: false,
 					Apps: map[string]string{
 						qAppName: qApp,

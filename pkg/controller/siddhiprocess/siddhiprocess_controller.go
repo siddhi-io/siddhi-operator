@@ -21,9 +21,7 @@ package siddhiprocess
 import (
 	"context"
 	"reflect"
-	"strconv"
 	"strings"
-	"time"
 
 	siddhiv1alpha1 "github.com/siddhi-io/siddhi-operator/pkg/apis/siddhi/v1alpha1"
 	appsv1 "k8s.io/api/apps/v1"
@@ -189,7 +187,7 @@ func (rsp *ReconcileSiddhiProcess) Reconcile(request reconcile.Request) (reconci
 		deployment := &appsv1.Deployment{}
 		err = rsp.client.Get(context.TODO(), types.NamespacedName{Name: strings.ToLower(siddhiApp.Name), Namespace: sp.Namespace}, deployment)
 		if err != nil && errors.IsNotFound(err) {
-			siddhiDeployment, err = rsp.deployApp(sp, siddhiApp, operatorEnvs, configs)
+			siddhiDeployment, sp, err = rsp.deployApp(sp, siddhiApp, operatorEnvs, configs, ER)
 			if err != nil {
 				sp = rsp.updateStatus(ERROR, "DeployError", err.Error(), ER, err, sp)
 				continue
@@ -200,9 +198,8 @@ func (rsp *ReconcileSiddhiProcess) Reconcile(request reconcile.Request) (reconci
 				sp = rsp.updateStatus(ERROR, "DeploymentCreationError", em, ER, err, sp)
 				continue
 			}
-			reqLogger.Info("New deployment created successfully", "Deployment.Namespace", siddhiDeployment.Namespace, "Deployment.Name", siddhiDeployment.Name)
 			availableDep++
-			sp = rsp.updateStatus(RUNNING, "", "", ER, nil, sp)
+			sp = rsp.updateStatus(RUNNING, "DeploymentCreated", (siddhiDeployment.Name + " deployment created successfully"), ER, nil, sp)
 		} else if err != nil {
 			em = "Failed to get the deployment : " + strings.ToLower(siddhiApp.Name)
 			sp = rsp.updateStatus(ERROR, "DeploymentNotFound", em, ER, err, sp)
@@ -222,8 +219,7 @@ func (rsp *ReconcileSiddhiProcess) Reconcile(request reconcile.Request) (reconci
 					sp = rsp.updateStatus(WARNING, "ServiceCreationError", em, ER, err, sp)
 					continue
 				}
-				reqLogger.Info("New service created successfully", "Service.Name", siddhiService.Name)
-				sp = rsp.updateStatus(RUNNING, "", "", ER, nil, sp)
+				sp = rsp.updateStatus(RUNNING, "ServiceCreated", (siddhiService.Name + " service created successfully"), ER, nil, sp)
 			} else if err != nil {
 				em = "Failed to find the service : " + siddhiApp.Name
 				sp = rsp.updateStatus(ERROR, "ServiceNotFound", em, ER, err, sp)
@@ -298,12 +294,5 @@ func (rsp *ReconcileSiddhiProcess) Reconcile(request reconcile.Request) (reconci
 		}
 	}
 
-	rPeriod := time.Minute * time.Duration(configs.DefaultRTime)
-	if operatorEnvs["RECONCILE_PERIOD"] != "" {
-		p, err := strconv.Atoi(operatorEnvs["RECONCILE_PERIOD"])
-		if err == nil {
-			rPeriod = time.Second * time.Duration(p)
-		}
-	}
-	return reconcile.Result{RequeueAfter: rPeriod}, nil
+	return reconcile.Result{}, nil
 }

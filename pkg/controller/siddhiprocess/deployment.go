@@ -27,6 +27,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"gopkg.in/yaml.v2"
+	"k8s.io/client-go/tools/record"
 	"path/filepath"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 )
@@ -47,15 +48,15 @@ type SiddhiConfig struct {
 }
 
 // deployApp returns a sp Deployment object
-func (rsp *ReconcileSiddhiProcess) deployApp(sp *siddhiv1alpha1.SiddhiProcess, siddhiApp SiddhiApp, operatorEnvs map[string]string, configs Configs) (*appsv1.Deployment, error) {
+func (rsp *ReconcileSiddhiProcess) deployApp(sp *siddhiv1alpha1.SiddhiProcess, siddhiApp SiddhiApp, operatorEnvs map[string]string, configs Configs, eventRecorder record.EventRecorder) (*appsv1.Deployment, *siddhiv1alpha1.SiddhiProcess, error) {
 	var volumes []corev1.Volume
 	var volumeMounts []corev1.VolumeMount
 	var imagePullSecrets []corev1.LocalObjectReference
 	var enviromentVariables []corev1.EnvVar
 	var containerPorts []corev1.ContainerPort
 	var err error
+	em := ""
 	configMapData := make(map[string]string)
-	reqLogger := log.WithValues("Request.Namespace", sp.Namespace, "Request.Name", sp.Name)
 	replicas := int32(1)
 	siddhiConfig := sp.Spec.SiddhiConfig
 	deployYAMLCMName := sp.Name + configs.DepCMExt
@@ -99,12 +100,14 @@ func (rsp *ReconcileSiddhiProcess) deployApp(sp *siddhiv1alpha1.SiddhiProcess, s
 		pvcName := strings.ToLower(siddhiApp.Name + configs.PVCExt)
 		err = rsp.createPVC(sp, configs, pvcName)
 		if err != nil {
-			reqLogger.Error(err, "Failed to create new PVC", "PVC.Name", sp.Name)
+			em = "Failed to create new PVC : " + pvcName
+			sp = rsp.updateStatus(WARNING, "PVCCreationError", em, ER, err, sp)
 		} else {
 			spConf := &SiddhiConfig{}
 			err := yaml.Unmarshal([]byte(sp.Spec.SiddhiConfig), spConf)
 			if err != nil {
-				reqLogger.Error(err, "Failed to marshal state.persistence YAML", "PVC.Name", sp.Name)
+				em = "Failed to marshal state.persistence YAML in " + sp.Name
+				sp = rsp.updateStatus(WARNING, "YAMLMarshalError", em, ER, err, sp)
 			}
 			mountPath := siddhiHome + configs.FilePersistentPath
 			if spConf.StatePersistence.SPConfig.Location != "" && filepath.IsAbs(spConf.StatePersistence.SPConfig.Location) {
@@ -143,7 +146,8 @@ func (rsp *ReconcileSiddhiProcess) deployApp(sp *siddhiv1alpha1.SiddhiProcess, s
 	}
 	err = rsp.createConfigMap(sp, configMapName, configMapData)
 	if err != nil {
-		reqLogger.Error(err, "Failed to create new ConfigMap", "ConfigMap.Name", configMapName)
+		em = "Failed to create new ConfigMap : " + configMapName
+		sp = rsp.updateStatus(WARNING, "CMCreationError", em, ER, err, sp)
 	} else {
 		volume := corev1.Volume{
 			Name: configMapName,
@@ -170,7 +174,8 @@ func (rsp *ReconcileSiddhiProcess) deployApp(sp *siddhiv1alpha1.SiddhiProcess, s
 		}
 		err = rsp.createConfigMap(sp, deployYAMLCMName, data)
 		if err != nil {
-			reqLogger.Error(err, "Failed to create new ConfigMap", "ConfigMap.Name", deployYAMLCMName)
+			em = "Failed to create new ConfigMap : " + deployYAMLCMName
+			sp = rsp.updateStatus(WARNING, "CMCreationError", em, ER, err, sp)
 		} else {
 			volume := corev1.Volume{
 				Name: configs.DepConfigName,
@@ -222,7 +227,7 @@ func (rsp *ReconcileSiddhiProcess) deployApp(sp *siddhiv1alpha1.SiddhiProcess, s
 		volumes,
 	)
 	controllerutil.SetControllerReference(sp, deployment, rsp.scheme)
-	return deployment, err
+	return deployment, sp, err
 }
 
 // createDeployment creates a deployment for given set of data
