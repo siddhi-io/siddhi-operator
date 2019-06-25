@@ -92,7 +92,6 @@ kind: Service
 metadata:
   name: siddhi-parser
 spec:
-  externalTrafficPolicy: Cluster
   ports:
   - name: msf4j
     port: 9090
@@ -102,6 +101,6 @@ spec:
     name: siddhi-parser
     version: 1.0.0
   sessionAffinity: None
-  type: LoadBalancer
+  type: ClusterIP
 status:
   loadBalancer: {}

@@ -40,6 +40,7 @@ type SiddhiApp struct {
 	TLS       []bool            `json:"tls"`
 	Apps      map[string]string `json:"apps"`
 	CreateSVC bool              `json:"createSVC"`
+	CreatePVC bool              `json:"createPVC"`
 }
 
 // TemplatedApp contains the templated siddhi app and relevant properties to pass into the parser service
@@ -188,11 +189,12 @@ func (rsp *ReconcileSiddhiProcess) parseApp(sp *siddhiv1alpha1.SiddhiProcess, co
 					return siddhiAppStructs, err
 				}
 				pAppStruct := SiddhiApp{
-					Name:      strings.ToLower(sp.Name + configs.FExtOne),
+					Name:      strings.ToLower(sp.Name + configs.FExtTwo),
 					Ports:     ports,
 					Protocols: protocols,
 					TLS:       tls,
 					CreateSVC: createSVC,
+					CreatePVC: false,
 					Apps: map[string]string{
 						pAppName: pApp,
 					},
@@ -206,8 +208,9 @@ func (rsp *ReconcileSiddhiProcess) parseApp(sp *siddhiv1alpha1.SiddhiProcess, co
 					return siddhiAppStructs, err
 				}
 				qAppStruct := SiddhiApp{
-					Name:      strings.ToLower(sp.Name + configs.FExtTwo),
+					Name:      strings.ToLower(sp.Name + configs.FExtOne),
 					CreateSVC: false,
+					CreatePVC: true,
 					Apps: map[string]string{
 						qAppName: qApp,
 					},
@@ -244,6 +247,7 @@ func (rsp *ReconcileSiddhiProcess) parseApp(sp *siddhiv1alpha1.SiddhiProcess, co
 			Protocols: protocols,
 			TLS:       tls,
 			CreateSVC: createSVC,
+			CreatePVC: true,
 			Apps:      apps,
 		}
 		siddhiAppStructs = append(siddhiAppStructs, siddhiAppStruct)
