@@ -35,12 +35,14 @@ import (
 // SiddhiApp contains details about the siddhi app which need by K8s deployment
 type SiddhiApp struct {
 	Name      string            `json:"appName"`
+	Type      string            `json:"type"`
 	Ports     []int             `json:"ports"`
 	Protocols []string          `json:"protocols"`
 	TLS       []bool            `json:"tls"`
 	Apps      map[string]string `json:"apps"`
 	CreateSVC bool              `json:"createSVC"`
 	CreatePVC bool              `json:"createPVC"`
+	Replicas  int32             `json:"replicas"`
 }
 
 // TemplatedApp contains the templated siddhi app and relevant properties to pass into the parser service
@@ -190,6 +192,7 @@ func (rsp *ReconcileSiddhiProcess) parseApp(sp *siddhiv1alpha1.SiddhiProcess, co
 				}
 				pAppStruct := SiddhiApp{
 					Name:      strings.ToLower(sp.Name + configs.FExtTwo),
+					Type:      PassthroughApp,
 					Ports:     ports,
 					Protocols: protocols,
 					TLS:       tls,
@@ -198,6 +201,7 @@ func (rsp *ReconcileSiddhiProcess) parseApp(sp *siddhiv1alpha1.SiddhiProcess, co
 					Apps: map[string]string{
 						pAppName: pApp,
 					},
+					Replicas: 1,
 				}
 				siddhiAppStructs = append(siddhiAppStructs, pAppStruct)
 			}
@@ -209,11 +213,13 @@ func (rsp *ReconcileSiddhiProcess) parseApp(sp *siddhiv1alpha1.SiddhiProcess, co
 				}
 				qAppStruct := SiddhiApp{
 					Name:      strings.ToLower(sp.Name + configs.FExtOne),
+					Type:      ProcessApp,
 					CreateSVC: false,
 					CreatePVC: true,
 					Apps: map[string]string{
 						qAppName: qApp,
 					},
+					Replicas: 1,
 				}
 				siddhiAppStructs = append(siddhiAppStructs, qAppStruct)
 			}
@@ -249,6 +255,7 @@ func (rsp *ReconcileSiddhiProcess) parseApp(sp *siddhiv1alpha1.SiddhiProcess, co
 			CreateSVC: createSVC,
 			CreatePVC: true,
 			Apps:      apps,
+			Replicas:  1,
 		}
 		siddhiAppStructs = append(siddhiAppStructs, siddhiAppStruct)
 	}

@@ -57,7 +57,7 @@ func (rsp *ReconcileSiddhiProcess) deployApp(sp *siddhiv1alpha1.SiddhiProcess, s
 	var err error
 	em := ""
 	configMapData := make(map[string]string)
-	replicas := int32(1)
+	replicas := siddhiApp.Replicas
 	siddhiConfig := sp.Spec.SiddhiConfig
 	deployYAMLCMName := sp.Name + configs.DepCMExt
 	siddhiHome := configs.SiddhiHome
@@ -168,9 +168,37 @@ func (rsp *ReconcileSiddhiProcess) deployApp(sp *siddhiv1alpha1.SiddhiProcess, s
 	}
 
 	configParameter := ""
-	if siddhiConfig != "" {
+	if siddhiConfig != "" && siddhiApp.Type != PassthroughApp {
 		data := map[string]string{
 			deployYAMLCMName: siddhiConfig,
+		}
+		err = rsp.createConfigMap(sp, deployYAMLCMName, data)
+		if err != nil {
+			em = "Failed to create new ConfigMap : " + deployYAMLCMName
+			sp = rsp.updateStatus(WARNING, "CMCreationError", em, ER, err, sp)
+		} else {
+			volume := corev1.Volume{
+				Name: configs.DepConfigName,
+				VolumeSource: corev1.VolumeSource{
+					ConfigMap: &corev1.ConfigMapVolumeSource{
+						LocalObjectReference: corev1.LocalObjectReference{
+							Name: deployYAMLCMName,
+						},
+					},
+				},
+			}
+			volumes = append(volumes, volume)
+
+			volumeMount := corev1.VolumeMount{
+				Name:      configs.DepConfigName,
+				MountPath: siddhiHome + configs.DepConfMountPath,
+			}
+			volumeMounts = append(volumeMounts, volumeMount)
+		}
+		configParameter = configs.DepConfParameter + siddhiHome + configs.DepConfMountPath + deployYAMLCMName
+	} else if siddhiConfig == "" && sp.Spec.DeploymentConfigs.Mode == Failover && siddhiApp.Type == ProcessApp {
+		data := map[string]string{
+			deployYAMLCMName: StatePersistenceConf,
 		}
 		err = rsp.createConfigMap(sp, deployYAMLCMName, data)
 		if err != nil {

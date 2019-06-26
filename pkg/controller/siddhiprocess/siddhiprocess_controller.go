@@ -262,8 +262,8 @@ func (rsp *ReconcileSiddhiProcess) Reconcile(request reconcile.Request) (reconci
 	for _, siddhiApp := range siddhiApps {
 		deployment := &appsv1.Deployment{}
 		err = rsp.client.Get(context.TODO(), types.NamespacedName{Name: strings.ToLower(siddhiApp.Name), Namespace: sp.Namespace}, deployment)
-		if err == nil && *deployment.Spec.Replicas != configs.DeploymentSize {
-			deployment.Spec.Replicas = &configs.DeploymentSize
+		if err == nil && *deployment.Spec.Replicas != siddhiApp.Replicas {
+			deployment.Spec.Replicas = &siddhiApp.Replicas
 			err = rsp.client.Update(context.TODO(), deployment)
 			if err != nil {
 				em = "Failed to update deployment : " + deployment.Name

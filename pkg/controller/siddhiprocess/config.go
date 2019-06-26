@@ -64,13 +64,28 @@ const (
 	DeploymentSize       int32  = 1
 )
 
+// State persistence config
+const (
+	StatePersistenceConf string = `
+state.persistence:
+  enabled: true
+  intervalInMin: 1
+  revisionsToKeep: 2
+  persistenceStore: io.siddhi.distribution.core.persistence.FileSystemPersistenceStore
+  config:
+    location: siddhi-app-persistence
+`
+)
+
 // Other constants
 const (
-	Push        string = "PUSH"
-	Pull        string = "PULL"
-	Failover    string = "failover"
-	Default     string = "default"
-	Distributed string = "distributed"
+	Push           string = "PUSH"
+	Pull           string = "PULL"
+	Failover       string = "failover"
+	Default        string = "default"
+	Distributed    string = "distributed"
+	ProcessApp     string = "process"
+	PassthroughApp string = "passthrough"
 )
 
 // Configs contains entries to the siddhi default configs
