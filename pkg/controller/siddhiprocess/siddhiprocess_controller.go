@@ -63,7 +63,7 @@ func newReconciler(mgr manager.Manager) reconcile.Reconciler {
 	return &ReconcileSiddhiProcess{client: mgr.GetClient(), scheme: mgr.GetScheme()}
 }
 
-// add adds a new Controller to mgr with r as the reconcile.Reconciler
+// add adds a new Controller to mgr with rsp as the reconcile.Reconciler
 func add(mgr manager.Manager, r reconcile.Reconciler) error {
 	SPContainer = make(map[string][]SiddhiApp)
 	ER = mgr.GetRecorder("siddhiprocess-controller")
@@ -124,9 +124,15 @@ type ReconcileSiddhiProcess struct {
 
 // Reconcile reads that state of the cluster for a SiddhiProcess object and makes changes based on the state read
 // and what is in the SiddhiProcess.Spec
-// Note:
-// The Controller will requeue the Request to be processed again if the returned error is non-nil or
-// Result.Requeue is true, otherwise upon completion it will remove the work from the queue.
+// Process -
+//    Get the SiddhiProcess custom object
+//    Get default configs
+//    Get the siddhi operator deployment object
+//    Parse the siddhi app using siddhi parser
+//    Automatically creates messaging system only if it did not specify
+//    Create deployment, service, and ingress
+//    Update the SiddhiProcess status with the pod names
+//    Update status.Nodes if needed
 func (rsp *ReconcileSiddhiProcess) Reconcile(request reconcile.Request) (reconcile.Result, error) {
 	reqLogger := log.WithValues("Request.Namespace", request.Namespace, "Request.Name", request.Name)
 	reqLogger.Info("Reconciling SiddhiProcess")
@@ -274,8 +280,6 @@ func (rsp *ReconcileSiddhiProcess) Reconcile(request reconcile.Request) (reconci
 		}
 	}
 
-	// Update the SiddhiProcess status with the pod names
-	// List the pods for this sp's deployment
 	podList := &corev1.PodList{}
 	labelSelector := labels.SelectorFromSet(labelsForSiddhiProcess(sp.Name, operatorEnvs, configs))
 	listOps := &client.ListOptions{Namespace: sp.Namespace, LabelSelector: labelSelector}
@@ -286,7 +290,6 @@ func (rsp *ReconcileSiddhiProcess) Reconcile(request reconcile.Request) (reconci
 	}
 	podNames := podNames(podList.Items)
 
-	// Update status.Nodes if needed
 	if !reflect.DeepEqual(podNames, sp.Status.Nodes) {
 		sp.Status.Nodes = podNames
 		err := rsp.client.Status().Update(context.TODO(), sp)

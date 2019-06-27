@@ -32,6 +32,7 @@ import (
 )
 
 // createPVC function creates a persistence volume claim for a K8s cluster
+// Inputs - SiddhiProcess object, default configs, and name of the persistence volume claim
 func (rsp *ReconcileSiddhiProcess) createPVC(sp *siddhiv1alpha1.SiddhiProcess, configs Configs, pvcName string) error {
 	var accessModes []corev1.PersistentVolumeAccessMode
 	pvc := &corev1.PersistentVolumeClaim{}

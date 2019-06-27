@@ -33,7 +33,9 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 )
 
-// createNATS function creates a NATS cluster and a NATS streaming cluster
+// createNATS function creates a NATS cluster and a NATS streaming cluster and waits some amout of time to complete it.
+// More about NATS cluster - https://github.com/nats-io/nats-operator
+// More about NATS streaming cluster - https://github.com/nats-io/nats-streaming-operator
 func (rsp *ReconcileSiddhiProcess) createNATS(sp *siddhiv1alpha1.SiddhiProcess, configs Configs, operator *appsv1.Deployment) error {
 	natsCluster := &natsv1alpha2.NatsCluster{}
 	err := rsp.client.Get(context.TODO(), types.NamespacedName{Name: configs.NATSClusterName, Namespace: sp.Namespace}, natsCluster)

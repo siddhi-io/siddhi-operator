@@ -18,7 +18,7 @@
 
 package siddhiprocess
 
-// Default configurations
+// Default configurations stored as constants. Further these constants used by the Configurations() function.
 const (
 	SiddhiHome           string = "/home/siddhi_user/siddhi-runner-0.1.0/"
 	SiddhiRunnerImage    string = "siddhiio/siddhi-runner-alpine"
@@ -67,7 +67,8 @@ const (
 	DeploymentSize       int32  = 1
 )
 
-// State persistence config
+// State persistence config is the different string constant used by the deployApp() function. This constant holds a YAML object
+// which used to change the deployment.yaml file of the siddhi-runner image.
 const (
 	StatePersistenceConf string = `
 state.persistence:
@@ -80,7 +81,8 @@ state.persistence:
 `
 )
 
-// Other constants
+// These are all other relevant constants that used by the operator. But these constants are not configuration varibles.
+// That is why this has been seperated.
 const (
 	Push           string = "PUSH"
 	Pull           string = "PULL"
@@ -91,7 +93,7 @@ const (
 	PassthroughApp string = "passthrough"
 )
 
-// Configs contains entries to the siddhi default configs
+// Configs is the struct definition of the object which used to bundle the all default configurations.
 type Configs struct {
 	SiddhiHome           string
 	SiddhiRunnerImage    string
@@ -140,7 +142,8 @@ type Configs struct {
 	DeploymentSize       int32
 }
 
-// configuration function returns the default config object
+// Configurations function returns the default config object. Here all the configs used as constants and budle together into a
+// object and then returns that object. This object used to differenciate default configs from other variables.
 func Configurations() Configs {
 	configs := Configs{
 		SiddhiHome:           SiddhiHome,

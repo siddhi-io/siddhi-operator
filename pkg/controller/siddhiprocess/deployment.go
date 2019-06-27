@@ -48,7 +48,23 @@ type SiddhiConfig struct {
 }
 
 // deployApp returns a sp Deployment object
-func (rsp *ReconcileSiddhiProcess) deployApp(sp *siddhiv1alpha1.SiddhiProcess, siddhiApp SiddhiApp, operatorEnvs map[string]string, configs Configs, eventRecorder record.EventRecorder) (*appsv1.Deployment, *siddhiv1alpha1.SiddhiProcess, error) {
+// Inputs - SiddhiProcess object reference, siddhiApp object that holds the details of the deployment, default config object, and event recorder to record the events
+// Process -
+//     First gets the envs of the operator deployment if it defines and creates the docker image name
+//     After that creates persistence volumen claim
+//     Enable container ports
+//     Creates config map for siddhi apps
+//     Creates a config map for the YAML block which used to change the deployment.yaml of the siddhi-runner
+//     Set envs
+//     Set controller reference and returns
+func (rsp *ReconcileSiddhiProcess) deployApp(
+	sp *siddhiv1alpha1.SiddhiProcess,
+	siddhiApp SiddhiApp,
+	operatorEnvs map[string]string,
+	configs Configs,
+	eventRecorder record.EventRecorder,
+) (*appsv1.Deployment, *siddhiv1alpha1.SiddhiProcess, error) {
+
 	var volumes []corev1.Volume
 	var volumeMounts []corev1.VolumeMount
 	var imagePullSecrets []corev1.LocalObjectReference
@@ -258,7 +274,7 @@ func (rsp *ReconcileSiddhiProcess) deployApp(sp *siddhiv1alpha1.SiddhiProcess, s
 	return deployment, sp, err
 }
 
-// createDeployment creates a deployment for given set of data
+// createDeployment creates a deployment for given set of configuration data.
 func createDeployment(
 	name string,
 	namespace string,

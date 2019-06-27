@@ -30,7 +30,9 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 )
 
-// createConfigMap create a k8s config map for given set of data
+// createConfigMap creates a k8s config map for given set of data.
+// Inputs - SiddhiProcess object, name of the config map, & data object that used in the config map
+// This function initialize the config map object, set the controller reference, and then creates the config map.
 func (rsp *ReconcileSiddhiProcess) createConfigMap(sp *siddhiv1alpha1.SiddhiProcess, configMapName string, data map[string]string) error {
 	configMap := &corev1.ConfigMap{}
 	err := rsp.client.Get(context.TODO(), types.NamespacedName{Name: configMapName, Namespace: sp.Namespace}, configMap)

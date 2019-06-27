@@ -49,6 +49,7 @@ const (
 )
 
 // createIngress returns a Siddhi Ingress load balancer object
+// Inputs - SiddhiProcess object, siddhi app struct to hold deployment configs, default config object, and the operator deployment object
 func (rsp *ReconcileSiddhiProcess) createIngress(sp *siddhiv1alpha1.SiddhiProcess, siddhiApp SiddhiApp, configs Configs, operator *appsv1.Deployment) *extensionsv1beta1.Ingress {
 	var ingressPaths []extensionsv1beta1.HTTPIngressPath
 	for _, port := range siddhiApp.Ports {
@@ -119,7 +120,8 @@ func (rsp *ReconcileSiddhiProcess) createIngress(sp *siddhiv1alpha1.SiddhiProces
 	return ingress
 }
 
-// updateIngress returns a Siddhi Ingress load balancer object
+// updateIngress updates the ingress object and returns updated object
+// Inputs - SiddhiProcess object, existing ingress object, siddhi app struct to hold deployment configs, and default configs
 func (rsp *ReconcileSiddhiProcess) updateIngress(sp *siddhiv1alpha1.SiddhiProcess, currentIngress *extensionsv1beta1.Ingress, siddhiApp SiddhiApp, configs Configs) *extensionsv1beta1.Ingress {
 	var ingressPaths []extensionsv1beta1.HTTPIngressPath
 	for _, port := range siddhiApp.Ports {

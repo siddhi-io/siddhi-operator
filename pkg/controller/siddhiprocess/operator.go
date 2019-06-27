@@ -50,7 +50,8 @@ func (rsp *ReconcileSiddhiProcess) populateUserEnvs(sp *siddhiv1alpha1.SiddhiPro
 	return envs
 }
 
-// updateStatus update the status of the CR object
+// updateStatus update the status of the CR object and send events to the SiddhiProcess object using EventRecorder object
+// These status can be Pending, Warning, Error, Running
 func (rsp *ReconcileSiddhiProcess) updateStatus(n Status, reason string, message string, eventRecorder record.EventRecorder, er error, sp *siddhiv1alpha1.SiddhiProcess) (s *siddhiv1alpha1.SiddhiProcess) {
 	s = &siddhiv1alpha1.SiddhiProcess{}
 	reqLogger := log.WithValues("Request.Namespace", sp.Namespace, "Request.Name", sp.Name)
@@ -80,7 +81,8 @@ func (rsp *ReconcileSiddhiProcess) updateStatus(n Status, reason string, message
 	return s
 }
 
-// updateType update the type of the CR object
+// updateType update the deployment type of the CR object
+// These types are default, failover, and distributed
 func (rsp *ReconcileSiddhiProcess) updateType(deptType string, sp *siddhiv1alpha1.SiddhiProcess) (s *siddhiv1alpha1.SiddhiProcess) {
 	s = &siddhiv1alpha1.SiddhiProcess{}
 	err := rsp.client.Get(context.TODO(), types.NamespacedName{Name: sp.Name, Namespace: sp.Namespace}, s)
@@ -96,6 +98,7 @@ func (rsp *ReconcileSiddhiProcess) updateType(deptType string, sp *siddhiv1alpha
 }
 
 // updateReady update ready attribute of the CR object
+// Ready attribute contains the number of deployments are complete and running out of requested deployments
 func (rsp *ReconcileSiddhiProcess) updateReady(available int, need int, sp *siddhiv1alpha1.SiddhiProcess) (s *siddhiv1alpha1.SiddhiProcess) {
 	s = &siddhiv1alpha1.SiddhiProcess{}
 	err := rsp.client.Get(context.TODO(), types.NamespacedName{Name: sp.Name, Namespace: sp.Namespace}, s)

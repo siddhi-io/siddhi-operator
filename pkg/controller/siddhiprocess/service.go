@@ -29,7 +29,8 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 )
 
-// serviceForSiddhi returns a Siddhi Service object
+// serviceForSiddhi returns a Service object for a deployment
+// Inputs - SiddhiProcess object, SiddhiApp struct, envs of the operator deployment, default configs object
 func (rsp *ReconcileSiddhiProcess) createService(sp *siddhiv1alpha1.SiddhiProcess, siddhiApp SiddhiApp, operatorEnvs map[string]string, configs Configs) *corev1.Service {
 	labels := labelsForSiddhiProcess(strings.ToLower(siddhiApp.Name), operatorEnvs, configs)
 	var servicePorts []corev1.ServicePort

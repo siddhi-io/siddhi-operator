@@ -90,7 +90,11 @@ type SiddhiParserResponse struct {
 	FailoverDeployments []SiddhiFAppConfig `json:"failoverDeployments"`
 }
 
-// parseFailoverApp call MSF4J service and parse a given siddhiApp - default and failover
+// parseFailoverApp call MSF4J service and parse a given siddhiApp.
+// Here parser call an endpoint according to the deployment type - default, failover, and distributed
+// After that REST call, the siddhi parser returns relevant details of the deployment. This function get those details and
+// encapsulate all the details into a common structure(SiddhiApp) regarless of the deployment type.
+// Siddhi operator used this general SiddhiApp object to the further process.
 func (rsp *ReconcileSiddhiProcess) parseApp(sp *siddhiv1alpha1.SiddhiProcess, configs Configs) (siddhiAppStructs []SiddhiApp, err error) {
 	var resp *http.Response
 	var siddhiApps []string

@@ -29,7 +29,7 @@ import (
 // Status of a Siddhi process
 type Status int
 
-// Type of status
+// Type of status as list of integer constans
 const (
 	PENDING Status = iota
 	READY
@@ -39,8 +39,18 @@ const (
 	NORMAL
 )
 
+// Status array holds the string values of status
+var status = []string{
+	"Pending",
+	"Ready",
+	"Running",
+	"Error",
+	"Warning",
+	"Normal",
+}
+
 // labelsForSiddhiProcess returns the labels for selecting the resources
-// belonging to the given sp CR name.
+// belonging to the given SiddhiProcess custom resource object.
 func labelsForSiddhiProcess(appName string, operatorEnvs map[string]string, configs Configs) map[string]string {
 	operatorName := configs.OperatorName
 	operatorVersion := configs.OperatorVersion
@@ -67,22 +77,13 @@ func podNames(pods []corev1.Pod) []string {
 	return podNames
 }
 
-// Status array
-var status = []string{
-	"Pending",
-	"Ready",
-	"Running",
-	"Error",
-	"Warning",
-	"Normal",
-}
-
-// getStatus return relevant status to a given int
+// getStatus return relevant status to a given integer. This uses status array and the constants list.
 func getStatus(n Status) string {
 	return status[n]
 }
 
-// GetAppName return the app name for given siddhiAPP
+// GetAppName return the app name for given siddhi app. This function used two regex to extract the name properly.
+// Here used two regex for sigle quoted names and double quoted names.
 func GetAppName(app string) (appName string, err error) {
 	re := regexp.MustCompile(".*@App:name\\(\"(.*)\"\\)\\s*\n")
 	match := re.FindStringSubmatch(app)
