@@ -101,13 +101,13 @@ func (rsp *ReconcileSiddhiProcess) deployApp(sp *siddhiv1alpha1.SiddhiProcess, s
 		err = rsp.createPVC(sp, configs, pvcName)
 		if err != nil {
 			em = "Failed to create new PVC : " + pvcName
-			sp = rsp.updateStatus(WARNING, "PVCCreationError", em, ER, err, sp)
+			sp = rsp.updateStatus(ERROR, "PVCCreationError", em, ER, err, sp)
 		} else {
 			spConf := &SiddhiConfig{}
 			err := yaml.Unmarshal([]byte(sp.Spec.SiddhiConfig), spConf)
 			if err != nil {
 				em = "Failed to marshal state.persistence YAML in " + sp.Name
-				sp = rsp.updateStatus(WARNING, "YAMLMarshalError", em, ER, err, sp)
+				sp = rsp.updateStatus(ERROR, "YAMLMarshalError", em, ER, err, sp)
 			}
 			mountPath := siddhiHome + configs.FilePersistentPath
 			if spConf.StatePersistence.SPConfig.Location != "" && filepath.IsAbs(spConf.StatePersistence.SPConfig.Location) {
@@ -147,7 +147,7 @@ func (rsp *ReconcileSiddhiProcess) deployApp(sp *siddhiv1alpha1.SiddhiProcess, s
 	err = rsp.createConfigMap(sp, configMapName, configMapData)
 	if err != nil {
 		em = "Failed to create new ConfigMap : " + configMapName
-		sp = rsp.updateStatus(WARNING, "CMCreationError", em, ER, err, sp)
+		sp = rsp.updateStatus(ERROR, "CMCreationError", em, ER, err, sp)
 	} else {
 		volume := corev1.Volume{
 			Name: configMapName,
@@ -175,7 +175,7 @@ func (rsp *ReconcileSiddhiProcess) deployApp(sp *siddhiv1alpha1.SiddhiProcess, s
 		err = rsp.createConfigMap(sp, deployYAMLCMName, data)
 		if err != nil {
 			em = "Failed to create new ConfigMap : " + deployYAMLCMName
-			sp = rsp.updateStatus(WARNING, "CMCreationError", em, ER, err, sp)
+			sp = rsp.updateStatus(ERROR, "CMCreationError", em, ER, err, sp)
 		} else {
 			volume := corev1.Volume{
 				Name: configs.DepConfigName,
@@ -203,7 +203,7 @@ func (rsp *ReconcileSiddhiProcess) deployApp(sp *siddhiv1alpha1.SiddhiProcess, s
 		err = rsp.createConfigMap(sp, deployYAMLCMName, data)
 		if err != nil {
 			em = "Failed to create new ConfigMap : " + deployYAMLCMName
-			sp = rsp.updateStatus(WARNING, "CMCreationError", em, ER, err, sp)
+			sp = rsp.updateStatus(ERROR, "CMCreationError", em, ER, err, sp)
 		} else {
 			volume := corev1.Volume{
 				Name: configs.DepConfigName,

@@ -168,7 +168,7 @@ func (rsp *ReconcileSiddhiProcess) parseApp(sp *siddhiv1alpha1.SiddhiProcess, co
 	defer resp.Body.Close()
 	if resp.StatusCode/100 != 2 {
 		err = errors.New("Siddhi parser invalid response from : " + url + ". Status : " + resp.Status)
-		return siddhiAppStructs, errors.New(resp.Status)
+		return siddhiAppStructs, err
 	}
 	json.NewDecoder(resp.Body).Decode(&siddhiParserResponse)
 	if sp.Spec.DeploymentConfigs.Mode == Failover {

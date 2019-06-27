@@ -20,6 +20,7 @@ package siddhiprocess
 
 import (
 	"context"
+	"time"
 
 	natsv1alpha2 "github.com/siddhi-io/siddhi-operator/pkg/apis/nats/v1alpha2"
 	siddhiv1alpha1 "github.com/siddhi-io/siddhi-operator/pkg/apis/siddhi/v1alpha1"
@@ -82,5 +83,6 @@ func (rsp *ReconcileSiddhiProcess) createNATS(sp *siddhiv1alpha1.SiddhiProcess, 
 			return err
 		}
 	}
+	time.Sleep(time.Duration(configs.NATSTimeout) * time.Second)
 	return err
 }

@@ -172,7 +172,8 @@ func (rsp *ReconcileSiddhiProcess) Reconcile(request reconcile.Request) (reconci
 		if sp.Spec.DeploymentConfigs.MessagingSystem.Equals(&ms) {
 			err = rsp.createNATS(sp, configs, operatorDeployment)
 			if err != nil {
-				sp = rsp.updateStatus(WARNING, "NATSCreationError", "Failed automatic NATS creation", ER, err, sp)
+				sp = rsp.updateStatus(ERROR, "NATSCreationError", "Failed automatic NATS creation", ER, err, sp)
+				return reconcile.Result{}, err
 			}
 		}
 	} else {
@@ -189,7 +190,7 @@ func (rsp *ReconcileSiddhiProcess) Reconcile(request reconcile.Request) (reconci
 		if err != nil && errors.IsNotFound(err) {
 			siddhiDeployment, sp, err = rsp.deployApp(sp, siddhiApp, operatorEnvs, configs, ER)
 			if err != nil {
-				sp = rsp.updateStatus(ERROR, "DeployError", err.Error(), ER, err, sp)
+				sp = rsp.updateStatus(ERROR, "AppDeploymentError", err.Error(), ER, err, sp)
 				continue
 			}
 			err = rsp.client.Create(context.TODO(), siddhiDeployment)
@@ -201,7 +202,7 @@ func (rsp *ReconcileSiddhiProcess) Reconcile(request reconcile.Request) (reconci
 			availableDep++
 			sp = rsp.updateStatus(RUNNING, "DeploymentCreated", (siddhiDeployment.Name + " deployment created successfully"), ER, nil, sp)
 		} else if err != nil {
-			em = "Failed to get the deployment : " + strings.ToLower(siddhiApp.Name)
+			em = "Failed to find the deployment : " + strings.ToLower(siddhiApp.Name)
 			sp = rsp.updateStatus(ERROR, "DeploymentNotFound", em, ER, err, sp)
 			continue
 		} else {
@@ -266,9 +267,9 @@ func (rsp *ReconcileSiddhiProcess) Reconcile(request reconcile.Request) (reconci
 			deployment.Spec.Replicas = &siddhiApp.Replicas
 			err = rsp.client.Update(context.TODO(), deployment)
 			if err != nil {
-				em = "Failed to update deployment : " + deployment.Name
+				em = "Failed to update the deployment : " + deployment.Name
 				sp = rsp.updateStatus(ERROR, "DeploymentUpdationError", em, ER, err, sp)
-				return reconcile.Result{}, nil
+				continue
 			}
 		}
 	}
@@ -290,7 +291,7 @@ func (rsp *ReconcileSiddhiProcess) Reconcile(request reconcile.Request) (reconci
 		sp.Status.Nodes = podNames
 		err := rsp.client.Status().Update(context.TODO(), sp)
 		if err != nil {
-			reqLogger.Error(err, "Failed to update SiddhiProcess status")
+			reqLogger.Error(err, "Failed to update SiddhiProcess status: ", sp.Name)
 		}
 	}
 

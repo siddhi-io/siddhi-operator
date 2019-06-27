@@ -56,10 +56,13 @@ const (
 	NATSClusterName      string = "siddhi-nats"
 	STANClusterName      string = "siddhi-stan"
 	NATSDefaultURL       string = "nats://siddhi-nats:4222"
+	NATSTCPHost          string = "siddhi-nats:4222"
 	NATSMSType           string = "nats"
+	TCP                  string = "tcp"
 	FExtOne              string = "-1"
 	FExtTwo              string = "-2"
 	NATSSize             int    = 1
+	NATSTimeout          int    = 5
 	DefaultRTime         int    = 1
 	DeploymentSize       int32  = 1
 )
@@ -126,10 +129,13 @@ type Configs struct {
 	NATSClusterName      string
 	STANClusterName      string
 	NATSDefaultURL       string
+	NATSTCPHost          string
 	NATSMSType           string
+	TCP                  string
 	FExtOne              string
 	FExtTwo              string
 	NATSSize             int
+	NATSTimeout          int
 	DefaultRTime         int
 	DeploymentSize       int32
 }
@@ -173,10 +179,13 @@ func Configurations() Configs {
 		NATSClusterName:      NATSClusterName,
 		STANClusterName:      STANClusterName,
 		NATSDefaultURL:       NATSDefaultURL,
+		NATSTCPHost:          NATSTCPHost,
 		NATSMSType:           NATSMSType,
+		TCP:                  TCP,
 		FExtOne:              FExtOne,
 		FExtTwo:              FExtTwo,
 		NATSSize:             NATSSize,
+		NATSTimeout:          NATSTimeout,
 		DefaultRTime:         DefaultRTime,
 		DeploymentSize:       DeploymentSize,
 	}
