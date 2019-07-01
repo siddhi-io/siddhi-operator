@@ -19,30 +19,20 @@
 package siddhiprocess
 
 import (
-	"bytes"
-	"context"
-	"encoding/json"
-	"errors"
-	"net/http"
-	"strings"
+	"strconv"
 
 	siddhiv1alpha1 "github.com/siddhi-io/siddhi-operator/pkg/apis/siddhi/v1alpha1"
 	corev1 "k8s.io/api/core/v1"
-
-	"k8s.io/apimachinery/pkg/types"
 )
 
 // SiddhiApp contains details about the siddhi app which need by K8s deployment
 type SiddhiApp struct {
-	Name      string            `json:"appName"`
-	Type      string            `json:"type"`
-	Ports     []int             `json:"ports"`
-	Protocols []string          `json:"protocols"`
-	TLS       []bool            `json:"tls"`
-	Apps      map[string]string `json:"apps"`
-	CreateSVC bool              `json:"createSVC"`
-	CreatePVC bool              `json:"createPVC"`
-	Replicas  int32             `json:"replicas"`
+	Name               string                 `json:"appName"`
+	ContainerPorts     []corev1.ContainerPort `json:"containerPorts"`
+	Apps               map[string]string      `json:"apps"`
+	ServiceEnabled     bool                   `json:"serviceEnabled"`
+	PersistenceEnabled bool                   `json:"persistenceEnabled"`
+	Replicas           int32                  `json:"replicas"`
 }
 
 // TemplatedApp contains the templated siddhi app and relevant properties to pass into the parser service
@@ -73,8 +63,10 @@ type SourceList struct {
 
 // SiddhiAppConfig holds siddhi app and the relevant SourceList
 type SiddhiAppConfig struct {
-	SiddhiApp        string     `json:"siddhiApp"`
-	SiddhiSourceList SourceList `json:"sourceList"`
+	SiddhiApp          string     `json:"siddhiApp"`
+	SiddhiSourceList   SourceList `json:"sourceList"`
+	PersistenceEnabled bool       `json:"persistenceEnabled"`
+	Replicas           int32      `json:"replicas"`
 }
 
 // SiddhiFAppConfig holds siddhi apps of the failover scenario and relevant SourceList
@@ -96,170 +88,54 @@ type SiddhiParserResponse struct {
 // encapsulate all the details into a common structure(SiddhiApp) regarless of the deployment type.
 // Siddhi operator used this general SiddhiApp object to the further process.
 func (rsp *ReconcileSiddhiProcess) parseApp(sp *siddhiv1alpha1.SiddhiProcess, configs Configs) (siddhiAppStructs []SiddhiApp, err error) {
-	var resp *http.Response
-	var siddhiApps []string
-	var url string
 	apps := make(map[string]string)
-	reqLogger := log.WithValues("Request.Namespace", sp.Namespace, "Request.Name", sp.Name)
-	query := sp.Spec.Query
-	createSVC := false
-	if sp.Spec.DeploymentConfigs.Mode == Failover {
-		url = configs.ParserDomain + sp.Namespace + configs.ParserNATSContext
-	} else {
-		url = configs.ParserDomain + sp.Namespace + configs.ParserDefaultContext
-	}
-
-	if (query == "") && (len(sp.Spec.Apps) > 0) {
-		for _, siddhiCMName := range sp.Spec.Apps {
-			configMap := &corev1.ConfigMap{}
-			rsp.client.Get(context.TODO(), types.NamespacedName{Name: siddhiCMName, Namespace: sp.Namespace}, configMap)
-			for _, siddhiFileContent := range configMap.Data {
-				siddhiApps = append(siddhiApps, siddhiFileContent)
-			}
-		}
-	} else if (query != "") && (len(sp.Spec.Apps) <= 0) {
-		siddhiApps = append(siddhiApps, query)
-	} else if (query != "") && (len(sp.Spec.Apps) > 0) {
-		err = errors.New("Custom resource " + sp.Name + " should only contain either query or app entry")
-		return siddhiAppStructs, err
-	} else {
-		err = errors.New("Custom resource " + sp.Name + " must have either query or app entry to deploy siddhi apps")
-		return siddhiAppStructs, err
+	siddhiApps, err := rsp.getSiddhiApps(sp)
+	if err != nil {
+		return
 	}
 
 	propertyMap := rsp.populateUserEnvs(sp)
-	siddhiParserRequest := SiddhiParserRequest{
-		SiddhiApps:  siddhiApps,
-		PropertyMap: propertyMap,
-	}
-	if sp.Spec.DeploymentConfigs.Mode == Failover {
-		ms := siddhiv1alpha1.MessagingSystem{}
-		if sp.Spec.DeploymentConfigs.MessagingSystem.Equals(&ms) {
-			ms = siddhiv1alpha1.MessagingSystem{
-				Type: configs.NATSMSType,
-				Config: siddhiv1alpha1.MessagingSystemConfig{
-					ClusterID: configs.STANClusterName,
-					BootstrapServers: []string{
-						configs.NATSDefaultURL,
-					},
-				},
-			}
-		} else {
-			ms = sp.Spec.DeploymentConfigs.MessagingSystem
-		}
-		siddhiParserRequest = SiddhiParserRequest{
-			SiddhiApps:      siddhiApps,
-			PropertyMap:     propertyMap,
-			MessagingSystem: ms,
-		}
+	siddhiParserRequest := populateParserRequest(sp, siddhiApps, propertyMap, configs)
+	siddhiParserResponse, err := invokeParser(sp, siddhiParserRequest, configs)
+	if err != nil {
+		return
 	}
 
-	var siddhiParserResponse SiddhiParserResponse
-	b, err := json.Marshal(siddhiParserRequest)
-	if err != nil {
-		reqLogger.Error(err, ("JSON marshal error in SiddhiProcess : " + sp.Name))
-		return siddhiAppStructs, err
-	}
-	var jsonStr = []byte(string(b))
-	req, err := http.NewRequest("POST", url, bytes.NewBuffer(jsonStr))
-	req.Header.Set("Content-Type", "application/json")
-	client := &http.Client{}
-	resp, err = client.Do(req)
-	if err != nil {
-		reqLogger.Error(err, ("Siddhi parser invoking error in URL : " + url))
-		return siddhiAppStructs, err
-	}
-	defer resp.Body.Close()
-	if resp.StatusCode/100 != 2 {
-		err = errors.New("Siddhi parser invalid response from : " + url + ". Status : " + resp.Status)
-		return siddhiAppStructs, err
-	}
-	json.NewDecoder(resp.Body).Decode(&siddhiParserResponse)
-	if sp.Spec.DeploymentConfigs.Mode == Failover {
-		for _, fApp := range siddhiParserResponse.FailoverDeployments {
-			var ports []int
-			var protocols []string
-			var tls []bool
-			for _, deploymentConf := range fApp.SiddhiSourceList.SourceDeploymentConfigs {
-				if !deploymentConf.IsPulling {
-					createSVC = true
-					ports = append(ports, deploymentConf.Port)
-					protocols = append(protocols, deploymentConf.ServiceProtocol)
-					tls = append(tls, deploymentConf.Secured)
-				}
-			}
-			if fApp.PassthroughApp != "" {
-				pApp := fApp.PassthroughApp
-				pAppName, err := GetAppName(pApp)
-				if err != nil {
-					return siddhiAppStructs, err
-				}
-				pAppStruct := SiddhiApp{
-					Name:      strings.ToLower(sp.Name + configs.FExtTwo),
-					Type:      PassthroughApp,
-					Ports:     ports,
-					Protocols: protocols,
-					TLS:       tls,
-					CreateSVC: createSVC,
-					CreatePVC: false,
-					Apps: map[string]string{
-						pAppName: pApp,
-					},
-					Replicas: 1,
-				}
-				siddhiAppStructs = append(siddhiAppStructs, pAppStruct)
-			}
-			if fApp.QueryApp != "" {
-				qApp := fApp.QueryApp
-				qAppName, err := GetAppName(qApp)
-				if err != nil {
-					return siddhiAppStructs, err
-				}
-				qAppStruct := SiddhiApp{
-					Name:      strings.ToLower(sp.Name + configs.FExtOne),
-					Type:      ProcessApp,
-					CreateSVC: false,
-					CreatePVC: true,
-					Apps: map[string]string{
-						qAppName: qApp,
-					},
-					Replicas: 1,
-				}
-				siddhiAppStructs = append(siddhiAppStructs, qAppStruct)
-			}
-		}
-	} else {
-		var ports []int
+	for i, siddhiDepConf := range siddhiParserResponse.AppConfig {
+		var ports []corev1.ContainerPort
 		var protocols []string
 		var tls []bool
-		for _, siddhiApp := range siddhiParserResponse.AppConfig {
-			app := siddhiApp.SiddhiApp
-			appName, err := GetAppName(app)
-			if err != nil {
-				return siddhiAppStructs, err
-			}
-			for _, deploymentConf := range siddhiApp.SiddhiSourceList.SourceDeploymentConfigs {
-				if !deploymentConf.IsPulling {
-					createSVC = true
-					ports = append(ports, deploymentConf.Port)
-					protocols = append(protocols, deploymentConf.ServiceProtocol)
-					tls = append(tls, deploymentConf.Secured)
+		serviceEnabled := false
+		app := siddhiDepConf.SiddhiApp
+		appName, err := GetAppName(app)
+		deploymentName := sp.Name + "-" + strconv.Itoa(i)
+		if err != nil {
+			return siddhiAppStructs, err
+		}
+		for _, deploymentConf := range siddhiDepConf.SiddhiSourceList.SourceDeploymentConfigs {
+			if !deploymentConf.IsPulling {
+				serviceEnabled = true
+				port := corev1.ContainerPort{
+					Name:          deploymentName + "-" + strconv.Itoa(deploymentConf.Port),
+					ContainerPort: int32(deploymentConf.Port),
+					Protocol:      corev1.Protocol(deploymentConf.ServiceProtocol),
 				}
+				ports = append(ports, port)
+				protocols = append(protocols, deploymentConf.ServiceProtocol)
+				tls = append(tls, deploymentConf.Secured)
 			}
-			apps[appName] = app
 		}
 		if len(ports) > 0 {
-			createSVC = true
+			serviceEnabled = true
 		}
+		apps[appName] = app
 		siddhiAppStruct := SiddhiApp{
-			Name:      strings.ToLower(sp.Name),
-			Ports:     ports,
-			Protocols: protocols,
-			TLS:       tls,
-			CreateSVC: createSVC,
-			CreatePVC: true,
-			Apps:      apps,
-			Replicas:  1,
+			Name:               deploymentName,
+			ContainerPorts:     ports,
+			Apps:               apps,
+			ServiceEnabled:     serviceEnabled,
+			PersistenceEnabled: siddhiDepConf.PersistenceEnabled,
+			Replicas:           siddhiDepConf.Replicas,
 		}
 		siddhiAppStructs = append(siddhiAppStructs, siddhiAppStruct)
 	}

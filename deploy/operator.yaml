@@ -32,21 +32,6 @@ spec:
               value: siddhi-operator
             - name: OPERATOR_VERSION
               value: 0.1.1
-            - name: SIDDHI_RUNNER_IMAGE
-              value: siddhiio/siddhi-runner-alpine
-            - name: SIDDHI_RUNNER_IMAGE_TAG
-              value: 0.1.0
-            - name: SIDDHI_RUNNER_IMAGE_SECRET
-              value: null
-            - name: SIDDHI_RUNNER_HOME
-              value: /home/siddhi_user/siddhi-runner-0.1.0/
-            - name: SIDDHI_PARSER_URL
-              value: http://siddhi-parser/parse
-            - name: AUTO_INGRESS_CREATION
-              value: "true"
-            - name: RECONCILE_PERIOD
-              value: "300"
-
 
 ---
 apiVersion: extensions/v1beta1

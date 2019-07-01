@@ -22,8 +22,8 @@ import (
 	"sort"
 )
 
-// Equals function of PersistenceVolume check the equality of two PersistenceVolume structs
-func (p *PersistenceVolume) Equals(q *PersistenceVolume) bool {
+// Equals function of PV check the equality of two PV structs
+func (p *PV) Equals(q *PV) bool {
 	vmEq := p.VolumeMode == q.VolumeMode
 	classEq := p.Class == q.Class
 	resourceEq := p.Resources == q.Resources

@@ -19,17 +19,18 @@
 package e2e
 
 import (
-	"errors"
-	"strings"
 	"testing"
-	"time"
 
 	goctx "context"
 	framework "github.com/operator-framework/operator-sdk/pkg/test"
 	siddhiv1alpha1 "github.com/siddhi-io/siddhi-operator/pkg/apis/siddhi/v1alpha1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+
+	"github.com/operator-framework/operator-sdk/pkg/test/e2eutil"
 )
 
+// failoverDeploymentTest check the failover deployment of a siddhi app.
+// Check whether deployments, services, and PVCs created successfully
 func failoverDeploymentTest(t *testing.T, f *framework.Framework, ctx *framework.TestCtx) error {
 	namespace, err := ctx.GetNamespace()
 	if err != nil {
@@ -55,7 +56,7 @@ func failoverDeploymentTest(t *testing.T, f *framework.Framework, ctx *framework
 			APIVersion: "siddhi.io/v1alpha1",
 		},
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      "test-monitor-app",
+			Name:      "failover-monitor-app",
 			Namespace: namespace,
 		},
 		Spec: siddhiv1alpha1.SiddhiProcessSpec{
@@ -75,53 +76,29 @@ func failoverDeploymentTest(t *testing.T, f *framework.Framework, ctx *framework
 			},
 		},
 	}
-	// use TestCtx's create helper to create the object and add a cleanup function for the new object
+
 	err = f.Client.Create(goctx.TODO(), exampleSiddhi, &framework.CleanupOptions{TestContext: ctx, Timeout: cleanupTimeout, RetryInterval: cleanupRetryInterval})
 	if err != nil {
 		return err
 	}
 
-	time.Sleep(40 * time.Second)
+	err = e2eutil.WaitForDeployment(t, f.KubeClient, namespace, "failover-monitor-app-1", 1, retryInterval, timeout)
+	if err != nil {
+		return err
+	}
+
+	err = e2eutil.WaitForDeployment(t, f.KubeClient, namespace, "failover-monitor-app-2", 1, retryInterval, timeout)
+	if err != nil {
+		return err
+	}
 
 	_, err = f.KubeClient.CoreV1().Services(namespace).Get("siddhi-nats", metav1.GetOptions{IncludeUninitialized: true})
 	if err != nil {
 		return err
 	}
-	depList, err := f.KubeClient.AppsV1().Deployments(namespace).List(metav1.ListOptions{})
-	if err != nil {
-		return err
-	}
-	qExists := false
-	pExists := false
-	for _, dep := range depList.Items {
-		if strings.HasPrefix(dep.GetName(), "fmonitorapp") {
-			qExists = true
-		}
-		if strings.HasPrefix(dep.GetName(), "fmonitorapp-passthrough") {
-			pExists = true
-		}
-	}
-	if !qExists {
-		err = errors.New("Query app deployment not found")
-		return err
-	}
-	if !pExists {
-		err = errors.New("Passthrough app deployment not found")
-		return err
-	}
 
-	pSVCExists := false
-	svcList, err := f.KubeClient.CoreV1().Services(namespace).List(metav1.ListOptions{})
+	_, err = f.KubeClient.CoreV1().Services(namespace).Get("failover-monitor-app-2", metav1.GetOptions{IncludeUninitialized: true})
 	if err != nil {
-		return err
-	}
-	for _, svc := range svcList.Items {
-		if strings.HasPrefix(svc.GetName(), "fmonitorapp-passthrough") {
-			pSVCExists = true
-		}
-	}
-	if !pSVCExists {
-		err = errors.New("Passthrough app service not found")
 		return err
 	}
 
@@ -136,6 +113,7 @@ func failoverDeploymentTest(t *testing.T, f *framework.Framework, ctx *framework
 	return nil
 }
 
+// failoverConfigChangeTest check whether the configuration change of the siddhi runner happens correctly or not
 func failoverConfigChangeTest(t *testing.T, f *framework.Framework, ctx *framework.TestCtx) error {
 	namespace, err := ctx.GetNamespace()
 	if err != nil {
@@ -189,13 +167,21 @@ func failoverConfigChangeTest(t *testing.T, f *framework.Framework, ctx *framewo
 						location: siddhi-app-persistence`,
 		},
 	}
-	// use TestCtx's create helper to create the object and add a cleanup function for the new object
+
 	err = f.Client.Create(goctx.TODO(), exampleSiddhi, &framework.CleanupOptions{TestContext: ctx, Timeout: cleanupTimeout, RetryInterval: cleanupRetryInterval})
 	if err != nil {
 		return err
 	}
 
-	time.Sleep(30 * time.Second)
+	err = e2eutil.WaitForDeployment(t, f.KubeClient, namespace, "failover-monitor-app-1", 1, retryInterval, timeout)
+	if err != nil {
+		return err
+	}
+
+	err = e2eutil.WaitForDeployment(t, f.KubeClient, namespace, "failover-monitor-app-2", 1, retryInterval, timeout)
+	if err != nil {
+		return err
+	}
 
 	_, err = f.KubeClient.CoreV1().ConfigMaps(namespace).Get("failover-monitor-app-deployment.yaml", metav1.GetOptions{IncludeUninitialized: true})
 	if err != nil {
@@ -209,6 +195,7 @@ func failoverConfigChangeTest(t *testing.T, f *framework.Framework, ctx *framewo
 	return nil
 }
 
+// failoverPVCTest check whether PVC create correctly or not in the siddhi app failover deployment
 func failoverPVCTest(t *testing.T, f *framework.Framework, ctx *framework.TestCtx) error {
 	namespace, err := ctx.GetNamespace()
 	if err != nil {
@@ -234,7 +221,7 @@ func failoverPVCTest(t *testing.T, f *framework.Framework, ctx *framework.TestCt
 			APIVersion: "siddhi.io/v1alpha1",
 		},
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      "test-monitor-app",
+			Name:      "failover-test-app",
 			Namespace: namespace,
 		},
 		Spec: siddhiv1alpha1.SiddhiProcessSpec{
@@ -261,38 +248,29 @@ func failoverPVCTest(t *testing.T, f *framework.Framework, ctx *framework.TestCt
 							Storage: "1Gi",
 						},
 					},
+					Class: "standard",
 				},
 			},
 		},
 	}
-	// use TestCtx's create helper to create the object and add a cleanup function for the new object
+
 	err = f.Client.Create(goctx.TODO(), exampleSiddhi, &framework.CleanupOptions{TestContext: ctx, Timeout: cleanupTimeout, RetryInterval: cleanupRetryInterval})
 	if err != nil {
 		return err
 	}
 
-	time.Sleep(40 * time.Second)
-
-	pvcList, err := f.KubeClient.CoreV1().PersistentVolumeClaims(namespace).List(metav1.ListOptions{})
+	err = e2eutil.WaitForDeployment(t, f.KubeClient, namespace, "failover-test-app-1", 1, retryInterval, mtimeout)
 	if err != nil {
 		return err
 	}
-	qExists := false
-	pExists := false
-	for _, pvc := range pvcList.Items {
-		if strings.HasPrefix(pvc.GetName(), "fmonitorapp") {
-			qExists = true
-		}
-		if strings.HasPrefix(pvc.GetName(), "fmonitorapp-passthrough") {
-			pExists = true
-		}
-	}
-	if !qExists {
-		err = errors.New("Query app deployment not found")
+
+	err = e2eutil.WaitForDeployment(t, f.KubeClient, namespace, "failover-test-app-2", 1, retryInterval, mtimeout)
+	if err != nil {
 		return err
 	}
-	if !pExists {
-		err = errors.New("Passthrough app deployment not found")
+
+	_, err = f.KubeClient.CoreV1().PersistentVolumeClaims(namespace).Get("failover-test-app-1-pvc", metav1.GetOptions{IncludeUninitialized: true})
+	if err != nil {
 		return err
 	}
 

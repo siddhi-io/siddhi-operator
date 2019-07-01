@@ -18,12 +18,20 @@
 
 package siddhiprocess
 
+import (
+	"context"
+
+	siddhiv1alpha1 "github.com/siddhi-io/siddhi-operator/pkg/apis/siddhi/v1alpha1"
+	corev1 "k8s.io/api/core/v1"
+
+	"k8s.io/apimachinery/pkg/types"
+)
+
 // Default configurations stored as constants. Further these constants used by the Configurations() function.
 const (
 	SiddhiHome           string = "/home/siddhi_user/siddhi-runner-0.1.0/"
-	SiddhiRunnerImage    string = "siddhiio/siddhi-runner-alpine"
+	SiddhiImage          string = "siddhiio/siddhi-runner-alpine:0.1.0"
 	SiddhiRunnerPath     string = "wso2/runner/"
-	SiddhiRunnerImageTag string = "0.1.0"
 	SiddhiCMExt          string = "-siddhi"
 	SiddhiExt            string = ".siddhi"
 	SiddhiFileRPath      string = "wso2/runner/deployment/siddhi-files/"
@@ -31,7 +39,7 @@ const (
 	DepConfigName        string = "deploymentconfig"
 	DepConfMountPath     string = "tmp/configs/"
 	DepConfParameter     string = "-Dconfig="
-	DepCMExt             string = "-deployment.yaml"
+	DepCMExt             string = "-deployment-yaml"
 	Shell                string = "sh"
 	RunnerRPath          string = "bin/runner.sh"
 	HostName             string = "siddhi"
@@ -61,6 +69,7 @@ const (
 	TCP                  string = "tcp"
 	FExtOne              string = "-1"
 	FExtTwo              string = "-2"
+	AutoCreateIngress    bool   = false
 	NATSSize             int    = 1
 	NATSTimeout          int    = 5
 	DefaultRTime         int    = 1
@@ -91,13 +100,14 @@ const (
 	Distributed    string = "distributed"
 	ProcessApp     string = "process"
 	PassthroughApp string = "passthrough"
+	OperatorCMName string = "siddhi-operator-configs"
 )
 
 // Configs is the struct definition of the object which used to bundle the all default configurations.
 type Configs struct {
 	SiddhiHome           string
-	SiddhiRunnerImage    string
-	SiddhiRunnerImageTag string
+	SiddhiImage          string
+	SiddhiImageSecret    string
 	SiddhiCMExt          string
 	SiddhiExt            string
 	SiddhiFileRPath      string
@@ -136,6 +146,7 @@ type Configs struct {
 	TCP                  string
 	FExtOne              string
 	FExtTwo              string
+	AutoCreateIngress    bool
 	NATSSize             int
 	NATSTimeout          int
 	DefaultRTime         int
@@ -144,11 +155,10 @@ type Configs struct {
 
 // Configurations function returns the default config object. Here all the configs used as constants and budle together into a
 // object and then returns that object. This object used to differenciate default configs from other variables.
-func Configurations() Configs {
+func (rsp *ReconcileSiddhiProcess) Configurations(sp *siddhiv1alpha1.SiddhiProcess) Configs {
 	configs := Configs{
 		SiddhiHome:           SiddhiHome,
-		SiddhiRunnerImage:    SiddhiRunnerImage,
-		SiddhiRunnerImageTag: SiddhiRunnerImageTag,
+		SiddhiImage:          SiddhiImage,
 		SiddhiCMExt:          SiddhiCMExt,
 		SiddhiExt:            SiddhiExt,
 		SiddhiFileRPath:      SiddhiFileRPath,
@@ -187,10 +197,32 @@ func Configurations() Configs {
 		TCP:                  TCP,
 		FExtOne:              FExtOne,
 		FExtTwo:              FExtTwo,
+		AutoCreateIngress:    AutoCreateIngress,
 		NATSSize:             NATSSize,
 		NATSTimeout:          NATSTimeout,
 		DefaultRTime:         DefaultRTime,
 		DeploymentSize:       DeploymentSize,
+	}
+	configMap := &corev1.ConfigMap{}
+	err := rsp.client.Get(context.TODO(), types.NamespacedName{Name: OperatorCMName, Namespace: sp.Namespace}, configMap)
+	if err == nil {
+		if configMap.Data["SIDDHI_RUNNER_HOME"] != "" {
+			configs.SiddhiHome = configMap.Data["SIDDHI_RUNNER_HOME"]
+		}
+
+		if configMap.Data["SIDDHI_RUNNER_IMAGE"] != "" {
+			configs.SiddhiImage = configMap.Data["SIDDHI_RUNNER_IMAGE"]
+		}
+
+		if configMap.Data["SIDDHI_RUNNER_IMAGE_SECRET"] != "" {
+			configs.SiddhiImageSecret = configMap.Data["SIDDHI_RUNNER_IMAGE_SECRET"]
+		}
+
+		if configMap.Data["AUTO_INGRESS_CREATION"] != "" {
+			if configMap.Data["AUTO_INGRESS_CREATION"] == "true" {
+				configs.AutoCreateIngress = true
+			}
+		}
 	}
 	return configs
 }

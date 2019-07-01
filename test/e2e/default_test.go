@@ -32,6 +32,8 @@ import (
 	"github.com/operator-framework/operator-sdk/pkg/test/e2eutil"
 )
 
+// siddhiDeploymentTest test the default deployment of a siddhi app
+// Check whether deployment, service, ingress, and config map of the siddhi app deployment created correctly
 func siddhiDeploymentTest(t *testing.T, f *framework.Framework, ctx *framework.TestCtx) error {
 	namespace, err := ctx.GetNamespace()
 	if err != nil {
@@ -124,6 +126,10 @@ func siddhiDeploymentTest(t *testing.T, f *framework.Framework, ctx *framework.T
 	return nil
 }
 
+// code coverage
+
+// siddhiConfigChangeTest check whether the configuration change of the siddhi runner deployment.yaml
+// correctly executed or not. Here mainly it checks the config map creation was successfull or not.
 func siddhiConfigChangeTest(t *testing.T, f *framework.Framework, ctx *framework.TestCtx) error {
 	namespace, err := ctx.GetNamespace()
 	if err != nil {
@@ -174,7 +180,7 @@ func siddhiConfigChangeTest(t *testing.T, f *framework.Framework, ctx *framework
 						location: siddhi-app-persistence`,
 		},
 	}
-	// use TestCtx's create helper to create the object and add a cleanup function for the new object
+
 	err = f.Client.Create(goctx.TODO(), exampleSiddhi, &framework.CleanupOptions{TestContext: ctx, Timeout: cleanupTimeout, RetryInterval: cleanupRetryInterval})
 	if err != nil {
 		return err

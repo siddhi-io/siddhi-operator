@@ -20,23 +20,20 @@ package siddhiprocess
 
 import (
 	"context"
-	"time"
 
 	natsv1alpha2 "github.com/siddhi-io/siddhi-operator/pkg/apis/nats/v1alpha2"
 	siddhiv1alpha1 "github.com/siddhi-io/siddhi-operator/pkg/apis/siddhi/v1alpha1"
 	streamingv1alpha1 "github.com/siddhi-io/siddhi-operator/pkg/apis/streaming/v1alpha1"
-	appsv1 "k8s.io/api/apps/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/types"
-	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 )
 
 // createNATS function creates a NATS cluster and a NATS streaming cluster and waits some amout of time to complete it.
 // More about NATS cluster - https://github.com/nats-io/nats-operator
 // More about NATS streaming cluster - https://github.com/nats-io/nats-streaming-operator
-func (rsp *ReconcileSiddhiProcess) createNATS(sp *siddhiv1alpha1.SiddhiProcess, configs Configs, operator *appsv1.Deployment) error {
+func (rsp *ReconcileSiddhiProcess) createNATS(sp *siddhiv1alpha1.SiddhiProcess, configs Configs) error {
 	natsCluster := &natsv1alpha2.NatsCluster{}
 	err := rsp.client.Get(context.TODO(), types.NamespacedName{Name: configs.NATSClusterName, Namespace: sp.Namespace}, natsCluster)
 	if err != nil && errors.IsNotFound(err) {
@@ -53,7 +50,6 @@ func (rsp *ReconcileSiddhiProcess) createNATS(sp *siddhiv1alpha1.SiddhiProcess, 
 				Size: configs.NATSSize,
 			},
 		}
-		controllerutil.SetControllerReference(operator, natsCluster, rsp.scheme)
 		err = rsp.client.Create(context.TODO(), natsCluster)
 		if err != nil {
 			return err
@@ -79,12 +75,10 @@ func (rsp *ReconcileSiddhiProcess) createNATS(sp *siddhiv1alpha1.SiddhiProcess, 
 				NatsService: configs.NATSClusterName,
 			},
 		}
-		controllerutil.SetControllerReference(operator, stanCluster, rsp.scheme)
 		err = rsp.client.Create(context.TODO(), stanCluster)
 		if err != nil {
 			return err
 		}
 	}
-	time.Sleep(time.Duration(configs.NATSTimeout) * time.Second)
 	return err
 }

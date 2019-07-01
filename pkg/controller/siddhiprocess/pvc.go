@@ -36,7 +36,8 @@ import (
 func (rsp *ReconcileSiddhiProcess) createPVC(sp *siddhiv1alpha1.SiddhiProcess, configs Configs, pvcName string) error {
 	var accessModes []corev1.PersistentVolumeAccessMode
 	pvc := &corev1.PersistentVolumeClaim{}
-	p := sp.Spec.DeploymentConfigs.PersistenceVolume
+	p := sp.Spec.DeploymentConfig.PV
+	// todo default access mode
 	err := rsp.client.Get(context.TODO(), types.NamespacedName{Name: pvcName, Namespace: sp.Namespace}, pvc)
 	if err != nil && errors.IsNotFound(err) {
 		for _, am := range p.AccessModes {
@@ -47,6 +48,7 @@ func (rsp *ReconcileSiddhiProcess) createPVC(sp *siddhiv1alpha1.SiddhiProcess, c
 			if am == configs.ReadOnlyMany {
 				accessModes = append(accessModes, corev1.ReadOnlyMany)
 				continue
+				// throw error
 			}
 			if am == configs.ReadWriteMany {
 				accessModes = append(accessModes, corev1.ReadWriteMany)

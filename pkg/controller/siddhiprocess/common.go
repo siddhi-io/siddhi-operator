@@ -19,11 +19,18 @@
 package siddhiprocess
 
 import (
+	"bytes"
+	"encoding/json"
 	"errors"
+	"net/http"
 	"regexp"
 	"strings"
 
+	siddhiv1alpha1 "github.com/siddhi-io/siddhi-operator/pkg/apis/siddhi/v1alpha1"
 	corev1 "k8s.io/api/core/v1"
+
+	"gopkg.in/yaml.v2"
+	"path/filepath"
 )
 
 // Status of a Siddhi process
@@ -51,20 +58,12 @@ var status = []string{
 
 // labelsForSiddhiProcess returns the labels for selecting the resources
 // belonging to the given SiddhiProcess custom resource object.
-func labelsForSiddhiProcess(appName string, operatorEnvs map[string]string, configs Configs) map[string]string {
-	operatorName := configs.OperatorName
-	operatorVersion := configs.OperatorVersion
-	if operatorEnvs["OPERATOR_NAME"] != "" {
-		operatorName = operatorEnvs["OPERATOR_NAME"]
-	}
-	if operatorEnvs["OPERATOR_VERSION"] != "" {
-		operatorVersion = operatorEnvs["OPERATOR_VERSION"]
-	}
+func labelsForSiddhiProcess(appName string, configs Configs) map[string]string {
 	return map[string]string{
 		"siddhi.io/name":     configs.CRDName,
 		"siddhi.io/instance": appName,
-		"siddhi.io/version":  operatorVersion,
-		"siddhi.io/part-of":  operatorName,
+		"siddhi.io/version":  configs.OperatorVersion,
+		"siddhi.io/part-of":  configs.OperatorName,
 	}
 }
 
@@ -98,5 +97,126 @@ func GetAppName(app string) (appName string, err error) {
 		return
 	}
 	err = errors.New("Siddhi app name extraction error")
+	return
+}
+
+func populateParserRequest(sp *siddhiv1alpha1.SiddhiProcess, siddhiApps []string, propertyMap map[string]string, configs Configs) (siddhiParserRequest SiddhiParserRequest) {
+	siddhiParserRequest = SiddhiParserRequest{
+		SiddhiApps:  siddhiApps,
+		PropertyMap: propertyMap,
+	}
+	if sp.Spec.DeploymentConfig.Mode == Failover {
+		ms := siddhiv1alpha1.MessagingSystem{}
+		if sp.Spec.DeploymentConfig.MessagingSystem.Equals(&ms) {
+			ms = siddhiv1alpha1.MessagingSystem{
+				Type: configs.NATSMSType,
+				Config: siddhiv1alpha1.MessagingSystemConfig{
+					ClusterID: configs.STANClusterName,
+					BootstrapServers: []string{
+						configs.NATSDefaultURL,
+					},
+				},
+			}
+		} else {
+			ms = sp.Spec.DeploymentConfig.MessagingSystem
+		}
+		siddhiParserRequest = SiddhiParserRequest{
+			SiddhiApps:      siddhiApps,
+			PropertyMap:     propertyMap,
+			MessagingSystem: ms,
+		}
+	}
+	return
+}
+
+func invokeParser(sp *siddhiv1alpha1.SiddhiProcess, siddhiParserRequest SiddhiParserRequest, configs Configs) (siddhiParserResponse SiddhiParserResponse, err error) {
+	url := configs.ParserDomain + sp.Namespace + configs.ParserNATSContext
+	b, err := json.Marshal(siddhiParserRequest)
+	if err != nil {
+		return
+	}
+	var jsonStr = []byte(string(b))
+	req, err := http.NewRequest("POST", url, bytes.NewBuffer(jsonStr))
+	req.Header.Set("Content-Type", "application/json")
+	client := &http.Client{}
+	resp, err := client.Do(req)
+	if err != nil {
+		return
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode/100 != 2 {
+		return
+	}
+	err = json.NewDecoder(resp.Body).Decode(&siddhiParserResponse)
+	if err != nil {
+		return
+	}
+	return
+}
+
+func populateRunnerConfigs(sp *siddhiv1alpha1.SiddhiProcess, configs Configs) (image string, home string, secret string) {
+	image = configs.SiddhiImage
+	home = configs.SiddhiHome
+	secret = configs.SiddhiImageSecret
+
+	if sp.Spec.Container.Image != "" {
+		image = sp.Spec.Container.Image
+	}
+	return
+}
+
+func createLocalObjectReference(secret string) (localObjectRef corev1.LocalObjectReference) {
+	localObjectRef = corev1.LocalObjectReference{
+		Name: secret,
+	}
+	return
+}
+
+func populateMountPath(sp *siddhiv1alpha1.SiddhiProcess, configs Configs) (mountPath string, err error) {
+	spConf := &SiddhiConfig{}
+	err = yaml.Unmarshal([]byte(sp.Spec.SiddhiConfig), spConf)
+	if err != nil {
+		return
+	}
+	mountPath = configs.SiddhiHome + configs.FilePersistentPath
+	if spConf.StatePersistence.SPConfig.Location != "" && filepath.IsAbs(spConf.StatePersistence.SPConfig.Location) {
+		mountPath = spConf.StatePersistence.SPConfig.Location
+	} else if spConf.StatePersistence.SPConfig.Location != "" {
+		mountPath = configs.SiddhiHome + configs.SiddhiRunnerPath + spConf.StatePersistence.SPConfig.Location
+	}
+	return
+}
+
+func createCMVolumes(configMapName string, mountPath string) (volume corev1.Volume, volumeMount corev1.VolumeMount) {
+	volume = corev1.Volume{
+		Name: configMapName,
+		VolumeSource: corev1.VolumeSource{
+			ConfigMap: &corev1.ConfigMapVolumeSource{
+				LocalObjectReference: corev1.LocalObjectReference{
+					Name: configMapName,
+				},
+			},
+		},
+	}
+	volumeMount = corev1.VolumeMount{
+		Name:      configMapName,
+		MountPath: mountPath,
+	}
+	return
+}
+
+func createPVCVolumes(pvcName string, mountPath string) (volume corev1.Volume, volumeMount corev1.VolumeMount) {
+	volume = corev1.Volume{
+		Name: pvcName,
+		VolumeSource: corev1.VolumeSource{
+			PersistentVolumeClaim: &corev1.PersistentVolumeClaimVolumeSource{
+				ClaimName: pvcName,
+			},
+		},
+	}
+	volumeMount = corev1.VolumeMount{
+		Name:      pvcName,
+		MountPath: mountPath,
+	}
 	return
 }

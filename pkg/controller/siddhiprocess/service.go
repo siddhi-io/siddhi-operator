@@ -19,7 +19,7 @@
 package siddhiprocess
 
 import (
-	"strconv"
+	"context"
 	"strings"
 
 	siddhiv1alpha1 "github.com/siddhi-io/siddhi-operator/pkg/apis/siddhi/v1alpha1"
@@ -31,13 +31,13 @@ import (
 
 // serviceForSiddhi returns a Service object for a deployment
 // Inputs - SiddhiProcess object, SiddhiApp struct, envs of the operator deployment, default configs object
-func (rsp *ReconcileSiddhiProcess) createService(sp *siddhiv1alpha1.SiddhiProcess, siddhiApp SiddhiApp, operatorEnvs map[string]string, configs Configs) *corev1.Service {
-	labels := labelsForSiddhiProcess(strings.ToLower(siddhiApp.Name), operatorEnvs, configs)
+func (rsp *ReconcileSiddhiProcess) createService(sp *siddhiv1alpha1.SiddhiProcess, siddhiApp SiddhiApp, configs Configs) (err error) {
+	labels := labelsForSiddhiProcess(strings.ToLower(siddhiApp.Name), configs)
 	var servicePorts []corev1.ServicePort
-	for _, port := range siddhiApp.Ports {
+	for _, containerPort := range siddhiApp.ContainerPorts {
 		servicePort := corev1.ServicePort{
-			Port: int32(port),
-			Name: strings.ToLower(siddhiApp.Name) + strconv.Itoa(port),
+			Port: containerPort.ContainerPort,
+			Name: containerPort.Name,
 		}
 		servicePorts = append(servicePorts, servicePort)
 	}
@@ -57,5 +57,9 @@ func (rsp *ReconcileSiddhiProcess) createService(sp *siddhiv1alpha1.SiddhiProces
 		},
 	}
 	controllerutil.SetControllerReference(sp, service, rsp.scheme)
-	return service
+	err = rsp.client.Create(context.TODO(), service)
+	if err != nil {
+		return
+	}
+	return
 }
