@@ -21,7 +21,7 @@ package siddhiprocess
 import (
 	"context"
 
-	siddhiv1alpha1 "github.com/siddhi-io/siddhi-operator/pkg/apis/siddhi/v1alpha1"
+	siddhiv1alpha2 "github.com/siddhi-io/siddhi-operator/pkg/apis/siddhi/v1alpha2"
 	corev1 "k8s.io/api/core/v1"
 	logf "sigs.k8s.io/controller-runtime/pkg/runtime/log"
 
@@ -68,10 +68,10 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 		return err
 	}
 
-	sp := &source.Kind{Type: &siddhiv1alpha1.SiddhiProcess{}}
+	sp := &source.Kind{Type: &siddhiv1alpha2.SiddhiProcess{}}
 	h := &handler.EnqueueRequestForOwner{
 		IsController: true,
-		OwnerType:    &siddhiv1alpha1.SiddhiProcess{},
+		OwnerType:    &siddhiv1alpha2.SiddhiProcess{},
 	}
 	pred := predicate.Funcs{
 		DeleteFunc: func(e event.DeleteEvent) bool {
@@ -89,7 +89,7 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 	}
 
 	// Watch for changes to primary resource SiddhiProcess
-	err = c.Watch(&source.Kind{Type: &siddhiv1alpha1.SiddhiProcess{}}, &handler.EnqueueRequestForObject{})
+	err = c.Watch(&source.Kind{Type: &siddhiv1alpha2.SiddhiProcess{}}, &handler.EnqueueRequestForObject{})
 	if err != nil {
 		return err
 	}
@@ -97,7 +97,7 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 	// Watch for changes to secondary resource Pods and requeue the owner SiddhiProcess
 	err = c.Watch(&source.Kind{Type: &corev1.Pod{}}, &handler.EnqueueRequestForOwner{
 		IsController: true,
-		OwnerType:    &siddhiv1alpha1.SiddhiProcess{},
+		OwnerType:    &siddhiv1alpha2.SiddhiProcess{},
 	})
 	if err != nil {
 		return err
@@ -122,7 +122,7 @@ func (rsp *ReconcileSiddhiProcess) Reconcile(request reconcile.Request) (reconci
 	reqLogger := log.WithValues("Request.Namespace", request.Namespace, "Request.Name", request.Name)
 	reqLogger.Info("Reconciling SiddhiProcess")
 
-	sp := &siddhiv1alpha1.SiddhiProcess{}
+	sp := &siddhiv1alpha2.SiddhiProcess{}
 	err := rsp.client.Get(context.TODO(), request.NamespacedName, sp)
 	if err != nil {
 		if errors.IsNotFound(err) {

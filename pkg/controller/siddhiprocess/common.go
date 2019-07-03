@@ -26,7 +26,7 @@ import (
 	"regexp"
 	"strings"
 
-	siddhiv1alpha1 "github.com/siddhi-io/siddhi-operator/pkg/apis/siddhi/v1alpha1"
+	siddhiv1alpha2 "github.com/siddhi-io/siddhi-operator/pkg/apis/siddhi/v1alpha2"
 	corev1 "k8s.io/api/core/v1"
 
 	"gopkg.in/yaml.v2"
@@ -100,18 +100,18 @@ func GetAppName(app string) (appName string, err error) {
 	return
 }
 
-func populateParserRequest(sp *siddhiv1alpha1.SiddhiProcess, siddhiApps []string, propertyMap map[string]string, configs Configs) (siddhiParserRequest SiddhiParserRequest) {
+func populateParserRequest(sp *siddhiv1alpha2.SiddhiProcess, siddhiApps []string, propertyMap map[string]string, configs Configs) (siddhiParserRequest SiddhiParserRequest) {
 	siddhiParserRequest = SiddhiParserRequest{
 		SiddhiApps:  siddhiApps,
 		PropertyMap: propertyMap,
 	}
 
-	ms := siddhiv1alpha1.MessagingSystem{}
+	ms := siddhiv1alpha2.MessagingSystem{}
 	if sp.Spec.MessagingSystem.TypeDefined() {
 		if sp.Spec.MessagingSystem.EmptyConfig() {
-			ms = siddhiv1alpha1.MessagingSystem{
+			ms = siddhiv1alpha2.MessagingSystem{
 				Type: configs.NATSMSType,
-				Config: siddhiv1alpha1.MessagingConfig{
+				Config: siddhiv1alpha2.MessagingConfig{
 					ClusterID: configs.STANClusterName,
 					BootstrapServers: []string{
 						configs.NATSDefaultURL,
@@ -132,7 +132,7 @@ func populateParserRequest(sp *siddhiv1alpha1.SiddhiProcess, siddhiApps []string
 	return
 }
 
-func invokeParser(sp *siddhiv1alpha1.SiddhiProcess, siddhiParserRequest SiddhiParserRequest, configs Configs) (siddhiParserResponse SiddhiParserResponse, err error) {
+func invokeParser(sp *siddhiv1alpha2.SiddhiProcess, siddhiParserRequest SiddhiParserRequest, configs Configs) (siddhiParserResponse SiddhiParserResponse, err error) {
 	url := configs.ParserDomain + sp.Namespace + configs.ParserNATSContext
 	b, err := json.Marshal(siddhiParserRequest)
 	if err != nil {
@@ -157,7 +157,7 @@ func invokeParser(sp *siddhiv1alpha1.SiddhiProcess, siddhiParserRequest SiddhiPa
 	return
 }
 
-func populateRunnerConfigs(sp *siddhiv1alpha1.SiddhiProcess, configs Configs) (image string, home string, secret string) {
+func populateRunnerConfigs(sp *siddhiv1alpha2.SiddhiProcess, configs Configs) (image string, home string, secret string) {
 	image = configs.SiddhiImage
 	home = configs.SiddhiHome
 	secret = sp.Spec.ImagePullSecret
@@ -175,7 +175,7 @@ func createLocalObjectReference(secret string) (localObjectRef corev1.LocalObjec
 	return
 }
 
-func populateMountPath(sp *siddhiv1alpha1.SiddhiProcess, configs Configs) (mountPath string, err error) {
+func populateMountPath(sp *siddhiv1alpha2.SiddhiProcess, configs Configs) (mountPath string, err error) {
 	spConf := &SiddhiConfig{}
 	err = yaml.Unmarshal([]byte(sp.Spec.SiddhiConfig), spConf)
 	if err != nil {

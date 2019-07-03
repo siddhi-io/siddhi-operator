@@ -22,7 +22,7 @@ import (
 	"context"
 	"strings"
 
-	siddhiv1alpha1 "github.com/siddhi-io/siddhi-operator/pkg/apis/siddhi/v1alpha1"
+	siddhiv1alpha2 "github.com/siddhi-io/siddhi-operator/pkg/apis/siddhi/v1alpha2"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -49,7 +49,7 @@ type SiddhiConfig struct {
 // deployApp returns a sp Deployment object
 // Inputs - SiddhiProcess object reference, siddhiApp object that holds the details of the deployment, default config object, and event recorder to record the events
 func (rsp *ReconcileSiddhiProcess) deployApp(
-	sp *siddhiv1alpha1.SiddhiProcess,
+	sp *siddhiv1alpha2.SiddhiProcess,
 	siddhiApp SiddhiApp,
 	eventRecorder record.EventRecorder,
 	configs Configs,
@@ -68,7 +68,7 @@ func (rsp *ReconcileSiddhiProcess) deployApp(
 		imagePullSecrets = append(imagePullSecrets, secret)
 	}
 
-	q := siddhiv1alpha1.PV{}
+	q := siddhiv1alpha2.PV{}
 	if !(sp.Spec.PV.Equals(&q)) && siddhiApp.PersistenceEnabled {
 		pvcName := siddhiApp.Name + configs.PVCExt
 		err = rsp.createPVC(sp, configs, pvcName)

@@ -22,7 +22,7 @@ import (
 	"context"
 	"strings"
 
-	siddhiv1alpha1 "github.com/siddhi-io/siddhi-operator/pkg/apis/siddhi/v1alpha1"
+	siddhiv1alpha2 "github.com/siddhi-io/siddhi-operator/pkg/apis/siddhi/v1alpha2"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
@@ -31,7 +31,7 @@ import (
 
 // serviceForSiddhi returns a Service object for a deployment
 // Inputs - SiddhiProcess object, SiddhiApp struct, envs of the operator deployment, default configs object
-func (rsp *ReconcileSiddhiProcess) createService(sp *siddhiv1alpha1.SiddhiProcess, siddhiApp SiddhiApp, configs Configs) (err error) {
+func (rsp *ReconcileSiddhiProcess) createService(sp *siddhiv1alpha2.SiddhiProcess, siddhiApp SiddhiApp, configs Configs) (err error) {
 	labels := labelsForSiddhiProcess(strings.ToLower(siddhiApp.Name), configs)
 	var servicePorts []corev1.ServicePort
 	for _, containerPort := range siddhiApp.ContainerPorts {

@@ -24,7 +24,7 @@ import (
 	"strconv"
 	"strings"
 
-	siddhiv1alpha1 "github.com/siddhi-io/siddhi-operator/pkg/apis/siddhi/v1alpha1"
+	siddhiv1alpha2 "github.com/siddhi-io/siddhi-operator/pkg/apis/siddhi/v1alpha2"
 	extensionsv1beta1 "k8s.io/api/extensions/v1beta1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
@@ -49,7 +49,7 @@ const (
 
 // createIngress returns a Siddhi Ingress load balancer object
 // Inputs - SiddhiProcess object, siddhi app struct to hold deployment configs, default config object, and the operator deployment object
-func (rsp *ReconcileSiddhiProcess) createIngress(sp *siddhiv1alpha1.SiddhiProcess, siddhiApp SiddhiApp, configs Configs) (err error) {
+func (rsp *ReconcileSiddhiProcess) createIngress(sp *siddhiv1alpha2.SiddhiProcess, siddhiApp SiddhiApp, configs Configs) (err error) {
 	var ingressPaths []extensionsv1beta1.HTTPIngressPath
 	for _, port := range siddhiApp.ContainerPorts {
 		path := "/" + strings.ToLower(siddhiApp.Name) + "/" + strconv.Itoa(int(port.ContainerPort)) + "/"
@@ -121,7 +121,7 @@ func (rsp *ReconcileSiddhiProcess) createIngress(sp *siddhiv1alpha1.SiddhiProces
 
 // updateIngress updates the ingress object and returns updated object
 // Inputs - SiddhiProcess object, existing ingress object, siddhi app struct to hold deployment configs, and default configs
-func (rsp *ReconcileSiddhiProcess) updateIngress(sp *siddhiv1alpha1.SiddhiProcess, currentIngress *extensionsv1beta1.Ingress, siddhiApp SiddhiApp, configs Configs) (err error) {
+func (rsp *ReconcileSiddhiProcess) updateIngress(sp *siddhiv1alpha2.SiddhiProcess, currentIngress *extensionsv1beta1.Ingress, siddhiApp SiddhiApp, configs Configs) (err error) {
 	var ingressPaths []extensionsv1beta1.HTTPIngressPath
 	for _, port := range siddhiApp.ContainerPorts {
 		path := "/" + strings.ToLower(siddhiApp.Name) + "/" + strconv.Itoa(int(port.ContainerPort)) + "/"

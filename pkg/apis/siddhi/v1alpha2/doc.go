@@ -16,7 +16,7 @@
  * under the License.
  */
 
-// Package v1alpha1 contains API Schema definitions for the siddhi v1alpha1 API group
+// Package v1alpha2 contains API Schema definitions for the siddhi v1alpha2 API group
 // +k8s:deepcopy-gen=package,register
 // +groupName=siddhi.io
-package v1alpha1
+package v1alpha2

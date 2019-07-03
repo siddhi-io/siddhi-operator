@@ -16,7 +16,7 @@
  * under the License.
  */
 
-package v1alpha1
+package v1alpha2
 
 import (
 	"sort"

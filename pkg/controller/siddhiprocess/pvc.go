@@ -21,7 +21,7 @@ package siddhiprocess
 import (
 	"context"
 
-	siddhiv1alpha1 "github.com/siddhi-io/siddhi-operator/pkg/apis/siddhi/v1alpha1"
+	siddhiv1alpha2 "github.com/siddhi-io/siddhi-operator/pkg/apis/siddhi/v1alpha2"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
@@ -33,7 +33,7 @@ import (
 
 // createPVC function creates a persistence volume claim for a K8s cluster
 // Inputs - SiddhiProcess object, default configs, and name of the persistence volume claim
-func (rsp *ReconcileSiddhiProcess) createPVC(sp *siddhiv1alpha1.SiddhiProcess, configs Configs, pvcName string) error {
+func (rsp *ReconcileSiddhiProcess) createPVC(sp *siddhiv1alpha2.SiddhiProcess, configs Configs, pvcName string) error {
 	var accessModes []corev1.PersistentVolumeAccessMode
 	pvc := &corev1.PersistentVolumeClaim{}
 	p := sp.Spec.PV

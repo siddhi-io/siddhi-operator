@@ -21,7 +21,7 @@ package siddhiprocess
 import (
 	"context"
 
-	siddhiv1alpha1 "github.com/siddhi-io/siddhi-operator/pkg/apis/siddhi/v1alpha1"
+	siddhiv1alpha2 "github.com/siddhi-io/siddhi-operator/pkg/apis/siddhi/v1alpha2"
 	corev1 "k8s.io/api/core/v1"
 
 	"k8s.io/apimachinery/pkg/types"
@@ -157,7 +157,7 @@ type Configs struct {
 
 // Configurations function returns the default config object. Here all the configs used as constants and budle together into a
 // object and then returns that object. This object used to differenciate default configs from other variables.
-func (rsp *ReconcileSiddhiProcess) Configurations(sp *siddhiv1alpha1.SiddhiProcess) Configs {
+func (rsp *ReconcileSiddhiProcess) Configurations(sp *siddhiv1alpha2.SiddhiProcess) Configs {
 	configs := Configs{
 		SiddhiHome:           SiddhiHome,
 		SiddhiImage:          SiddhiImage,

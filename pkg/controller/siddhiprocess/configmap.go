@@ -21,7 +21,7 @@ package siddhiprocess
 import (
 	"context"
 
-	siddhiv1alpha1 "github.com/siddhi-io/siddhi-operator/pkg/apis/siddhi/v1alpha1"
+	siddhiv1alpha2 "github.com/siddhi-io/siddhi-operator/pkg/apis/siddhi/v1alpha2"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
@@ -33,7 +33,7 @@ import (
 // createConfigMap creates a k8s config map for given set of data.
 // Inputs - SiddhiProcess object, name of the config map, & data object that used in the config map
 // This function initialize the config map object, set the controller reference, and then creates the config map.
-func (rsp *ReconcileSiddhiProcess) createConfigMap(sp *siddhiv1alpha1.SiddhiProcess, configMapName string, data map[string]string) error {
+func (rsp *ReconcileSiddhiProcess) createConfigMap(sp *siddhiv1alpha2.SiddhiProcess, configMapName string, data map[string]string) error {
 	configMap := &corev1.ConfigMap{}
 	err := rsp.client.Get(context.TODO(), types.NamespacedName{Name: configMapName, Namespace: sp.Namespace}, configMap)
 	if err != nil && errors.IsNotFound(err) {

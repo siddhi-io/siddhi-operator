@@ -21,7 +21,7 @@ package siddhiprocess
 import (
 	"strconv"
 
-	siddhiv1alpha1 "github.com/siddhi-io/siddhi-operator/pkg/apis/siddhi/v1alpha1"
+	siddhiv1alpha2 "github.com/siddhi-io/siddhi-operator/pkg/apis/siddhi/v1alpha2"
 	corev1 "k8s.io/api/core/v1"
 )
 
@@ -45,7 +45,7 @@ type TemplatedApp struct {
 type SiddhiParserRequest struct {
 	SiddhiApps      []string                       `json:"siddhiApps"`
 	PropertyMap     map[string]string              `json:"propertyMap"`
-	MessagingSystem siddhiv1alpha1.MessagingSystem `json:"messagingSystem"`
+	MessagingSystem siddhiv1alpha2.MessagingSystem `json:"messagingSystem"`
 }
 
 // SourceDeploymentConfig hold deployment configs of a particular siddhi app
@@ -87,7 +87,7 @@ type SiddhiParserResponse struct {
 // After that REST call, the siddhi parser returns relevant details of the deployment. This function get those details and
 // encapsulate all the details into a common structure(SiddhiApp) regarless of the deployment type.
 // Siddhi operator used this general SiddhiApp object to the further process.
-func (rsp *ReconcileSiddhiProcess) parseApp(sp *siddhiv1alpha1.SiddhiProcess, configs Configs) (siddhiAppStructs []SiddhiApp, err error) {
+func (rsp *ReconcileSiddhiProcess) parseApp(sp *siddhiv1alpha2.SiddhiProcess, configs Configs) (siddhiAppStructs []SiddhiApp, err error) {
 	apps := make(map[string]string)
 	siddhiApps := rsp.getSiddhiApps(sp)
 	propertyMap := rsp.populateUserEnvs(sp)

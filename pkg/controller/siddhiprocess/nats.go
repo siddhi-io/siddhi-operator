@@ -22,7 +22,7 @@ import (
 	"context"
 
 	natsv1alpha2 "github.com/siddhi-io/siddhi-operator/pkg/apis/nats/v1alpha2"
-	siddhiv1alpha1 "github.com/siddhi-io/siddhi-operator/pkg/apis/siddhi/v1alpha1"
+	siddhiv1alpha2 "github.com/siddhi-io/siddhi-operator/pkg/apis/siddhi/v1alpha2"
 	streamingv1alpha1 "github.com/siddhi-io/siddhi-operator/pkg/apis/streaming/v1alpha1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
@@ -33,7 +33,7 @@ import (
 // createNATS function creates a NATS cluster and a NATS streaming cluster and waits some amout of time to complete it.
 // More about NATS cluster - https://github.com/nats-io/nats-operator
 // More about NATS streaming cluster - https://github.com/nats-io/nats-streaming-operator
-func (rsp *ReconcileSiddhiProcess) createNATS(sp *siddhiv1alpha1.SiddhiProcess, configs Configs) error {
+func (rsp *ReconcileSiddhiProcess) createNATS(sp *siddhiv1alpha2.SiddhiProcess, configs Configs) error {
 	natsCluster := &natsv1alpha2.NatsCluster{}
 	err := rsp.client.Get(context.TODO(), types.NamespacedName{Name: configs.NATSClusterName, Namespace: sp.Namespace}, natsCluster)
 	if err != nil && errors.IsNotFound(err) {
