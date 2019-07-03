@@ -27,13 +27,108 @@ import (
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	extensionsv1beta1 "k8s.io/api/extensions/v1beta1"
-
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
+
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/tools/record"
 )
 
-// populateUserEnvs returns a map for the ENVs in CRD
+// deployApp returns a sp Deployment object
+// Inputs - SiddhiProcess object reference, siddhiApp object that holds the details of the deployment, default config object, and event recorder to record the events
+func (rsp *ReconcileSiddhiProcess) deployApp(
+	sp *siddhiv1alpha2.SiddhiProcess,
+	siddhiApp SiddhiApp,
+	eventRecorder record.EventRecorder,
+	configs Configs,
+) (err error) {
+
+	var volumes []corev1.Volume
+	var volumeMounts []corev1.VolumeMount
+	var imagePullSecrets []corev1.LocalObjectReference
+	configMapData := make(map[string]string)
+	labels := labelsForSiddhiProcess(siddhiApp.Name, configs)
+	siddhiRunnerImage, siddhiHome, siddhiImageSecret := populateRunnerConfigs(sp, configs)
+	containerPorts := siddhiApp.ContainerPorts
+
+	if siddhiImageSecret != "" {
+		secret := createLocalObjectReference(siddhiImageSecret)
+		imagePullSecrets = append(imagePullSecrets, secret)
+	}
+
+	q := siddhiv1alpha2.PV{}
+	if !(sp.Spec.PV.Equals(&q)) && siddhiApp.PersistenceEnabled {
+		pvcName := siddhiApp.Name + configs.PVCExt
+		err = rsp.CreatePVC(sp, configs, pvcName)
+		if err != nil {
+			return
+		}
+		mountPath, err := populateMountPath(sp, configs)
+		if err != nil {
+			return err
+		}
+		volume, volumeMount := createPVCVolumes(pvcName, mountPath)
+		volumes = append(volumes, volume)
+		volumeMounts = append(volumeMounts, volumeMount)
+	}
+
+	configMapName := siddhiApp.Name + configs.SiddhiCMExt
+	for k, v := range siddhiApp.Apps {
+		key := k + configs.SiddhiExt
+		configMapData[key] = v
+	}
+	err = rsp.CreateConfigMap(sp, configMapName, configMapData)
+	if err != nil {
+		return err
+	}
+	mountPath := configs.SiddhiHome + configs.SiddhiFileRPath
+	volume, volumeMount := createCMVolumes(configMapName, mountPath)
+	volumes = append(volumes, volume)
+	volumeMounts = append(volumeMounts, volumeMount)
+
+	configParameter := ""
+	if siddhiApp.PersistenceEnabled {
+		deployYAMLCMName := sp.Name + configs.DepCMExt
+		siddhiConfig := StatePersistenceConf
+		if sp.Spec.SiddhiConfig != "" {
+			siddhiConfig = sp.Spec.SiddhiConfig
+		}
+		data := map[string]string{
+			deployYAMLCMName: siddhiConfig,
+		}
+		err = rsp.CreateConfigMap(sp, deployYAMLCMName, data)
+		if err != nil {
+			return
+		}
+		mountPath := siddhiHome + configs.DepConfMountPath
+		volume, volumeMount := createCMVolumes(deployYAMLCMName, mountPath)
+		volumes = append(volumes, volume)
+		volumeMounts = append(volumeMounts, volumeMount)
+		configParameter = configs.DepConfParameter + siddhiHome + configs.DepConfMountPath + deployYAMLCMName
+	}
+
+	userID := int64(802)
+	err = rsp.CreateDeployment(
+		sp,
+		strings.ToLower(siddhiApp.Name),
+		sp.Namespace,
+		siddhiApp.Replicas,
+		labels,
+		siddhiRunnerImage,
+		configs.ContainerName,
+		[]string{configs.Shell},
+		[]string{siddhiHome + configs.RunnerRPath, configParameter},
+		containerPorts,
+		volumeMounts,
+		sp.Spec.Container.Env,
+		corev1.SecurityContext{RunAsUser: &userID},
+		corev1.PullAlways,
+		imagePullSecrets,
+		volumes,
+	)
+	return
+}
+
+// PopulateUserEnvs returns a map for the ENVs in CRD
 func (rsp *ReconcileSiddhiProcess) populateUserEnvs(sp *siddhiv1alpha2.SiddhiProcess) (envs map[string]string) {
 	envs = make(map[string]string)
 	for _, env := range sp.Spec.Container.Env {
@@ -42,7 +137,7 @@ func (rsp *ReconcileSiddhiProcess) populateUserEnvs(sp *siddhiv1alpha2.SiddhiPro
 	return envs
 }
 
-// updateStatus update the status of the CR object and send events to the SiddhiProcess object using EventRecorder object
+// UpdateErrorStatus update the status of the CR object and send events to the SiddhiProcess object using EventRecorder object
 // These status can be Pending, Warning, Error, Running
 func (rsp *ReconcileSiddhiProcess) updateErrorStatus(sp *siddhiv1alpha2.SiddhiProcess, eventRecorder record.EventRecorder, status Status, reason string, er error) *siddhiv1alpha2.SiddhiProcess {
 	reqLogger := log.WithValues("Request.Namespace", sp.Namespace, "Request.Name", sp.Name)
@@ -66,7 +161,7 @@ func (rsp *ReconcileSiddhiProcess) updateErrorStatus(sp *siddhiv1alpha2.SiddhiPr
 	return sp
 }
 
-// updateStatus update the status of the CR object and send events to the SiddhiProcess object using EventRecorder object
+// UpdateRunningStatus update the status of the CR object and send events to the SiddhiProcess object using EventRecorder object
 // These status can be Pending, Warning, Error, Running
 func (rsp *ReconcileSiddhiProcess) updateRunningStatus(sp *siddhiv1alpha2.SiddhiProcess, eventRecorder record.EventRecorder, status Status, reason string, message string) *siddhiv1alpha2.SiddhiProcess {
 	reqLogger := log.WithValues("Request.Namespace", sp.Namespace, "Request.Name", sp.Name)
@@ -84,7 +179,7 @@ func (rsp *ReconcileSiddhiProcess) updateRunningStatus(sp *siddhiv1alpha2.Siddhi
 	return sp
 }
 
-// updateType update the deployment type of the CR object
+// UpdateType update the deployment type of the CR object
 // These types are default, failover, and distributed
 func (rsp *ReconcileSiddhiProcess) updateType(sp *siddhiv1alpha2.SiddhiProcess, deptType string) *siddhiv1alpha2.SiddhiProcess {
 	s := sp
@@ -96,7 +191,7 @@ func (rsp *ReconcileSiddhiProcess) updateType(sp *siddhiv1alpha2.SiddhiProcess, 
 	return sp
 }
 
-// updateReady update ready attribute of the CR object
+// UpdateReady update ready attribute of the CR object
 // Ready attribute contains the number of deployments are complete and running out of requested deployments
 func (rsp *ReconcileSiddhiProcess) updateReady(sp *siddhiv1alpha2.SiddhiProcess, available int, need int) *siddhiv1alpha2.SiddhiProcess {
 	s := sp
@@ -135,7 +230,7 @@ func (rsp *ReconcileSiddhiProcess) createArtifacts(sp *siddhiv1alpha2.SiddhiProc
 			service := &corev1.Service{}
 			err = rsp.client.Get(context.TODO(), types.NamespacedName{Name: siddhiApp.Name, Namespace: sp.Namespace}, service)
 			if err != nil && apierrors.IsNotFound(err) {
-				err := rsp.createService(sp, siddhiApp, configs)
+				err := rsp.CreateService(sp, siddhiApp, configs)
 				if err != nil {
 					sp = rsp.updateErrorStatus(sp, ER, WARNING, "ServiceCreationError", err)
 					continue
@@ -150,14 +245,14 @@ func (rsp *ReconcileSiddhiProcess) createArtifacts(sp *siddhiv1alpha2.SiddhiProc
 				ingress := &extensionsv1beta1.Ingress{}
 				err = rsp.client.Get(context.TODO(), types.NamespacedName{Name: configs.HostName, Namespace: sp.Namespace}, ingress)
 				if err != nil && apierrors.IsNotFound(err) {
-					err := rsp.createIngress(sp, siddhiApp, configs)
+					err := rsp.CreateIngress(sp, siddhiApp, configs)
 					if err != nil {
 						sp = rsp.updateErrorStatus(sp, ER, ERROR, "IngressCreationError", err)
 						continue
 					}
 					reqLogger.Info("New ingress created successfully", "Ingress.Name", configs.HostName)
 				} else if err != nil {
-					err := rsp.updateIngress(sp, ingress, siddhiApp, configs)
+					err := rsp.UpdateIngress(sp, ingress, siddhiApp, configs)
 					if err != nil {
 						sp = rsp.updateErrorStatus(sp, ER, ERROR, "IngressUpdationError", err)
 						continue
@@ -204,7 +299,7 @@ func (rsp *ReconcileSiddhiProcess) createMessagingSystem(sp *siddhiv1alpha2.Sidd
 	if sp.Spec.MessagingSystem.TypeDefined() {
 		sp = rsp.updateType(sp, Failover)
 		if sp.Spec.MessagingSystem.EmptyConfig() {
-			err = rsp.createNATS(sp, configs)
+			err = rsp.CreateNATS(sp, configs)
 			if err != nil {
 				return
 			}

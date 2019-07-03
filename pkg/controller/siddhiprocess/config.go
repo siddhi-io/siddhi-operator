@@ -25,6 +25,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/apimachinery/pkg/util/intstr"
 )
 
 // Default configurations stored as constants. Further these constants used by the Configurations() function.
@@ -88,6 +89,16 @@ state.persistence:
   persistenceStore: io.siddhi.distribution.core.persistence.FileSystemPersistenceStore
   config:
     location: siddhi-app-persistence
+`
+
+	StatePersistenceConfTest string = `
+state.persistence:
+  enabled: true
+  intervalInMin: 1
+  revisionsToKeep: 2
+  persistenceStore: io.siddhi.distribution.core.persistence.FileSystemPersistenceStore
+  config:
+    location: /home/siddhi
 `
 )
 
@@ -153,6 +164,117 @@ type Configs struct {
 	NATSTimeout          int
 	DefaultRTime         int
 	DeploymentSize       int32
+}
+
+// SPConfig contains the state persistence configs
+type SPConfig struct {
+	Location string `yaml:"location"`
+}
+
+// StatePersistence contains the StatePersistence config block
+type StatePersistence struct {
+	SPConfig SPConfig `yaml:"config"`
+}
+
+// SiddhiConfig contains the siddhi config block
+type SiddhiConfig struct {
+	StatePersistence StatePersistence `yaml:"state.persistence"`
+}
+
+// IntOrString integer or string
+type IntOrString struct {
+	Type   Type   `protobuf:"varint,1,opt,name=type,casttype=Type"`
+	IntVal int32  `protobuf:"varint,2,opt,name=intVal"`
+	StrVal string `protobuf:"bytes,3,opt,name=strVal"`
+}
+
+// Type represents the stored type of IntOrString.
+type Type int
+
+// Int - Type
+const (
+	Int intstr.Type = iota
+	String
+)
+
+// SiddhiApp contains details about the siddhi app which need by K8s deployment
+type SiddhiApp struct {
+	Name               string                 `json:"appName"`
+	ContainerPorts     []corev1.ContainerPort `json:"containerPorts"`
+	Apps               map[string]string      `json:"apps"`
+	ServiceEnabled     bool                   `json:"serviceEnabled"`
+	PersistenceEnabled bool                   `json:"persistenceEnabled"`
+	Replicas           int32                  `json:"replicas"`
+}
+
+// TemplatedApp contains the templated siddhi app and relevant properties to pass into the parser service
+type TemplatedApp struct {
+	App         string            `json:"siddhiApp"`
+	PropertyMap map[string]string `json:"propertyMap"`
+}
+
+// SiddhiParserRequest is request struct of siddhi-parser
+type SiddhiParserRequest struct {
+	SiddhiApps      []string                       `json:"siddhiApps"`
+	PropertyMap     map[string]string              `json:"propertyMap"`
+	MessagingSystem siddhiv1alpha2.MessagingSystem `json:"messagingSystem"`
+}
+
+// SourceDeploymentConfig hold deployment configs of a particular siddhi app
+type SourceDeploymentConfig struct {
+	ServiceProtocol string `json:"serviceProtocol"`
+	Secured         bool   `json:"secured"`
+	Port            int    `json:"port"`
+	IsPulling       bool   `json:"isPulling"`
+}
+
+// SourceList hold list of object which contains configurations of a siddhi app
+type SourceList struct {
+	SourceDeploymentConfigs []SourceDeploymentConfig `json:"sourceDeploymentConfigs"`
+}
+
+// SiddhiAppConfig holds siddhi app and the relevant SourceList
+type SiddhiAppConfig struct {
+	SiddhiApp          string     `json:"siddhiApp"`
+	SiddhiSourceList   SourceList `json:"sourceList"`
+	PersistenceEnabled bool       `json:"persistenceEnabled"`
+	Replicas           int32      `json:"replicas"`
+}
+
+// SiddhiFAppConfig holds siddhi apps of the failover scenario and relevant SourceList
+type SiddhiFAppConfig struct {
+	PassthroughApp   string     `json:"passthroughApp"`
+	QueryApp         string     `json:"queryApp"`
+	SiddhiSourceList SourceList `json:"sourceList"`
+}
+
+// SiddhiParserResponse is the response object of siddhi-parser
+type SiddhiParserResponse struct {
+	AppConfig           []SiddhiAppConfig  `json:"siddhiAppConfigs"`
+	FailoverDeployments []SiddhiFAppConfig `json:"failoverDeployments"`
+}
+
+// Status of a Siddhi process
+type Status int
+
+// Type of status as list of integer constans
+const (
+	PENDING Status = iota
+	READY
+	RUNNING
+	ERROR
+	WARNING
+	NORMAL
+)
+
+// Status array holds the string values of status
+var status = []string{
+	"Pending",
+	"Ready",
+	"Running",
+	"Error",
+	"Warning",
+	"Normal",
 }
 
 // Configurations function returns the default config object. Here all the configs used as constants and budle together into a
