@@ -56,3 +56,22 @@ func (p *MessagingSystem) Equals(q *MessagingSystem) bool {
 	}
 	return (typeEq && cidEq)
 }
+
+// EmptyConfig function of MessagingSystem check the equality of two MessagingSystem structs
+func (p *MessagingSystem) EmptyConfig() bool {
+	if p.Config.ClusterID != "" {
+		return false
+	}
+	if len(p.Config.BootstrapServers) > 0 {
+		return false
+	}
+	return true
+}
+
+// TypeDefined function of MessagingSystem check the equality of two MessagingSystem structs
+func (p *MessagingSystem) TypeDefined() bool {
+	if p.Type != "" {
+		return true
+	}
+	return false
+}

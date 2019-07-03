@@ -105,12 +105,13 @@ func populateParserRequest(sp *siddhiv1alpha1.SiddhiProcess, siddhiApps []string
 		SiddhiApps:  siddhiApps,
 		PropertyMap: propertyMap,
 	}
-	if sp.Spec.DeploymentConfig.Mode == Failover {
-		ms := siddhiv1alpha1.MessagingSystem{}
-		if sp.Spec.DeploymentConfig.MessagingSystem.Equals(&ms) {
+
+	ms := siddhiv1alpha1.MessagingSystem{}
+	if sp.Spec.MessagingSystem.TypeDefined() {
+		if sp.Spec.MessagingSystem.EmptyConfig() {
 			ms = siddhiv1alpha1.MessagingSystem{
 				Type: configs.NATSMSType,
-				Config: siddhiv1alpha1.MessagingSystemConfig{
+				Config: siddhiv1alpha1.MessagingConfig{
 					ClusterID: configs.STANClusterName,
 					BootstrapServers: []string{
 						configs.NATSDefaultURL,
@@ -118,14 +119,16 @@ func populateParserRequest(sp *siddhiv1alpha1.SiddhiProcess, siddhiApps []string
 				},
 			}
 		} else {
-			ms = sp.Spec.DeploymentConfig.MessagingSystem
-		}
-		siddhiParserRequest = SiddhiParserRequest{
-			SiddhiApps:      siddhiApps,
-			PropertyMap:     propertyMap,
-			MessagingSystem: ms,
+			ms = sp.Spec.MessagingSystem
 		}
 	}
+
+	siddhiParserRequest = SiddhiParserRequest{
+		SiddhiApps:      siddhiApps,
+		PropertyMap:     propertyMap,
+		MessagingSystem: ms,
+	}
+
 	return
 }
 
@@ -144,7 +147,7 @@ func invokeParser(sp *siddhiv1alpha1.SiddhiProcess, siddhiParserRequest SiddhiPa
 		return
 	}
 	defer resp.Body.Close()
-	if resp.StatusCode/100 != 2 {
+	if resp.StatusCode != 200 {
 		return
 	}
 	err = json.NewDecoder(resp.Body).Decode(&siddhiParserResponse)
@@ -157,7 +160,7 @@ func invokeParser(sp *siddhiv1alpha1.SiddhiProcess, siddhiParserRequest SiddhiPa
 func populateRunnerConfigs(sp *siddhiv1alpha1.SiddhiProcess, configs Configs) (image string, home string, secret string) {
 	image = configs.SiddhiImage
 	home = configs.SiddhiHome
-	secret = configs.SiddhiImageSecret
+	secret = sp.Spec.ImagePullSecret
 
 	if sp.Spec.Container.Image != "" {
 		image = sp.Spec.Container.Image

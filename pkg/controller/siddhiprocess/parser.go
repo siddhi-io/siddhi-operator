@@ -89,11 +89,7 @@ type SiddhiParserResponse struct {
 // Siddhi operator used this general SiddhiApp object to the further process.
 func (rsp *ReconcileSiddhiProcess) parseApp(sp *siddhiv1alpha1.SiddhiProcess, configs Configs) (siddhiAppStructs []SiddhiApp, err error) {
 	apps := make(map[string]string)
-	siddhiApps, err := rsp.getSiddhiApps(sp)
-	if err != nil {
-		return
-	}
-
+	siddhiApps := rsp.getSiddhiApps(sp)
 	propertyMap := rsp.populateUserEnvs(sp)
 	siddhiParserRequest := populateParserRequest(sp, siddhiApps, propertyMap, configs)
 	siddhiParserResponse, err := invokeParser(sp, siddhiParserRequest, configs)

@@ -36,7 +36,7 @@ import (
 func (rsp *ReconcileSiddhiProcess) createPVC(sp *siddhiv1alpha1.SiddhiProcess, configs Configs, pvcName string) error {
 	var accessModes []corev1.PersistentVolumeAccessMode
 	pvc := &corev1.PersistentVolumeClaim{}
-	p := sp.Spec.DeploymentConfig.PV
+	p := sp.Spec.PV
 	// todo default access mode
 	err := rsp.client.Get(context.TODO(), types.NamespacedName{Name: pvcName, Namespace: sp.Namespace}, pvc)
 	if err != nil && errors.IsNotFound(err) {

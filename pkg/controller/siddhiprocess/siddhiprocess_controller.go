@@ -131,7 +131,6 @@ func (rsp *ReconcileSiddhiProcess) Reconcile(request reconcile.Request) (reconci
 		return reconcile.Result{}, err
 	}
 
-	sp = rsp.updateRunningStatus(sp, ER, PENDING, "", "")
 	configs := rsp.Configurations(sp)
 	siddhiApps, err := rsp.populateSiddhiApps(sp, configs)
 	if err != nil {
@@ -147,6 +146,5 @@ func (rsp *ReconcileSiddhiProcess) Reconcile(request reconcile.Request) (reconci
 
 	sp = rsp.createArtifacts(sp, siddhiApps, configs)
 	sp = rsp.checkDeployments(sp, siddhiApps)
-	sp = rsp.updateRunningStatus(sp, ER, RUNNING, "", "")
-	return reconcile.Result{}, nil
+	return reconcile.Result{Requeue: false}, nil
 }

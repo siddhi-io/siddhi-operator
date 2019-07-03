@@ -46,39 +46,40 @@ type PV struct {
 	Resources   PVCResource `json:"resources"`
 }
 
-// MessagingSystemConfig contains the configs of the messaging layer
-type MessagingSystemConfig struct {
+// MessagingConfig contains the configs of the messaging layer
+type MessagingConfig struct {
 	ClusterID        string   `json:"cluster.id"`
 	BootstrapServers []string `json:"bootstrap.servers"`
 }
 
 // MessagingSystem contains the details about the messaging layer
 type MessagingSystem struct {
-	Type   string                `json:"type"`
-	Config MessagingSystemConfig `json:"config"`
+	Type   string          `json:"type"`
+	Config MessagingConfig `json:"config"`
 }
 
 // DeploymentConfig contains the config details of the SiddhiProcess deployment
 type DeploymentConfig struct {
 	Mode            string          `json:"mode"`
-	MessagingSystem MessagingSystem `json:"messaging.system"`
-	PV              PV              `json:"persistence.volume"`
+	MessagingSystem MessagingSystem `json:"messagingSystem"`
+	PV              PV              `json:"persistenceVolume"`
 }
 
 // Apps siddhi apps
 type Apps struct {
-	FromConfigMaps []string `json:"fromConfigMaps"`
-	FromString     string   `json:"fromString"`
+	ConfigMap string `json:"configMap"`
+	Script    string `json:"script"`
 }
 
 // SiddhiProcessSpec defines the desired state of SiddhiProcess
 // +k8s:openapi-gen=true
 type SiddhiProcessSpec struct {
-	Apps             Apps             `json:"apps"`
-	SiddhiConfig     string           `json:"siddhi.runner.configs"`
-	Container        corev1.Container `json:"container"`
-	SiddhiIngressTLS TLS              `json:"tls"`
-	DeploymentConfig DeploymentConfig `json:"deployment.configs"`
+	Apps            []Apps           `json:"apps"`
+	SiddhiConfig    string           `json:"runner"`
+	Container       corev1.Container `json:"container"`
+	MessagingSystem MessagingSystem  `json:"messagingSystem"`
+	PV              PV               `json:"persistentVolume"`
+	ImagePullSecret string           `json:"imagePullSecret"`
 }
 
 // SiddhiProcessStatus defines the observed state of SiddhiProcess

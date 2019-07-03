@@ -69,6 +69,7 @@ const (
 	TCP                  string = "tcp"
 	FExtOne              string = "-1"
 	FExtTwo              string = "-2"
+	IngressTLS           string = ""
 	AutoCreateIngress    bool   = false
 	NATSSize             int    = 1
 	NATSTimeout          int    = 5
@@ -146,6 +147,7 @@ type Configs struct {
 	TCP                  string
 	FExtOne              string
 	FExtTwo              string
+	IngressTLS           string
 	AutoCreateIngress    bool
 	NATSSize             int
 	NATSTimeout          int
@@ -197,6 +199,7 @@ func (rsp *ReconcileSiddhiProcess) Configurations(sp *siddhiv1alpha1.SiddhiProce
 		TCP:                  TCP,
 		FExtOne:              FExtOne,
 		FExtTwo:              FExtTwo,
+		IngressTLS:           IngressTLS,
 		AutoCreateIngress:    AutoCreateIngress,
 		NATSSize:             NATSSize,
 		NATSTimeout:          NATSTimeout,
@@ -206,23 +209,28 @@ func (rsp *ReconcileSiddhiProcess) Configurations(sp *siddhiv1alpha1.SiddhiProce
 	configMap := &corev1.ConfigMap{}
 	err := rsp.client.Get(context.TODO(), types.NamespacedName{Name: OperatorCMName, Namespace: sp.Namespace}, configMap)
 	if err == nil {
-		if configMap.Data["SIDDHI_RUNNER_HOME"] != "" {
-			configs.SiddhiHome = configMap.Data["SIDDHI_RUNNER_HOME"]
+		if configMap.Data["siddhiRunnerHome"] != "" {
+			configs.SiddhiHome = configMap.Data["siddhiRunnerHome"]
 		}
 
-		if configMap.Data["SIDDHI_RUNNER_IMAGE"] != "" {
-			configs.SiddhiImage = configMap.Data["SIDDHI_RUNNER_IMAGE"]
+		if configMap.Data["siddhiRunnerImage"] != "" {
+			configs.SiddhiImage = configMap.Data["siddhiRunnerImage"]
 		}
 
-		if configMap.Data["SIDDHI_RUNNER_IMAGE_SECRET"] != "" {
-			configs.SiddhiImageSecret = configMap.Data["SIDDHI_RUNNER_IMAGE_SECRET"]
+		if configMap.Data["siddhiRunnerImageSecret"] != "" {
+			configs.SiddhiImageSecret = configMap.Data["siddhiRunnerImageSecret"]
 		}
 
-		if configMap.Data["AUTO_INGRESS_CREATION"] != "" {
-			if configMap.Data["AUTO_INGRESS_CREATION"] == "true" {
+		if configMap.Data["autoIngressCreation"] != "" {
+			if configMap.Data["autoIngressCreation"] == "true" {
 				configs.AutoCreateIngress = true
 			}
 		}
+
+		if configMap.Data["ingressTLS"] != "" {
+			configs.IngressTLS = configMap.Data["ingressTLS"]
+		}
+
 	}
 	return configs
 }

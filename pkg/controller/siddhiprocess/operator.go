@@ -20,8 +20,6 @@ package siddhiprocess
 
 import (
 	"context"
-	"errors"
-	"fmt"
 	"strconv"
 	"strings"
 
@@ -46,15 +44,11 @@ func (rsp *ReconcileSiddhiProcess) populateUserEnvs(sp *siddhiv1alpha1.SiddhiPro
 
 // updateStatus update the status of the CR object and send events to the SiddhiProcess object using EventRecorder object
 // These status can be Pending, Warning, Error, Running
-func (rsp *ReconcileSiddhiProcess) updateErrorStatus(sp *siddhiv1alpha1.SiddhiProcess, eventRecorder record.EventRecorder, status Status, reason string, er error) (s *siddhiv1alpha1.SiddhiProcess) {
-	s = &siddhiv1alpha1.SiddhiProcess{}
+func (rsp *ReconcileSiddhiProcess) updateErrorStatus(sp *siddhiv1alpha1.SiddhiProcess, eventRecorder record.EventRecorder, status Status, reason string, er error) *siddhiv1alpha1.SiddhiProcess {
 	reqLogger := log.WithValues("Request.Namespace", sp.Namespace, "Request.Name", sp.Name)
-	err := rsp.client.Get(context.TODO(), types.NamespacedName{Name: sp.Name, Namespace: sp.Namespace}, s)
-	if err != nil {
-		return sp
-	}
 	st := getStatus(status)
-	s.Status.Status = st
+	s := sp
+	sp.Status.Status = st
 
 	if status == ERROR || status == WARNING {
 		eventRecorder.Event(sp, getStatus(WARNING), reason, er.Error())
@@ -65,67 +59,53 @@ func (rsp *ReconcileSiddhiProcess) updateErrorStatus(sp *siddhiv1alpha1.SiddhiPr
 		}
 	}
 	// err = rsp.client.Status().Update(context.TODO(), s)
-	err = rsp.client.Status().Update(context.TODO(), s)
+	err := rsp.client.Status().Update(context.TODO(), sp)
 	if err != nil {
-		fmt.Println("###################")
-		fmt.Println(err)
-		return sp
+		return s
 	}
-	return s
+	return sp
 }
 
 // updateStatus update the status of the CR object and send events to the SiddhiProcess object using EventRecorder object
 // These status can be Pending, Warning, Error, Running
-func (rsp *ReconcileSiddhiProcess) updateRunningStatus(sp *siddhiv1alpha1.SiddhiProcess, eventRecorder record.EventRecorder, status Status, reason string, message string) (s *siddhiv1alpha1.SiddhiProcess) {
-	s = &siddhiv1alpha1.SiddhiProcess{}
+func (rsp *ReconcileSiddhiProcess) updateRunningStatus(sp *siddhiv1alpha1.SiddhiProcess, eventRecorder record.EventRecorder, status Status, reason string, message string) *siddhiv1alpha1.SiddhiProcess {
 	reqLogger := log.WithValues("Request.Namespace", sp.Namespace, "Request.Name", sp.Name)
-	err := rsp.client.Get(context.TODO(), types.NamespacedName{Name: sp.Name, Namespace: sp.Namespace}, s)
-	if err != nil {
-		return sp
-	}
 	st := getStatus(status)
-	s.Status.Status = st
+	s := sp
+	sp.Status.Status = st
 	if status == RUNNING {
 		eventRecorder.Event(sp, getStatus(NORMAL), reason, message)
 		reqLogger.Info(message)
 	}
-	err = rsp.client.Status().Update(context.TODO(), s)
+	err := rsp.client.Status().Update(context.TODO(), sp)
 	if err != nil {
-		return sp
+		return s
 	}
-	return s
+	return sp
 }
 
 // updateType update the deployment type of the CR object
 // These types are default, failover, and distributed
-func (rsp *ReconcileSiddhiProcess) updateType(sp *siddhiv1alpha1.SiddhiProcess, deptType string) (s *siddhiv1alpha1.SiddhiProcess) {
-	s = &siddhiv1alpha1.SiddhiProcess{}
-	err := rsp.client.Get(context.TODO(), types.NamespacedName{Name: sp.Name, Namespace: sp.Namespace}, s)
-	if err != nil {
-		return sp
-	}
+func (rsp *ReconcileSiddhiProcess) updateType(sp *siddhiv1alpha1.SiddhiProcess, deptType string) *siddhiv1alpha1.SiddhiProcess {
+	s := sp
 	s.Status.Type = deptType
-	err = rsp.client.Status().Update(context.TODO(), s)
+	err := rsp.client.Status().Update(context.TODO(), sp)
 	if err != nil {
-		return sp
+		return s
 	}
-	return s
+	return sp
 }
 
 // updateReady update ready attribute of the CR object
 // Ready attribute contains the number of deployments are complete and running out of requested deployments
-func (rsp *ReconcileSiddhiProcess) updateReady(sp *siddhiv1alpha1.SiddhiProcess, available int, need int) (s *siddhiv1alpha1.SiddhiProcess) {
-	s = &siddhiv1alpha1.SiddhiProcess{}
-	err := rsp.client.Get(context.TODO(), types.NamespacedName{Name: sp.Name, Namespace: sp.Namespace}, s)
-	if err != nil {
-		return sp
-	}
+func (rsp *ReconcileSiddhiProcess) updateReady(sp *siddhiv1alpha1.SiddhiProcess, available int, need int) *siddhiv1alpha1.SiddhiProcess {
+	s := sp
 	s.Status.Ready = strconv.Itoa(available) + "/" + strconv.Itoa(need)
-	err = rsp.client.Status().Update(context.TODO(), s)
+	err := rsp.client.Status().Update(context.TODO(), sp)
 	if err != nil {
-		return sp
+		return s
 	}
-	return s
+	return sp
 }
 
 func (rsp *ReconcileSiddhiProcess) createArtifacts(sp *siddhiv1alpha1.SiddhiProcess, siddhiApps []SiddhiApp, configs Configs) *siddhiv1alpha1.SiddhiProcess {
@@ -221,10 +201,9 @@ func (rsp *ReconcileSiddhiProcess) populateSiddhiApps(sp *siddhiv1alpha1.SiddhiP
 }
 
 func (rsp *ReconcileSiddhiProcess) createMessagingSystem(sp *siddhiv1alpha1.SiddhiProcess, configs Configs) (err error) {
-	if sp.Spec.DeploymentConfig.Mode == Failover {
+	if sp.Spec.MessagingSystem.TypeDefined() {
 		sp = rsp.updateType(sp, Failover)
-		ms := siddhiv1alpha1.MessagingSystem{}
-		if sp.Spec.DeploymentConfig.MessagingSystem.Equals(&ms) {
+		if sp.Spec.MessagingSystem.EmptyConfig() {
 			err = rsp.createNATS(sp, configs)
 			if err != nil {
 				return
@@ -236,23 +215,18 @@ func (rsp *ReconcileSiddhiProcess) createMessagingSystem(sp *siddhiv1alpha1.Sidd
 	return
 }
 
-func (rsp *ReconcileSiddhiProcess) getSiddhiApps(sp *siddhiv1alpha1.SiddhiProcess) (siddhiApps []string, err error) {
-	fromString := sp.Spec.Apps.FromString
-	fromConfigMaps := sp.Spec.Apps.FromConfigMaps
-	if (fromString == "") && (len(fromConfigMaps) > 0) {
-		for _, siddhiCMName := range sp.Spec.Apps.FromConfigMaps {
+func (rsp *ReconcileSiddhiProcess) getSiddhiApps(sp *siddhiv1alpha1.SiddhiProcess) (siddhiApps []string) {
+	for _, app := range sp.Spec.Apps {
+		if app.ConfigMap != "" {
 			configMap := &corev1.ConfigMap{}
-			rsp.client.Get(context.TODO(), types.NamespacedName{Name: siddhiCMName, Namespace: sp.Namespace}, configMap)
+			rsp.client.Get(context.TODO(), types.NamespacedName{Name: app.ConfigMap, Namespace: sp.Namespace}, configMap)
 			for _, siddhiFileContent := range configMap.Data {
 				siddhiApps = append(siddhiApps, siddhiFileContent)
 			}
 		}
-	} else if (fromString != "") && (len(fromConfigMaps) <= 0) {
-		siddhiApps = append(siddhiApps, fromString)
-	} else if (fromString != "") && (len(sp.Spec.Apps.FromConfigMaps) > 0) {
-		err = errors.New("Custom resource " + sp.Name + " should only contain either query or app entry")
-	} else {
-		err = errors.New("Custom resource " + sp.Name + " must have either query or app entry to deploy siddhi apps")
+		if app.Script != "" {
+			siddhiApps = append(siddhiApps, app.Script)
+		}
 	}
 	return
 }

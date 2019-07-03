@@ -66,12 +66,12 @@ func (rsp *ReconcileSiddhiProcess) createIngress(sp *siddhiv1alpha1.SiddhiProces
 		ingressPaths = append(ingressPaths, ingressPath)
 	}
 	var ingressSpec extensionsv1beta1.IngressSpec
-	if sp.Spec.SiddhiIngressTLS.SecretName != "" {
+	if configs.IngressTLS != "" {
 		ingressSpec = extensionsv1beta1.IngressSpec{
 			TLS: []extensionsv1beta1.IngressTLS{
 				extensionsv1beta1.IngressTLS{
 					Hosts:      []string{configs.HostName},
-					SecretName: sp.Spec.SiddhiIngressTLS.SecretName,
+					SecretName: configs.IngressTLS,
 				},
 			},
 			Rules: []extensionsv1beta1.IngressRule{
@@ -157,12 +157,12 @@ func (rsp *ReconcileSiddhiProcess) updateIngress(sp *siddhiv1alpha1.SiddhiProces
 		currentRules = append(currentRules, newRule)
 	}
 	var ingressSpec extensionsv1beta1.IngressSpec
-	if sp.Spec.SiddhiIngressTLS.SecretName != "" {
+	if configs.IngressTLS != "" {
 		ingressSpec = extensionsv1beta1.IngressSpec{
 			TLS: []extensionsv1beta1.IngressTLS{
 				extensionsv1beta1.IngressTLS{
 					Hosts:      []string{configs.HostName},
-					SecretName: sp.Spec.SiddhiIngressTLS.SecretName,
+					SecretName: configs.IngressTLS,
 				},
 			},
 			Rules: currentRules,

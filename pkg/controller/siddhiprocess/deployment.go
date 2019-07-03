@@ -69,7 +69,7 @@ func (rsp *ReconcileSiddhiProcess) deployApp(
 	}
 
 	q := siddhiv1alpha1.PV{}
-	if !(sp.Spec.DeploymentConfig.PV.Equals(&q)) && siddhiApp.PersistenceEnabled {
+	if !(sp.Spec.PV.Equals(&q)) && siddhiApp.PersistenceEnabled {
 		pvcName := siddhiApp.Name + configs.PVCExt
 		err = rsp.createPVC(sp, configs, pvcName)
 		if err != nil {
