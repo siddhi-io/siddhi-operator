@@ -23,7 +23,8 @@ import (
 
 	goctx "context"
 	framework "github.com/operator-framework/operator-sdk/pkg/test"
-	siddhiv1alpha1 "github.com/siddhi-io/siddhi-operator/pkg/apis/siddhi/v1alpha1"
+	siddhiv1alpha2 "github.com/siddhi-io/siddhi-operator/pkg/apis/siddhi/v1alpha2"
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"github.com/operator-framework/operator-sdk/pkg/test/e2eutil"
@@ -36,21 +37,9 @@ func failoverDeploymentTest(t *testing.T, f *framework.Framework, ctx *framework
 	if err != nil {
 		t.Fatalf("could not get namespace: %v", err)
 	}
-	query := `@App:name("FMonitorApp")
-	 @App:description("Description of the plan") 
-	 
-	 @sink(type='log', prefix='LOGGER')
-	 @source(type='http', receiver.url='${RECEIVER_URL}', basic.auth.enabled='${BASIC_AUTH_ENABLED}', @map(type='json'))
-	 define stream DevicePowerStream (type string, deviceID string, power int);
-	 
-	 define stream MonitorDevicesPowerStream(deviceID string, power int);
-	 @info(name='monitored-filter')
-	 from DevicePowerStream[type == 'monitored']
-	 select deviceID, power
-	 insert into MonitorDevicesPowerStream;`
 
 	// create SiddhiProcess custom resource
-	exampleSiddhi := &siddhiv1alpha1.SiddhiProcess{
+	exampleSiddhi := &siddhiv1alpha2.SiddhiProcess{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "SiddhiProcess",
 			APIVersion: "siddhi.io/v1alpha1",
@@ -59,20 +48,26 @@ func failoverDeploymentTest(t *testing.T, f *framework.Framework, ctx *framework
 			Name:      "failover-monitor-app",
 			Namespace: namespace,
 		},
-		Spec: siddhiv1alpha1.SiddhiProcessSpec{
-			Query: query,
-			EnviromentVariables: []siddhiv1alpha1.EnviromentVariable{
-				siddhiv1alpha1.EnviromentVariable{
-					Name:  "RECEIVER_URL",
-					Value: "http://0.0.0.0:8280/example",
-				},
-				siddhiv1alpha1.EnviromentVariable{
-					Name:  "BASIC_AUTH_ENABLED",
-					Value: "false",
+		Spec: siddhiv1alpha2.SiddhiProcessSpec{
+			Apps: []siddhiv1alpha2.Apps{
+				siddhiv1alpha2.Apps{
+					Script: script,
 				},
 			},
-			DeploymentConfigs: siddhiv1alpha1.DeploymentConfigs{
-				Mode: "failover",
+			Container: corev1.Container{
+				Env: []corev1.EnvVar{
+					corev1.EnvVar{
+						Name:  "RECEIVER_URL",
+						Value: "http://0.0.0.0:8280/example",
+					},
+					corev1.EnvVar{
+						Name:  "BASIC_AUTH_ENABLED",
+						Value: "false",
+					},
+				},
+			},
+			MessagingSystem: siddhiv1alpha2.MessagingSystem{
+				Type: "nats",
 			},
 		},
 	}
@@ -119,21 +114,9 @@ func failoverConfigChangeTest(t *testing.T, f *framework.Framework, ctx *framewo
 	if err != nil {
 		t.Fatalf("could not get namespace: %v", err)
 	}
-	query := `@App:name("FMonitorApp")
-	 @App:description("Description of the plan") 
-	 
-	 @sink(type='log', prefix='LOGGER')
-	 @source(type='http', receiver.url='${RECEIVER_URL}', basic.auth.enabled='${BASIC_AUTH_ENABLED}', @map(type='json'))
-	 define stream DevicePowerStream (type string, deviceID string, power int);
-	 
-	 define stream MonitorDevicesPowerStream(deviceID string, power int);
-	 @info(name='monitored-filter')
-	 from DevicePowerStream[type == 'monitored']
-	 select deviceID, power
-	 insert into MonitorDevicesPowerStream;`
 
 	// create SiddhiProcess custom resource
-	exampleSiddhi := &siddhiv1alpha1.SiddhiProcess{
+	exampleSiddhi := &siddhiv1alpha2.SiddhiProcess{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "SiddhiProcess",
 			APIVersion: "siddhi.io/v1alpha1",
@@ -142,20 +125,26 @@ func failoverConfigChangeTest(t *testing.T, f *framework.Framework, ctx *framewo
 			Name:      "failover-monitor-app",
 			Namespace: namespace,
 		},
-		Spec: siddhiv1alpha1.SiddhiProcessSpec{
-			Query: query,
-			EnviromentVariables: []siddhiv1alpha1.EnviromentVariable{
-				siddhiv1alpha1.EnviromentVariable{
-					Name:  "RECEIVER_URL",
-					Value: "http://0.0.0.0:8280/example",
-				},
-				siddhiv1alpha1.EnviromentVariable{
-					Name:  "BASIC_AUTH_ENABLED",
-					Value: "false",
+		Spec: siddhiv1alpha2.SiddhiProcessSpec{
+			Apps: []siddhiv1alpha2.Apps{
+				siddhiv1alpha2.Apps{
+					Script: script,
 				},
 			},
-			DeploymentConfigs: siddhiv1alpha1.DeploymentConfigs{
-				Mode: "failover",
+			Container: corev1.Container{
+				Env: []corev1.EnvVar{
+					corev1.EnvVar{
+						Name:  "RECEIVER_URL",
+						Value: "http://0.0.0.0:8280/example",
+					},
+					corev1.EnvVar{
+						Name:  "BASIC_AUTH_ENABLED",
+						Value: "false",
+					},
+				},
+			},
+			MessagingSystem: siddhiv1alpha2.MessagingSystem{
+				Type: "nats",
 			},
 			SiddhiConfig: `
 				 state.persistence:
@@ -201,21 +190,9 @@ func failoverPVCTest(t *testing.T, f *framework.Framework, ctx *framework.TestCt
 	if err != nil {
 		t.Fatalf("could not get namespace: %v", err)
 	}
-	query := `@App:name("FMonitorApp")
-	 @App:description("Description of the plan") 
-	 
-	 @sink(type='log', prefix='LOGGER')
-	 @source(type='http', receiver.url='${RECEIVER_URL}', basic.auth.enabled='${BASIC_AUTH_ENABLED}', @map(type='json'))
-	 define stream DevicePowerStream (type string, deviceID string, power int);
-	 
-	 define stream MonitorDevicesPowerStream(deviceID string, power int);
-	 @info(name='monitored-filter')
-	 from DevicePowerStream[type == 'monitored']
-	 select deviceID, power
-	 insert into MonitorDevicesPowerStream;`
 
 	// create SiddhiProcess custom resource
-	exampleSiddhi := &siddhiv1alpha1.SiddhiProcess{
+	exampleSiddhi := &siddhiv1alpha2.SiddhiProcess{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "SiddhiProcess",
 			APIVersion: "siddhi.io/v1alpha1",
@@ -224,32 +201,38 @@ func failoverPVCTest(t *testing.T, f *framework.Framework, ctx *framework.TestCt
 			Name:      "failover-test-app",
 			Namespace: namespace,
 		},
-		Spec: siddhiv1alpha1.SiddhiProcessSpec{
-			Query: query,
-			EnviromentVariables: []siddhiv1alpha1.EnviromentVariable{
-				siddhiv1alpha1.EnviromentVariable{
-					Name:  "RECEIVER_URL",
-					Value: "http://0.0.0.0:8280/example",
-				},
-				siddhiv1alpha1.EnviromentVariable{
-					Name:  "BASIC_AUTH_ENABLED",
-					Value: "false",
+		Spec: siddhiv1alpha2.SiddhiProcessSpec{
+			Apps: []siddhiv1alpha2.Apps{
+				siddhiv1alpha2.Apps{
+					Script: script,
 				},
 			},
-			DeploymentConfigs: siddhiv1alpha1.DeploymentConfigs{
-				Mode: "failover",
-				PersistenceVolume: siddhiv1alpha1.PersistenceVolume{
-					AccessModes: []string{
-						"ReadWriteOnce",
+			Container: corev1.Container{
+				Env: []corev1.EnvVar{
+					corev1.EnvVar{
+						Name:  "RECEIVER_URL",
+						Value: "http://0.0.0.0:8280/example",
 					},
-					VolumeMode: "Filesystem",
-					Resources: siddhiv1alpha1.PVCResource{
-						Requests: siddhiv1alpha1.PVCRequest{
-							Storage: "1Gi",
-						},
+					corev1.EnvVar{
+						Name:  "BASIC_AUTH_ENABLED",
+						Value: "false",
 					},
-					Class: "standard",
 				},
+			},
+			MessagingSystem: siddhiv1alpha2.MessagingSystem{
+				Type: "nats",
+			},
+			PV: siddhiv1alpha2.PV{
+				AccessModes: []string{
+					"ReadWriteOnce",
+				},
+				VolumeMode: "Filesystem",
+				Resources: siddhiv1alpha2.PVCResource{
+					Requests: siddhiv1alpha2.PVCRequest{
+						Storage: "1Gi",
+					},
+				},
+				Class: "standard",
 			},
 		},
 	}

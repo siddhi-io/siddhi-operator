@@ -23,7 +23,7 @@ import (
 	"time"
 
 	framework "github.com/operator-framework/operator-sdk/pkg/test"
-	siddhiv1alpha1 "github.com/siddhi-io/siddhi-operator/pkg/apis/siddhi/v1alpha1"
+	siddhiv1alpha2 "github.com/siddhi-io/siddhi-operator/pkg/apis/siddhi/v1alpha2"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"github.com/operator-framework/operator-sdk/pkg/test/e2eutil"
@@ -45,7 +45,7 @@ type MonitorRequest struct {
 }
 
 func TestSiddhiProcess(t *testing.T) {
-	siddhiList := &siddhiv1alpha1.SiddhiProcessList{
+	siddhiList := &siddhiv1alpha2.SiddhiProcessList{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "SiddhiProcess",
 			APIVersion: "siddhi.io/v1alpha1",

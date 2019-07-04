@@ -20,9 +20,11 @@ package siddhiprocess
 
 import (
 	"context"
+	"os"
 
 	siddhiv1alpha2 "github.com/siddhi-io/siddhi-operator/pkg/apis/siddhi/v1alpha2"
 	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/intstr"
@@ -112,10 +114,26 @@ const (
 	Distributed    string = "distributed"
 	ProcessApp     string = "process"
 	PassthroughApp string = "passthrough"
-	OperatorCMName string = "siddhi-operator-configs"
+	OperatorCMName string = "siddhi-operator"
 )
 
-// Configs is the struct definition of the object which used to bundle the all default configurations.
+// Int - Type
+const (
+	Int intstr.Type = iota
+	String
+)
+
+// Type of status as list of integer constans
+const (
+	PENDING Status = iota
+	READY
+	RUNNING
+	ERROR
+	WARNING
+	NORMAL
+)
+
+// Configs is the struct definition of the object which used to bundle the all default configurations
 type Configs struct {
 	SiddhiHome           string
 	SiddhiImage          string
@@ -181,7 +199,7 @@ type SiddhiConfig struct {
 	StatePersistence StatePersistence `yaml:"state.persistence"`
 }
 
-// IntOrString integer or string
+// IntOrString - integer or string
 type IntOrString struct {
 	Type   Type   `protobuf:"varint,1,opt,name=type,casttype=Type"`
 	IntVal int32  `protobuf:"varint,2,opt,name=intVal"`
@@ -191,13 +209,7 @@ type IntOrString struct {
 // Type represents the stored type of IntOrString.
 type Type int
 
-// Int - Type
-const (
-	Int intstr.Type = iota
-	String
-)
-
-// SiddhiApp contains details about the siddhi app which need by K8s deployment
+// SiddhiApp contains details about the siddhi app which need in the K8s deployment
 type SiddhiApp struct {
 	Name               string                 `json:"appName"`
 	ContainerPorts     []corev1.ContainerPort `json:"containerPorts"`
@@ -213,7 +225,7 @@ type TemplatedApp struct {
 	PropertyMap map[string]string `json:"propertyMap"`
 }
 
-// SiddhiParserRequest is request struct of siddhi-parser
+// SiddhiParserRequest is request struct of the siddhi-parser
 type SiddhiParserRequest struct {
 	SiddhiApps      []string                       `json:"siddhiApps"`
 	PropertyMap     map[string]string              `json:"propertyMap"`
@@ -241,31 +253,13 @@ type SiddhiAppConfig struct {
 	Replicas           int32      `json:"replicas"`
 }
 
-// SiddhiFAppConfig holds siddhi apps of the failover scenario and relevant SourceList
-type SiddhiFAppConfig struct {
-	PassthroughApp   string     `json:"passthroughApp"`
-	QueryApp         string     `json:"queryApp"`
-	SiddhiSourceList SourceList `json:"sourceList"`
-}
-
 // SiddhiParserResponse is the response object of siddhi-parser
 type SiddhiParserResponse struct {
 	AppConfig           []SiddhiAppConfig  `json:"siddhiAppConfigs"`
-	FailoverDeployments []SiddhiFAppConfig `json:"failoverDeployments"`
 }
 
 // Status of a Siddhi process
 type Status int
-
-// Type of status as list of integer constans
-const (
-	PENDING Status = iota
-	READY
-	RUNNING
-	ERROR
-	WARNING
-	NORMAL
-)
 
 // Status array holds the string values of status
 var status = []string{
@@ -275,6 +269,89 @@ var status = []string{
 	"Error",
 	"Warning",
 	"Normal",
+}
+
+// multiple siddhi apps to run tests
+var app = `@App:name("MonitorApp")
+@App:description("Description of the plan") 
+
+@sink(type='log', prefix='LOGGER')
+@source(type='http', receiver.url='${RECEIVER_URL}', basic.auth.enabled='${BASIC_AUTH_ENABLED}', @map(type='json'))
+define stream DevicePowerStream (type string, deviceID string, power int);
+
+define stream MonitorDevicesPowerStream(deviceID string, power int);
+@info(name='monitored-filter')
+from DevicePowerStream[type == 'monitored']
+select deviceID, power
+insert into MonitorDevicesPowerStream;`
+
+var app1 = `@App:name("MonitorApp")
+@App:description("Description of the plan") 
+
+@sink(type='log', prefix='LOGGER')
+@source(type='http', receiver.url='${RECEIVER_URL}', basic.auth.enabled='${BASIC_AUTH_ENABLED}', @map(type='json'))
+define stream DevicePowerStream (type string, deviceID string, power int);
+
+define stream MonitorDevicesPowerStream(deviceID string, power int);
+@info(name='monitored-filter')
+from DevicePowerStream[type == 'monitored']
+select deviceID, power
+insert into MonitorDevicesPowerStream;`
+
+var app2 = `@App:name("MonitorApp")
+@App:description("Description of the plan") 
+
+@sink(type='log', prefix='LOGGER')
+@source(type='http', receiver.url='${RECEIVER_URL}', basic.auth.enabled='${BASIC_AUTH_ENABLED}', @map(type='json'))
+define stream DevicePowerStream (type string, deviceID string, power int);
+
+define stream MonitorDevicesPowerStream(deviceID string, power int);
+@info(name='monitored-filter')
+from DevicePowerStream[type == 'monitored']
+select deviceID, power
+insert into MonitorDevicesPowerStream;`
+
+// SiddhiProcess object used in tests
+var testSP = &siddhiv1alpha2.SiddhiProcess{
+	ObjectMeta: metav1.ObjectMeta{
+		Name:      "siddhi-app",
+		Namespace: "default",
+	},
+	Spec: siddhiv1alpha2.SiddhiProcessSpec{
+		Container: corev1.Container{
+			Image: "siddhiio/siddhi-runner:0.1.1",
+		},
+		MessagingSystem: siddhiv1alpha2.MessagingSystem{
+			Type: "nats",
+		},
+		PV: siddhiv1alpha2.PV{
+			AccessModes: []string{
+				"ReadWriteOnce",
+			},
+			VolumeMode: "Filesystem",
+			Resources: siddhiv1alpha2.PVCResource{
+				Requests: siddhiv1alpha2.PVCRequest{
+					Storage: "1Gi",
+				},
+			},
+			Class: "standard",
+		},
+	},
+}
+
+// SiddhiApp object used in tests
+var testSiddhiApp = SiddhiApp{
+	Name: "monitorapp",
+	ContainerPorts: []corev1.ContainerPort{
+		corev1.ContainerPort{
+			Name:          "monitorapp8080",
+			ContainerPort: 8080,
+		},
+	},
+	Apps: map[string]string{
+		"MonitorApp": app,
+	},
+	PersistenceEnabled: true,
 }
 
 // Configurations function returns the default config object. Here all the configs used as constants and budle together into a
@@ -328,8 +405,13 @@ func (rsp *ReconcileSiddhiProcess) Configurations(sp *siddhiv1alpha2.SiddhiProce
 		DefaultRTime:         DefaultRTime,
 		DeploymentSize:       DeploymentSize,
 	}
+	cmName := OperatorCMName
+	env := os.Getenv("OPERATOR_CONFIGMAP")
+	if env != "" {
+		cmName = env
+	}
 	configMap := &corev1.ConfigMap{}
-	err := rsp.client.Get(context.TODO(), types.NamespacedName{Name: OperatorCMName, Namespace: sp.Namespace}, configMap)
+	err := rsp.client.Get(context.TODO(), types.NamespacedName{Name: cmName, Namespace: sp.Namespace}, configMap)
 	if err == nil {
 		if configMap.Data["siddhiRunnerHome"] != "" {
 			configs.SiddhiHome = configMap.Data["siddhiRunnerHome"]

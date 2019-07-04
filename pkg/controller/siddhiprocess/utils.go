@@ -68,6 +68,7 @@ func getAppName(app string) (appName string, err error) {
 	return
 }
 
+// populateParserRequest creates the request which send to the siddhi parser during the runtime.
 func populateParserRequest(sp *siddhiv1alpha2.SiddhiProcess, siddhiApps []string, propertyMap map[string]string, configs Configs) (siddhiParserRequest SiddhiParserRequest) {
 	siddhiParserRequest = SiddhiParserRequest{
 		SiddhiApps:  siddhiApps,
@@ -100,6 +101,7 @@ func populateParserRequest(sp *siddhiv1alpha2.SiddhiProcess, siddhiApps []string
 	return
 }
 
+// invokeParser simply invoke the siddhi parser within the k8s cluster
 func invokeParser(sp *siddhiv1alpha2.SiddhiProcess, siddhiParserRequest SiddhiParserRequest, configs Configs) (siddhiParserResponse SiddhiParserResponse, err error) {
 	url := configs.ParserDomain + sp.Namespace + configs.ParserNATSContext
 	b, err := json.Marshal(siddhiParserRequest)
@@ -125,6 +127,7 @@ func invokeParser(sp *siddhiv1alpha2.SiddhiProcess, siddhiParserRequest SiddhiPa
 	return
 }
 
+// populateRunnerConfigs sends the relevant information about the siddhi runner deployment
 func populateRunnerConfigs(sp *siddhiv1alpha2.SiddhiProcess, configs Configs) (image string, home string, secret string) {
 	image = configs.SiddhiImage
 	home = configs.SiddhiHome
@@ -136,6 +139,7 @@ func populateRunnerConfigs(sp *siddhiv1alpha2.SiddhiProcess, configs Configs) (i
 	return
 }
 
+// createLocalObjectReference creates a local object reference secret to download docker images from private registries.
 func createLocalObjectReference(secret string) (localObjectRef corev1.LocalObjectReference) {
 	localObjectRef = corev1.LocalObjectReference{
 		Name: secret,
@@ -143,6 +147,10 @@ func createLocalObjectReference(secret string) (localObjectRef corev1.LocalObjec
 	return
 }
 
+// populateMountPath reads the runner configs given by the user.
+// Check whether the given path is absolute or not.
+// If it is a absolute path then use that path to persist siddhi apps.
+// Otherwise use relative path w.r.t default runner home
 func populateMountPath(sp *siddhiv1alpha2.SiddhiProcess, configs Configs) (mountPath string, err error) {
 	spConf := &SiddhiConfig{}
 	err = yaml.Unmarshal([]byte(sp.Spec.SiddhiConfig), spConf)
@@ -158,6 +166,7 @@ func populateMountPath(sp *siddhiv1alpha2.SiddhiProcess, configs Configs) (mount
 	return
 }
 
+// createCMVolumes creates volume and volume mount for a config map
 func createCMVolumes(configMapName string, mountPath string) (volume corev1.Volume, volumeMount corev1.VolumeMount) {
 	volume = corev1.Volume{
 		Name: configMapName,
@@ -176,6 +185,7 @@ func createCMVolumes(configMapName string, mountPath string) (volume corev1.Volu
 	return
 }
 
+// createCMVolumes creates volume and volume mount for a PVC
 func createPVCVolumes(pvcName string, mountPath string) (volume corev1.Volume, volumeMount corev1.VolumeMount) {
 	volume = corev1.Volume{
 		Name: pvcName,

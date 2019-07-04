@@ -40,7 +40,6 @@ import (
 )
 
 // CreateConfigMap creates a k8s config map for given set of data.
-// Inputs - SiddhiProcess object, name of the config map, & data object that used in the config map
 // This function initialize the config map object, set the controller reference, and then creates the config map.
 func (rsp *ReconcileSiddhiProcess) CreateConfigMap(sp *siddhiv1alpha2.SiddhiProcess, configMapName string, data map[string]string) error {
 	configMap := &corev1.ConfigMap{}
@@ -63,8 +62,7 @@ func (rsp *ReconcileSiddhiProcess) CreateConfigMap(sp *siddhiv1alpha2.SiddhiProc
 	return err
 }
 
-// CreateIngress returns a Siddhi Ingress load balancer object
-// Inputs - SiddhiProcess object, siddhi app struct to hold deployment configs, default config object, and the operator deployment object
+// CreateIngress creates a NGINX Ingress load balancer object called siddhi
 func (rsp *ReconcileSiddhiProcess) CreateIngress(sp *siddhiv1alpha2.SiddhiProcess, siddhiApp SiddhiApp, configs Configs) (err error) {
 	var ingressPaths []extensionsv1beta1.HTTPIngressPath
 	for _, port := range siddhiApp.ContainerPorts {
@@ -135,8 +133,7 @@ func (rsp *ReconcileSiddhiProcess) CreateIngress(sp *siddhiv1alpha2.SiddhiProces
 	return
 }
 
-// UpdateIngress updates the ingress object and returns updated object
-// Inputs - SiddhiProcess object, existing ingress object, siddhi app struct to hold deployment configs, and default configs
+// UpdateIngress updates the given ingress object
 func (rsp *ReconcileSiddhiProcess) UpdateIngress(sp *siddhiv1alpha2.SiddhiProcess, currentIngress *extensionsv1beta1.Ingress, siddhiApp SiddhiApp, configs Configs) (err error) {
 	var ingressPaths []extensionsv1beta1.HTTPIngressPath
 	for _, port := range siddhiApp.ContainerPorts {
@@ -193,7 +190,7 @@ func (rsp *ReconcileSiddhiProcess) UpdateIngress(sp *siddhiv1alpha2.SiddhiProces
 	return
 }
 
-// CreateNATS function creates a NATS cluster and a NATS streaming cluster and waits some amout of time to complete it.
+// CreateNATS function creates a NATS cluster and a NATS streaming cluster
 // More about NATS cluster - https://github.com/nats-io/nats-operator
 // More about NATS streaming cluster - https://github.com/nats-io/nats-streaming-operator
 func (rsp *ReconcileSiddhiProcess) CreateNATS(sp *siddhiv1alpha2.SiddhiProcess, configs Configs) error {
@@ -247,7 +244,6 @@ func (rsp *ReconcileSiddhiProcess) CreateNATS(sp *siddhiv1alpha2.SiddhiProcess, 
 }
 
 // CreatePVC function creates a persistence volume claim for a K8s cluster
-// Inputs - SiddhiProcess object, default configs, and name of the persistence volume claim
 func (rsp *ReconcileSiddhiProcess) CreatePVC(sp *siddhiv1alpha2.SiddhiProcess, configs Configs, pvcName string) error {
 	var accessModes []corev1.PersistentVolumeAccessMode
 	pvc := &corev1.PersistentVolumeClaim{}
@@ -296,7 +292,6 @@ func (rsp *ReconcileSiddhiProcess) CreatePVC(sp *siddhiv1alpha2.SiddhiProcess, c
 }
 
 // CreateService returns a Service object for a deployment
-// Inputs - SiddhiProcess object, SiddhiApp struct, envs of the operator deployment, default configs object
 func (rsp *ReconcileSiddhiProcess) CreateService(sp *siddhiv1alpha2.SiddhiProcess, siddhiApp SiddhiApp, configs Configs) (err error) {
 	labels := labelsForSiddhiProcess(strings.ToLower(siddhiApp.Name), configs)
 	var servicePorts []corev1.ServicePort
@@ -330,7 +325,7 @@ func (rsp *ReconcileSiddhiProcess) CreateService(sp *siddhiv1alpha2.SiddhiProces
 	return
 }
 
-// CreateDeployment creates a deployment for given set of configuration data.
+// CreateDeployment creates a deployment for given set of configuration data
 func (rsp *ReconcileSiddhiProcess) CreateDeployment(
 	sp *siddhiv1alpha2.SiddhiProcess,
 	name string,

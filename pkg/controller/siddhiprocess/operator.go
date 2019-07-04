@@ -33,8 +33,8 @@ import (
 	"k8s.io/client-go/tools/record"
 )
 
-// deployApp returns a sp Deployment object
-// Inputs - SiddhiProcess object reference, siddhiApp object that holds the details of the deployment, default config object, and event recorder to record the events
+// deployApp creates a deployment according to the given SiddhiProcess specs.
+// It create and mount volumes, create config maps, populates envs that needs to the deployment.
 func (rsp *ReconcileSiddhiProcess) deployApp(
 	sp *siddhiv1alpha2.SiddhiProcess,
 	siddhiApp SiddhiApp,
@@ -138,7 +138,7 @@ func (rsp *ReconcileSiddhiProcess) populateUserEnvs(sp *siddhiv1alpha2.SiddhiPro
 }
 
 // UpdateErrorStatus update the status of the CR object and send events to the SiddhiProcess object using EventRecorder object
-// These status can be Pending, Warning, Error, Running
+// These status can be Warning, Error
 func (rsp *ReconcileSiddhiProcess) updateErrorStatus(sp *siddhiv1alpha2.SiddhiProcess, eventRecorder record.EventRecorder, status Status, reason string, er error) *siddhiv1alpha2.SiddhiProcess {
 	reqLogger := log.WithValues("Request.Namespace", sp.Namespace, "Request.Name", sp.Name)
 	st := getStatus(status)
@@ -162,7 +162,7 @@ func (rsp *ReconcileSiddhiProcess) updateErrorStatus(sp *siddhiv1alpha2.SiddhiPr
 }
 
 // UpdateRunningStatus update the status of the CR object and send events to the SiddhiProcess object using EventRecorder object
-// These status can be Pending, Warning, Error, Running
+// These status can be Pending, Running
 func (rsp *ReconcileSiddhiProcess) updateRunningStatus(sp *siddhiv1alpha2.SiddhiProcess, eventRecorder record.EventRecorder, status Status, reason string, message string) *siddhiv1alpha2.SiddhiProcess {
 	reqLogger := log.WithValues("Request.Namespace", sp.Namespace, "Request.Name", sp.Name)
 	st := getStatus(status)
@@ -203,6 +203,8 @@ func (rsp *ReconcileSiddhiProcess) updateReady(sp *siddhiv1alpha2.SiddhiProcess,
 	return sp
 }
 
+// createArtifacts simply create all the k8s artifacts which needed in the siddhiApps list.
+// This function creates deployment, service, and ingress. If ingress was available the it will update the ingress.
 func (rsp *ReconcileSiddhiProcess) createArtifacts(sp *siddhiv1alpha2.SiddhiProcess, siddhiApps []SiddhiApp, configs Configs) *siddhiv1alpha2.SiddhiProcess {
 	needDep := 0
 	availableDep := 0
@@ -266,6 +268,7 @@ func (rsp *ReconcileSiddhiProcess) createArtifacts(sp *siddhiv1alpha2.SiddhiProc
 	return sp
 }
 
+// checkDeployments function check the availability of deployments and the replications of the deployments.
 func (rsp *ReconcileSiddhiProcess) checkDeployments(sp *siddhiv1alpha2.SiddhiProcess, siddhiApps []SiddhiApp) *siddhiv1alpha2.SiddhiProcess {
 	for _, siddhiApp := range siddhiApps {
 		deployment := &appsv1.Deployment{}
@@ -282,6 +285,8 @@ func (rsp *ReconcileSiddhiProcess) checkDeployments(sp *siddhiv1alpha2.SiddhiPro
 	return sp
 }
 
+// populateSiddhiApps function invoke parserApp function to retrieve relevant siddhi apps.
+// Or else it will give you exixting siddhiApps list relevant to a particulat SiddhiProcess deployment.
 func (rsp *ReconcileSiddhiProcess) populateSiddhiApps(sp *siddhiv1alpha2.SiddhiProcess, configs Configs) (siddhiApps []SiddhiApp, err error) {
 	if _, ok := SPContainer[sp.Name]; ok {
 		siddhiApps = SPContainer[sp.Name]
@@ -295,6 +300,8 @@ func (rsp *ReconcileSiddhiProcess) populateSiddhiApps(sp *siddhiv1alpha2.SiddhiP
 	return
 }
 
+// createMessagingSystem creates the messaging system if CR needed.
+// If user specify only the messaging system type then this will creates the messaging system.
 func (rsp *ReconcileSiddhiProcess) createMessagingSystem(sp *siddhiv1alpha2.SiddhiProcess, configs Configs) (err error) {
 	if sp.Spec.MessagingSystem.TypeDefined() {
 		sp = rsp.updateType(sp, Failover)
@@ -310,6 +317,7 @@ func (rsp *ReconcileSiddhiProcess) createMessagingSystem(sp *siddhiv1alpha2.Sidd
 	return
 }
 
+// getSiddhiApps used to retrieve siddhi apps as a list of strigs.
 func (rsp *ReconcileSiddhiProcess) getSiddhiApps(sp *siddhiv1alpha2.SiddhiProcess) (siddhiApps []string) {
 	for _, app := range sp.Spec.Apps {
 		if app.ConfigMap != "" {

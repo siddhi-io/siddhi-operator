@@ -1,3 +1,14 @@
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: siddhi-operator-config
+data:
+  siddhiRunnerHome: /home/siddhi_user/siddhi-runner-0.1.0/
+  siddhiRunnerImage: siddhiio/siddhi-runner-alpine:0.1.0
+  autoIngressCreation: "true"
+---
+
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -15,7 +26,7 @@ spec:
       serviceAccountName: siddhi-operator
       containers:
         - name: siddhi-operator
-          image: docker.io/siddhiio/siddhi-operator:0.1.2
+          image: docker.io/buddhiwathsala/siddhi-operator:0.2.0-m1
           command:
           - siddhi-operator
           imagePullPolicy: Always
@@ -32,8 +43,11 @@ spec:
               value: siddhi-operator
             - name: OPERATOR_VERSION
               value: 0.1.1
+            - name: OPERATOR_CONFIGMAP
+              value: siddhi-operator-config
 
 ---
+
 apiVersion: extensions/v1beta1
 kind: Deployment
 metadata:
@@ -89,3 +103,5 @@ spec:
   type: ClusterIP
 status:
   loadBalancer: {}
+
+---
