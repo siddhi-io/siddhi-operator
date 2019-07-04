@@ -31,19 +31,22 @@ import (
 // encapsulate all the details into a common structure(SiddhiApp) regarless of the deployment type.
 // Siddhi operator used this general SiddhiApp object to the further process.
 func (rsp *ReconcileSiddhiProcess) parseApp(sp *siddhiv1alpha2.SiddhiProcess, configs Configs) (siddhiAppStructs []SiddhiApp, err error) {
-	apps := make(map[string]string)
-	siddhiApps := rsp.getSiddhiApps(sp)
+	siddhiApps, err := rsp.getSiddhiApps(sp)
+	if err != nil {
+		return
+	}
 	propertyMap := rsp.populateUserEnvs(sp)
 	siddhiParserRequest := populateParserRequest(sp, siddhiApps, propertyMap, configs)
-	siddhiParserResponse, err := invokeParser(sp, siddhiParserRequest, configs)
+	siddhiAppConfigs, err := invokeParser(sp, siddhiParserRequest, configs)
 	if err != nil {
 		return
 	}
 
-	for i, siddhiDepConf := range siddhiParserResponse.AppConfig {
+	for i, siddhiDepConf := range siddhiAppConfigs {
 		var ports []corev1.ContainerPort
 		var protocols []string
 		var tls []bool
+		apps := make(map[string]string)
 		serviceEnabled := false
 		app := siddhiDepConf.SiddhiApp
 		appName, err := getAppName(app)
@@ -51,11 +54,11 @@ func (rsp *ReconcileSiddhiProcess) parseApp(sp *siddhiv1alpha2.SiddhiProcess, co
 		if err != nil {
 			return siddhiAppStructs, err
 		}
-		for _, deploymentConf := range siddhiDepConf.SiddhiSourceList.SourceDeploymentConfigs {
+		for _, deploymentConf := range siddhiDepConf.SourceDeploymentConfigs {
 			if !deploymentConf.IsPulling {
 				serviceEnabled = true
 				port := corev1.ContainerPort{
-					Name:          deploymentName + "-" + strconv.Itoa(deploymentConf.Port),
+					Name:          "p" + strconv.Itoa(deploymentConf.Port),
 					ContainerPort: int32(deploymentConf.Port),
 					Protocol:      corev1.Protocol(deploymentConf.ServiceProtocol),
 				}

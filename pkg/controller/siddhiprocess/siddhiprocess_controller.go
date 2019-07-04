@@ -138,7 +138,7 @@ func (rsp *ReconcileSiddhiProcess) Reconcile(request reconcile.Request) (reconci
 		return reconcile.Result{}, nil
 	}
 
-	err = rsp.createMessagingSystem(sp, configs)
+	err = rsp.createMessagingSystem(sp, siddhiApps, configs)
 	if err != nil {
 		sp = rsp.updateErrorStatus(sp, ER, ERROR, "NATSCreationError", err)
 		return reconcile.Result{}, err

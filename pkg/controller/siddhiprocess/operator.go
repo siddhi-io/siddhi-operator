@@ -104,6 +104,20 @@ func (rsp *ReconcileSiddhiProcess) deployApp(
 		volumes = append(volumes, volume)
 		volumeMounts = append(volumeMounts, volumeMount)
 		configParameter = configs.DepConfParameter + siddhiHome + configs.DepConfMountPath + deployYAMLCMName
+	} else if sp.Spec.SiddhiConfig != "" {
+		deployYAMLCMName := sp.Name + configs.DepCMExt
+		data := map[string]string{
+			deployYAMLCMName: sp.Spec.SiddhiConfig,
+		}
+		err = rsp.CreateConfigMap(sp, deployYAMLCMName, data)
+		if err != nil {
+			return
+		}
+		mountPath := siddhiHome + configs.DepConfMountPath
+		volume, volumeMount := createCMVolumes(deployYAMLCMName, mountPath)
+		volumes = append(volumes, volume)
+		volumeMounts = append(volumeMounts, volumeMount)
+		configParameter = configs.DepConfParameter + siddhiHome + configs.DepConfMountPath + deployYAMLCMName
 	}
 
 	userID := int64(802)
@@ -172,18 +186,6 @@ func (rsp *ReconcileSiddhiProcess) updateRunningStatus(sp *siddhiv1alpha2.Siddhi
 		eventRecorder.Event(sp, getStatus(NORMAL), reason, message)
 		reqLogger.Info(message)
 	}
-	err := rsp.client.Status().Update(context.TODO(), sp)
-	if err != nil {
-		return s
-	}
-	return sp
-}
-
-// UpdateType update the deployment type of the CR object
-// These types are default, failover, and distributed
-func (rsp *ReconcileSiddhiProcess) updateType(sp *siddhiv1alpha2.SiddhiProcess, deptType string) *siddhiv1alpha2.SiddhiProcess {
-	s := sp
-	s.Status.Type = deptType
 	err := rsp.client.Status().Update(context.TODO(), sp)
 	if err != nil {
 		return s
@@ -302,27 +304,32 @@ func (rsp *ReconcileSiddhiProcess) populateSiddhiApps(sp *siddhiv1alpha2.SiddhiP
 
 // createMessagingSystem creates the messaging system if CR needed.
 // If user specify only the messaging system type then this will creates the messaging system.
-func (rsp *ReconcileSiddhiProcess) createMessagingSystem(sp *siddhiv1alpha2.SiddhiProcess, configs Configs) (err error) {
-	if sp.Spec.MessagingSystem.TypeDefined() {
-		sp = rsp.updateType(sp, Failover)
-		if sp.Spec.MessagingSystem.EmptyConfig() {
-			err = rsp.CreateNATS(sp, configs)
-			if err != nil {
-				return
-			}
+func (rsp *ReconcileSiddhiProcess) createMessagingSystem(sp *siddhiv1alpha2.SiddhiProcess, siddhiApps []SiddhiApp, configs Configs) (err error) {
+	persistenceEnabled := false
+	for _, siddhiApp := range siddhiApps {
+		if siddhiApp.PersistenceEnabled {
+			persistenceEnabled = true
+			break
 		}
-	} else {
-		sp = rsp.updateType(sp, Default)
+	}
+	if sp.Spec.MessagingSystem.TypeDefined() && sp.Spec.MessagingSystem.EmptyConfig() && persistenceEnabled {
+		err = rsp.CreateNATS(sp, configs)
+		if err != nil {
+			return
+		}
 	}
 	return
 }
 
 // getSiddhiApps used to retrieve siddhi apps as a list of strigs.
-func (rsp *ReconcileSiddhiProcess) getSiddhiApps(sp *siddhiv1alpha2.SiddhiProcess) (siddhiApps []string) {
+func (rsp *ReconcileSiddhiProcess) getSiddhiApps(sp *siddhiv1alpha2.SiddhiProcess) (siddhiApps []string, err error) {
 	for _, app := range sp.Spec.Apps {
 		if app.ConfigMap != "" {
 			configMap := &corev1.ConfigMap{}
-			rsp.client.Get(context.TODO(), types.NamespacedName{Name: app.ConfigMap, Namespace: sp.Namespace}, configMap)
+			err = rsp.client.Get(context.TODO(), types.NamespacedName{Name: app.ConfigMap, Namespace: sp.Namespace}, configMap)
+			if err != nil {
+				return
+			}
 			for _, siddhiFileContent := range configMap.Data {
 				siddhiApps = append(siddhiApps, siddhiFileContent)
 			}

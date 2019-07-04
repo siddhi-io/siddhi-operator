@@ -33,7 +33,7 @@ import (
 	"github.com/operator-framework/operator-sdk/pkg/test/e2eutil"
 )
 
-var script = `@App:name("MonitorApp")
+var script1 = `@App:name("MonitorApp")
 @App:description("Description of the plan") 
 
 @sink(type='log', prefix='LOGGER')
@@ -45,6 +45,24 @@ define stream MonitorDevicesPowerStream(deviceID string, power int);
 from DevicePowerStream[type == 'monitored']
 select deviceID, power
 insert into MonitorDevicesPowerStream;`
+
+var script2 = `@App:name("MonitorApp")
+@App:description("Description of the plan") 
+
+@source(
+    type='http',
+    receiver.url='http://0.0.0.0:8080/example',
+    basic.auth.enabled='false',
+    @map(type='json')
+)
+define stream DevicePowerStream (type string, deviceID string, power int);
+
+@sink(type='log', prefix='LOGGER')
+define stream MonitorDevicesPowerStream(sumPower long);
+@info(name='monitored-filter')
+from DevicePowerStream#window.time(100 min)
+select sum(power) as sumPower
+insert all events into MonitorDevicesPowerStream;`
 
 // siddhiDeploymentTest test the default deployment of a siddhi app
 // Check whether deployment, service, ingress, and config map of the siddhi app deployment created correctly
@@ -67,7 +85,7 @@ func siddhiDeploymentTest(t *testing.T, f *framework.Framework, ctx *framework.T
 		Spec: siddhiv1alpha2.SiddhiProcessSpec{
 			Apps: []siddhiv1alpha2.Apps{
 				siddhiv1alpha2.Apps{
-					Script: script,
+					Script: script1,
 				},
 			},
 			Container: corev1.Container{
@@ -89,11 +107,11 @@ func siddhiDeploymentTest(t *testing.T, f *framework.Framework, ctx *framework.T
 	if err != nil {
 		return err
 	}
-	err = e2eutil.WaitForDeployment(t, f.KubeClient, namespace, "test-monitor-app", 1, retryInterval, timeout)
+	err = e2eutil.WaitForDeployment(t, f.KubeClient, namespace, "test-monitor-app-0", 1, retryInterval, timeout)
 	if err != nil {
 		return err
 	}
-	_, err = f.KubeClient.CoreV1().Services(namespace).Get("test-monitor-app", metav1.GetOptions{IncludeUninitialized: true})
+	_, err = f.KubeClient.CoreV1().Services(namespace).Get("test-monitor-app-0", metav1.GetOptions{IncludeUninitialized: true})
 	if err != nil {
 		return err
 	}
@@ -101,7 +119,7 @@ func siddhiDeploymentTest(t *testing.T, f *framework.Framework, ctx *framework.T
 	if err != nil {
 		return err
 	}
-	_, err = f.KubeClient.CoreV1().ConfigMaps(namespace).Get("test-monitor-app-siddhi", metav1.GetOptions{IncludeUninitialized: true})
+	_, err = f.KubeClient.CoreV1().ConfigMaps(namespace).Get("test-monitor-app-0-siddhi", metav1.GetOptions{IncludeUninitialized: true})
 	if err != nil {
 		return err
 	}
@@ -115,7 +133,7 @@ func siddhiDeploymentTest(t *testing.T, f *framework.Framework, ctx *framework.T
 		t.Errorf("JSON marshan error")
 		return err
 	}
-	url := "http://siddhi/test-monitor-app/8280/example"
+	url := "http://siddhi/test-monitor-app-0/8280/example"
 	var jsonStr = []byte(string(b))
 	req, err := http.NewRequest("POST", url, bytes.NewBuffer(jsonStr))
 	req.Header.Set("Content-Type", "application/json")
@@ -155,7 +173,7 @@ func siddhiConfigChangeTest(t *testing.T, f *framework.Framework, ctx *framework
 		Spec: siddhiv1alpha2.SiddhiProcessSpec{
 			Apps: []siddhiv1alpha2.Apps{
 				siddhiv1alpha2.Apps{
-					Script: script,
+					Script: script1,
 				},
 			},
 			Container: corev1.Container{
@@ -185,11 +203,11 @@ func siddhiConfigChangeTest(t *testing.T, f *framework.Framework, ctx *framework
 	if err != nil {
 		return err
 	}
-	err = e2eutil.WaitForDeployment(t, f.KubeClient, namespace, "test-monitor-app", 1, retryInterval, timeout)
+	err = e2eutil.WaitForDeployment(t, f.KubeClient, namespace, "test-monitor-app-0", 1, retryInterval, timeout)
 	if err != nil {
 		return err
 	}
-	_, err = f.KubeClient.CoreV1().ConfigMaps(namespace).Get("test-monitor-app-deployment.yaml", metav1.GetOptions{IncludeUninitialized: true})
+	_, err = f.KubeClient.CoreV1().ConfigMaps(namespace).Get("test-monitor-app-deployment-yaml", metav1.GetOptions{IncludeUninitialized: true})
 	if err != nil {
 		return err
 	}

@@ -87,7 +87,6 @@ type SiddhiProcessSpec struct {
 type SiddhiProcessStatus struct {
 	Nodes  []string `json:"nodes"`
 	Status string   `json:"status"`
-	Type   string   `json:"type"`
 	Ready  string   `json:"ready"`
 }
 

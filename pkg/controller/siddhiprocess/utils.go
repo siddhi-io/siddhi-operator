@@ -24,6 +24,7 @@ import (
 	"errors"
 	"net/http"
 	"regexp"
+	"strconv"
 	"strings"
 
 	siddhiv1alpha2 "github.com/siddhi-io/siddhi-operator/pkg/apis/siddhi/v1alpha2"
@@ -90,26 +91,25 @@ func populateParserRequest(sp *siddhiv1alpha2.SiddhiProcess, siddhiApps []string
 		} else {
 			ms = sp.Spec.MessagingSystem
 		}
-	}
-
-	siddhiParserRequest = SiddhiParserRequest{
-		SiddhiApps:      siddhiApps,
-		PropertyMap:     propertyMap,
-		MessagingSystem: ms,
+		siddhiParserRequest = SiddhiParserRequest{
+			SiddhiApps:      siddhiApps,
+			PropertyMap:     propertyMap,
+			MessagingSystem: &ms,
+		}
 	}
 
 	return
 }
 
 // invokeParser simply invoke the siddhi parser within the k8s cluster
-func invokeParser(sp *siddhiv1alpha2.SiddhiProcess, siddhiParserRequest SiddhiParserRequest, configs Configs) (siddhiParserResponse SiddhiParserResponse, err error) {
-	url := configs.ParserDomain + sp.Namespace + configs.ParserNATSContext
+func invokeParser(sp *siddhiv1alpha2.SiddhiProcess, siddhiParserRequest SiddhiParserRequest, configs Configs) (siddhiAppConfigs []SiddhiAppConfig, err error) {
+	url := configs.ParserDomain + sp.Namespace + configs.ParserContext
 	b, err := json.Marshal(siddhiParserRequest)
 	if err != nil {
 		return
 	}
 	var jsonStr = []byte(string(b))
-	req, err := http.NewRequest("POST", url, bytes.NewBuffer(jsonStr))
+	req, err := http.NewRequest(http.MethodPost, url, bytes.NewBuffer(jsonStr))
 	req.Header.Set("Content-Type", "application/json")
 	client := &http.Client{}
 	resp, err := client.Do(req)
@@ -117,10 +117,11 @@ func invokeParser(sp *siddhiv1alpha2.SiddhiProcess, siddhiParserRequest SiddhiPa
 		return
 	}
 	defer resp.Body.Close()
-	if resp.StatusCode != 200 {
+	if resp.StatusCode != http.StatusOK {
+		err = errors.New(url + " invalid HTTP response status " + strconv.Itoa(http.StatusOK))
 		return
 	}
-	err = json.NewDecoder(resp.Body).Decode(&siddhiParserResponse)
+	err = json.NewDecoder(resp.Body).Decode(&siddhiAppConfigs)
 	if err != nil {
 		return
 	}

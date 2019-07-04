@@ -37,10 +37,6 @@ spec:
     served: true
     storage: true
   additionalPrinterColumns:
-    - name: Type
-      type: string
-      description: Deployment type
-      JSONPath: .status.type
     - name: Status
       type: string
       description: Status
