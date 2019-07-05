@@ -255,7 +255,7 @@ func (rsp *ReconcileSiddhiProcess) createArtifacts(sp *siddhiv1alpha2.SiddhiProc
 						continue
 					}
 					reqLogger.Info("New ingress created successfully", "Ingress.Name", configs.HostName)
-				} else if err != nil {
+				} else if err == nil {
 					err := rsp.UpdateIngress(sp, ingress, siddhiApp, configs)
 					if err != nil {
 						sp = rsp.updateErrorStatus(sp, ER, ERROR, "IngressUpdationError", err)
