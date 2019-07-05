@@ -56,7 +56,7 @@ func TestPopulateParserRequest(t *testing.T) {
 }
 
 func TestPopulateRunnerConfigs(t *testing.T) {
-	image := "siddhiio/siddhi-runner:0.1.1"
+	image := "siddhiio/siddhi-runner:5.1.0"
 	secret := "siddhiio-secret"
 	spec := siddhiv1alpha2.SiddhiProcessSpec{
 		Container: corev1.Container{

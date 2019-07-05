@@ -32,7 +32,7 @@ spec:
       - 
         name: BASIC_AUTH_ENABLED
         value: "false"
-    image: "siddhiio/siddhi-runner-ubuntu:0.1.1"
+    image: "siddhiio/siddhi-runner-ubuntu:5.1.0"
   imagePullSecret: siddhi
 
   runner: |
