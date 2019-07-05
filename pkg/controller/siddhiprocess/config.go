@@ -32,19 +32,20 @@ import (
 
 // Default configurations stored as constants. Further these constants used by the Configurations() function.
 const (
-	SiddhiHome         string = "/home/siddhi_user/siddhi-runner-0.1.0/"
+	SiddhiHome         string = "/home/siddhi_user/"
 	SiddhiImage        string = "siddhiio/siddhi-runner-alpine:0.1.0"
 	SiddhiRunnerPath   string = "wso2/runner/"
 	SiddhiCMExt        string = "-siddhi"
 	SiddhiExt          string = ".siddhi"
-	SiddhiFileRPath    string = "wso2/runner/deployment/siddhi-files/"
+	SiddhiFileRPath    string = "siddhi-files/"
 	ContainerName      string = "siddhi-runner-runtime"
 	DepConfigName      string = "deploymentconfig"
 	DepConfMountPath   string = "tmp/configs/"
 	DepConfParameter   string = "-Dconfig="
-	DepCMExt           string = "-deployment-yaml"
+	AppConfParameter   string = "-Dconfig="
+	DepCMExt           string = "-depyml"
 	Shell              string = "sh"
-	RunnerRPath        string = "bin/runner.sh"
+	RunnerRPath        string = "init.sh"
 	HostName           string = "siddhi"
 	OperatorName       string = "siddhi-operator"
 	OperatorVersion    string = "0.1.1"
@@ -53,7 +54,7 @@ const (
 	ReadOnlyMany       string = "ReadOnlyMany"
 	ReadWriteMany      string = "ReadWriteMany"
 	PVCExt             string = "-pvc"
-	FilePersistentPath string = "wso2/runner/siddhi-app-persistence"
+	FilePersistentPath string = "siddhi-app-persistence"
 	ParserDomain       string = "http://siddhi-parser."
 	ParserContext      string = ".svc.cluster.local:9090/siddhi-parser/parse"
 	PVCSize            string = "1Gi"
@@ -69,8 +70,6 @@ const (
 	NATSTCPHost        string = "siddhi-nats:4222"
 	NATSMSType         string = "nats"
 	TCP                string = "tcp"
-	FExtOne            string = "-1"
-	FExtTwo            string = "-2"
 	IngressTLS         string = ""
 	AutoCreateIngress  bool   = false
 	NATSSize           int    = 1
@@ -145,6 +144,7 @@ type Configs struct {
 	DepConfigName      string
 	DepConfMountPath   string
 	DepConfParameter   string
+	AppConfParameter   string
 	DepCMExt           string
 	Shell              string
 	RunnerRPath        string
@@ -172,8 +172,6 @@ type Configs struct {
 	NATSTCPHost        string
 	NATSMSType         string
 	TCP                string
-	FExtOne            string
-	FExtTwo            string
 	IngressTLS         string
 	AutoCreateIngress  bool
 	NATSSize           int
@@ -356,6 +354,7 @@ func (rsp *ReconcileSiddhiProcess) Configurations(sp *siddhiv1alpha2.SiddhiProce
 		DepConfigName:      DepConfigName,
 		DepConfMountPath:   DepConfMountPath,
 		DepConfParameter:   DepConfParameter,
+		AppConfParameter:   AppConfParameter,
 		DepCMExt:           DepCMExt,
 		Shell:              Shell,
 		RunnerRPath:        RunnerRPath,
@@ -383,8 +382,6 @@ func (rsp *ReconcileSiddhiProcess) Configurations(sp *siddhiv1alpha2.SiddhiProce
 		NATSTCPHost:        NATSTCPHost,
 		NATSMSType:         NATSMSType,
 		TCP:                TCP,
-		FExtOne:            FExtOne,
-		FExtTwo:            FExtTwo,
 		IngressTLS:         IngressTLS,
 		AutoCreateIngress:  AutoCreateIngress,
 		NATSSize:           NATSSize,

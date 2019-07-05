@@ -71,20 +71,6 @@ func (rsp *ReconcileSiddhiProcess) deployApp(
 		volumeMounts = append(volumeMounts, volumeMount)
 	}
 
-	configMapName := siddhiApp.Name + configs.SiddhiCMExt
-	for k, v := range siddhiApp.Apps {
-		key := k + configs.SiddhiExt
-		configMapData[key] = v
-	}
-	err = rsp.CreateConfigMap(sp, configMapName, configMapData)
-	if err != nil {
-		return err
-	}
-	mountPath := configs.SiddhiHome + configs.SiddhiFileRPath
-	volume, volumeMount := createCMVolumes(configMapName, mountPath)
-	volumes = append(volumes, volume)
-	volumeMounts = append(volumeMounts, volumeMount)
-
 	configParameter := ""
 	if siddhiApp.PersistenceEnabled {
 		deployYAMLCMName := sp.Name + configs.DepCMExt
@@ -99,11 +85,11 @@ func (rsp *ReconcileSiddhiProcess) deployApp(
 		if err != nil {
 			return
 		}
-		mountPath := siddhiHome + configs.DepConfMountPath
+		mountPath := configs.SiddhiHome + configs.DepConfMountPath
 		volume, volumeMount := createCMVolumes(deployYAMLCMName, mountPath)
 		volumes = append(volumes, volume)
 		volumeMounts = append(volumeMounts, volumeMount)
-		configParameter = configs.DepConfParameter + siddhiHome + configs.DepConfMountPath + deployYAMLCMName
+		configParameter = configs.DepConfParameter + mountPath + deployYAMLCMName
 	} else if sp.Spec.SiddhiConfig != "" {
 		deployYAMLCMName := sp.Name + configs.DepCMExt
 		data := map[string]string{
@@ -113,13 +99,27 @@ func (rsp *ReconcileSiddhiProcess) deployApp(
 		if err != nil {
 			return
 		}
-		mountPath := siddhiHome + configs.DepConfMountPath
+		mountPath := configs.SiddhiHome + configs.DepConfMountPath
 		volume, volumeMount := createCMVolumes(deployYAMLCMName, mountPath)
 		volumes = append(volumes, volume)
 		volumeMounts = append(volumeMounts, volumeMount)
-		configParameter = configs.DepConfParameter + siddhiHome + configs.DepConfMountPath + deployYAMLCMName
+		configParameter = configs.DepConfParameter + mountPath + deployYAMLCMName
 	}
 
+	configMapName := siddhiApp.Name + configs.SiddhiCMExt
+	for k, v := range siddhiApp.Apps {
+		key := k + configs.SiddhiExt
+		configMapData[key] = v
+	}
+	err = rsp.CreateConfigMap(sp, configMapName, configMapData)
+	if err != nil {
+		return err
+	}
+	siddhiFilesPath := configs.SiddhiHome + configs.SiddhiFileRPath
+	volume, volumeMount := createCMVolumes(configMapName, siddhiFilesPath)
+	volumes = append(volumes, volume)
+	volumeMounts = append(volumeMounts, volumeMount)
+	siddhiFilesParameter := configs.AppConfParameter + siddhiFilesPath + " "
 	userID := int64(802)
 	err = rsp.CreateDeployment(
 		sp,
@@ -130,7 +130,7 @@ func (rsp *ReconcileSiddhiProcess) deployApp(
 		siddhiRunnerImage,
 		configs.ContainerName,
 		[]string{configs.Shell},
-		[]string{siddhiHome + configs.RunnerRPath, configParameter},
+		[]string{siddhiHome + configs.RunnerRPath, siddhiFilesParameter, configParameter},
 		containerPorts,
 		volumeMounts,
 		sp.Spec.Container.Env,

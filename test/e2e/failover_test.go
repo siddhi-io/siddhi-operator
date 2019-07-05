@@ -172,7 +172,7 @@ func failoverConfigChangeTest(t *testing.T, f *framework.Framework, ctx *framewo
 		return err
 	}
 
-	_, err = f.KubeClient.CoreV1().ConfigMaps(namespace).Get("failover-app-deployment-yaml", metav1.GetOptions{IncludeUninitialized: true})
+	_, err = f.KubeClient.CoreV1().ConfigMaps(namespace).Get("failover-app-depyml", metav1.GetOptions{IncludeUninitialized: true})
 	if err != nil {
 		return err
 	}

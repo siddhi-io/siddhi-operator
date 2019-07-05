@@ -70,10 +70,10 @@ func TestPopulateRunnerConfigs(t *testing.T) {
 	if img != image {
 		t.Error("Expected image name " + image + " but found " + img)
 	}
-	if img != image {
+	if home != configs.SiddhiHome {
 		t.Error("Expected home name " + configs.SiddhiHome + " but found " + home)
 	}
-	if img != image {
+	if secrt != secret {
 		t.Error("Expected imagePullSecret " + secret + " but found " + secrt)
 	}
 
@@ -85,7 +85,7 @@ func TestPopulateMountPath(t *testing.T) {
 	}
 	testSP.Spec = spec
 	configs := getTestConfigs(testSP)
-	path := configs.SiddhiHome + configs.SiddhiRunnerPath + "siddhi-app-persistence"
+	path := configs.SiddhiHome + configs.FilePersistentPath
 	p, err := populateMountPath(testSP, configs)
 	if err != nil {
 		t.Error(err)

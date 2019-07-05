@@ -1,0 +1,7 @@
+apiVersion: streaming.nats.io/v1alpha1
+kind: NatsStreamingCluster
+metadata:
+  name: stan-siddhi
+spec:
+  size: 1
+  natsSvc: nats-siddhi

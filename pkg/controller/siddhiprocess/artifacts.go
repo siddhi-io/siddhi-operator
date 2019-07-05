@@ -20,6 +20,7 @@ package siddhiprocess
 
 import (
 	"context"
+	"errors"
 	"reflect"
 	"strconv"
 	"strings"
@@ -32,7 +33,7 @@ import (
 	extensionsv1beta1 "k8s.io/api/extensions/v1beta1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-	"k8s.io/apimachinery/pkg/api/errors"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/resource"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/intstr"
@@ -41,10 +42,15 @@ import (
 
 // CreateConfigMap creates a k8s config map for given set of data.
 // This function initialize the config map object, set the controller reference, and then creates the config map.
-func (rsp *ReconcileSiddhiProcess) CreateConfigMap(sp *siddhiv1alpha2.SiddhiProcess, configMapName string, data map[string]string) error {
+func (rsp *ReconcileSiddhiProcess) CreateConfigMap(
+	sp *siddhiv1alpha2.SiddhiProcess,
+	configMapName string,
+	data map[string]string,
+) error {
+
 	configMap := &corev1.ConfigMap{}
 	err := rsp.client.Get(context.TODO(), types.NamespacedName{Name: configMapName, Namespace: sp.Namespace}, configMap)
-	if err != nil && errors.IsNotFound(err) {
+	if err != nil && apierrors.IsNotFound(err) {
 		configMap = &corev1.ConfigMap{
 			TypeMeta: metav1.TypeMeta{
 				APIVersion: corev1.SchemeGroupVersion.String(),
@@ -63,7 +69,12 @@ func (rsp *ReconcileSiddhiProcess) CreateConfigMap(sp *siddhiv1alpha2.SiddhiProc
 }
 
 // CreateIngress creates a NGINX Ingress load balancer object called siddhi
-func (rsp *ReconcileSiddhiProcess) CreateIngress(sp *siddhiv1alpha2.SiddhiProcess, siddhiApp SiddhiApp, configs Configs) (err error) {
+func (rsp *ReconcileSiddhiProcess) CreateIngress(
+	sp *siddhiv1alpha2.SiddhiProcess,
+	siddhiApp SiddhiApp,
+	configs Configs,
+) (err error) {
+
 	var ingressPaths []extensionsv1beta1.HTTPIngressPath
 	for _, port := range siddhiApp.ContainerPorts {
 		path := "/" + strings.ToLower(siddhiApp.Name) + "/" + strconv.Itoa(int(port.ContainerPort)) + "/"
@@ -134,7 +145,13 @@ func (rsp *ReconcileSiddhiProcess) CreateIngress(sp *siddhiv1alpha2.SiddhiProces
 }
 
 // UpdateIngress updates the given ingress object
-func (rsp *ReconcileSiddhiProcess) UpdateIngress(sp *siddhiv1alpha2.SiddhiProcess, currentIngress *extensionsv1beta1.Ingress, siddhiApp SiddhiApp, configs Configs) (err error) {
+func (rsp *ReconcileSiddhiProcess) UpdateIngress(
+	sp *siddhiv1alpha2.SiddhiProcess,
+	currentIngress *extensionsv1beta1.Ingress,
+	siddhiApp SiddhiApp,
+	configs Configs,
+) (err error) {
+
 	var ingressPaths []extensionsv1beta1.HTTPIngressPath
 	for _, port := range siddhiApp.ContainerPorts {
 		path := "/" + strings.ToLower(siddhiApp.Name) + "/" + strconv.Itoa(int(port.ContainerPort)) + "/"
@@ -196,7 +213,7 @@ func (rsp *ReconcileSiddhiProcess) UpdateIngress(sp *siddhiv1alpha2.SiddhiProces
 func (rsp *ReconcileSiddhiProcess) CreateNATS(sp *siddhiv1alpha2.SiddhiProcess, configs Configs) error {
 	natsCluster := &natsv1alpha2.NatsCluster{}
 	err := rsp.client.Get(context.TODO(), types.NamespacedName{Name: configs.NATSClusterName, Namespace: sp.Namespace}, natsCluster)
-	if err != nil && errors.IsNotFound(err) {
+	if err != nil && apierrors.IsNotFound(err) {
 		natsCluster = &natsv1alpha2.NatsCluster{
 			TypeMeta: metav1.TypeMeta{
 				APIVersion: configs.NATSAPIVersion,
@@ -220,7 +237,7 @@ func (rsp *ReconcileSiddhiProcess) CreateNATS(sp *siddhiv1alpha2.SiddhiProcess, 
 
 	stanCluster := &streamingv1alpha1.NatsStreamingCluster{}
 	err = rsp.client.Get(context.TODO(), types.NamespacedName{Name: configs.STANClusterName, Namespace: sp.Namespace}, stanCluster)
-	if err != nil && errors.IsNotFound(err) {
+	if err != nil && apierrors.IsNotFound(err) {
 		stanCluster = &streamingv1alpha1.NatsStreamingCluster{
 			TypeMeta: metav1.TypeMeta{
 				APIVersion: configs.STANAPIVersion,
@@ -248,9 +265,11 @@ func (rsp *ReconcileSiddhiProcess) CreatePVC(sp *siddhiv1alpha2.SiddhiProcess, c
 	var accessModes []corev1.PersistentVolumeAccessMode
 	pvc := &corev1.PersistentVolumeClaim{}
 	p := sp.Spec.PV
-	// todo default access mode
 	err := rsp.client.Get(context.TODO(), types.NamespacedName{Name: pvcName, Namespace: sp.Namespace}, pvc)
-	if err != nil && errors.IsNotFound(err) {
+	if err != nil && apierrors.IsNotFound(err) {
+		if len(p.AccessModes) == 1 && p.AccessModes[0] == ReadOnlyMany {
+			return errors.New("Restricted access mode " + ReadOnlyMany + " in " + pvcName)
+		}
 		for _, am := range p.AccessModes {
 			if am == configs.ReadWriteOnce {
 				accessModes = append(accessModes, corev1.ReadWriteOnce)
@@ -259,7 +278,6 @@ func (rsp *ReconcileSiddhiProcess) CreatePVC(sp *siddhiv1alpha2.SiddhiProcess, c
 			if am == configs.ReadOnlyMany {
 				accessModes = append(accessModes, corev1.ReadOnlyMany)
 				continue
-				// throw error
 			}
 			if am == configs.ReadWriteMany {
 				accessModes = append(accessModes, corev1.ReadWriteMany)
@@ -292,7 +310,12 @@ func (rsp *ReconcileSiddhiProcess) CreatePVC(sp *siddhiv1alpha2.SiddhiProcess, c
 }
 
 // CreateService returns a Service object for a deployment
-func (rsp *ReconcileSiddhiProcess) CreateService(sp *siddhiv1alpha2.SiddhiProcess, siddhiApp SiddhiApp, configs Configs) (err error) {
+func (rsp *ReconcileSiddhiProcess) CreateService(
+	sp *siddhiv1alpha2.SiddhiProcess,
+	siddhiApp SiddhiApp,
+	configs Configs,
+) (err error) {
+
 	labels := labelsForSiddhiProcess(strings.ToLower(siddhiApp.Name), configs)
 	var servicePorts []corev1.ServicePort
 	for _, containerPort := range siddhiApp.ContainerPorts {

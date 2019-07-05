@@ -14,8 +14,8 @@ spec:
   
         @source(
             type='http',
-            receiver.url='http://0.0.0.0:8080/example',
-            basic.auth.enabled='false',
+            receiver.url='${RECEIVER_URL}',
+            basic.auth.enabled='${BASIC_AUTH_ENABLED}',
             @map(type='json')
         )
         define stream DevicePowerStream (type string, deviceID string, power int);
@@ -37,28 +37,18 @@ spec:
       - 
         name: BASIC_AUTH_ENABLED
         value: "false"
-      - 
-        name: NATS_URL
-        value: "nats://siddhi-nats:4222"
-      - 
-        name: NATS_DEST
-        value: siddhi
-      - 
-        name: NATS_CLUSTER_ID
-        value: siddhi-stan
-    image: "buddhiwathsala/siddhi-runner:0.1.1"
+    image: "siddhiio/siddhi-runner-ubuntu:0.1.1"
 
-  # imagePullSecret have the secret which can be used to download custom siddhi runner private docker images or 
-  # download siddhi runner docker image from private registries.
-  imagePullSecret: siddhi
+  # Kubernetes secret to pull Siddhi Runner image from private registries or private docker images.
+  # imagePullSecret: siddhi
   
-  # messagingSystem entry can have the configurations related to the messaging system to be used in the failover deployment
+  # Fault-tolerant messaging configuration(Only supports NATS).
   messagingSystem: 
+    type: nats
     # config: 
     #   bootstrap.servers: 
     #     - "nats://siddhi-nats:4222"
     #   cluster.id: siddhi-stan
-    type: nats
   
   # persistentVolume can have the configurations related to k8s PV. Siddhi operator will use this configurations to create PVC.
   persistentVolume: 

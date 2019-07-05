@@ -207,7 +207,7 @@ func siddhiConfigChangeTest(t *testing.T, f *framework.Framework, ctx *framework
 	if err != nil {
 		return err
 	}
-	_, err = f.KubeClient.CoreV1().ConfigMaps(namespace).Get("test-monitor-app-deployment-yaml", metav1.GetOptions{IncludeUninitialized: true})
+	_, err = f.KubeClient.CoreV1().ConfigMaps(namespace).Get("test-monitor-app-depyml", metav1.GetOptions{IncludeUninitialized: true})
 	if err != nil {
 		return err
 	}

@@ -70,7 +70,12 @@ func getAppName(app string) (appName string, err error) {
 }
 
 // populateParserRequest creates the request which send to the siddhi parser during the runtime.
-func populateParserRequest(sp *siddhiv1alpha2.SiddhiProcess, siddhiApps []string, propertyMap map[string]string, configs Configs) (siddhiParserRequest SiddhiParserRequest) {
+func populateParserRequest(
+	sp *siddhiv1alpha2.SiddhiProcess,
+	siddhiApps []string,
+	propertyMap map[string]string,
+	configs Configs,
+) (siddhiParserRequest SiddhiParserRequest) {
 	siddhiParserRequest = SiddhiParserRequest{
 		SiddhiApps:  siddhiApps,
 		PropertyMap: propertyMap,
@@ -102,7 +107,11 @@ func populateParserRequest(sp *siddhiv1alpha2.SiddhiProcess, siddhiApps []string
 }
 
 // invokeParser simply invoke the siddhi parser within the k8s cluster
-func invokeParser(sp *siddhiv1alpha2.SiddhiProcess, siddhiParserRequest SiddhiParserRequest, configs Configs) (siddhiAppConfigs []SiddhiAppConfig, err error) {
+func invokeParser(
+	sp *siddhiv1alpha2.SiddhiProcess,
+	siddhiParserRequest SiddhiParserRequest,
+	configs Configs,
+) (siddhiAppConfigs []SiddhiAppConfig, err error) {
 	url := configs.ParserDomain + sp.Namespace + configs.ParserContext
 	b, err := json.Marshal(siddhiParserRequest)
 	if err != nil {
@@ -162,7 +171,7 @@ func populateMountPath(sp *siddhiv1alpha2.SiddhiProcess, configs Configs) (mount
 	if spConf.StatePersistence.SPConfig.Location != "" && filepath.IsAbs(spConf.StatePersistence.SPConfig.Location) {
 		mountPath = spConf.StatePersistence.SPConfig.Location
 	} else if spConf.StatePersistence.SPConfig.Location != "" {
-		mountPath = configs.SiddhiHome + configs.SiddhiRunnerPath + spConf.StatePersistence.SPConfig.Location
+		mountPath = configs.SiddhiHome + spConf.StatePersistence.SPConfig.Location
 	}
 	return
 }
