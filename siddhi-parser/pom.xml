@@ -105,11 +105,13 @@
             <groupId>org.wso2.extension.siddhi.io.http</groupId>
             <artifactId>siddhi-io-http</artifactId>
             <version>${siddhi.io.http.version}</version>
+            <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>org.wso2.extension.siddhi.map.json</groupId>
             <artifactId>siddhi-map-json</artifactId>
             <version>${siddhi.map.json.version}</version>
+            <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>org.slf4j</groupId>
@@ -121,13 +123,62 @@
             <artifactId>slf4j-log4j12</artifactId>
             <version>${slf4j.version}</version>
         </dependency>
+        <dependency>
+            <groupId>org.testng</groupId>
+            <artifactId>testng</artifactId>
+            <version>${testng.version}</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.testcontainers</groupId>
+            <artifactId>testcontainers</artifactId>
+            <version>${org.testcontainers.version}</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>io.nats</groupId>
+            <artifactId>java-nats-streaming</artifactId>
+            <version>${io.nats.version}</version>
+        </dependency>
+        <!--SiddhiRuntime dependancies-->
+        <dependency>
+            <groupId>org.wso2.extension.siddhi.io.nats</groupId>
+            <artifactId>siddhi-io-nats</artifactId>
+            <version>${siddhi.io.nats.version}</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.wso2.extension.siddhi.io.tcp</groupId>
+            <artifactId>siddhi-io-tcp</artifactId>
+            <version>${siddhi.io.tcp.version}</version>
+            <scope>test</scope>
+        </dependency>
+
+        <!--Map Extensions-->
+        <!--Mapper Extensions-->
+        <dependency>
+            <groupId>org.wso2.extension.siddhi.map.xml</groupId>
+            <artifactId>siddhi-map-xml</artifactId>
+            <version>${siddhi.map.xml.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.wso2.extension.siddhi.map.json</groupId>
+            <artifactId>siddhi-map-json</artifactId>
+            <version>${siddhi.map.json.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.wso2.extension.siddhi.map.binary</groupId>
+            <artifactId>siddhi-map-binary</artifactId>
+            <version>${siddhi.map.binary.version}</version>
+        </dependency>
+
     </dependencies>
 
     <properties>
         <microservice.mainClass>io.siddhi.operator.parser.services.Application</microservice.mainClass>
         <org.wso2.json.version>3.0.0.wso2v1</org.wso2.json.version>
         <com.fasterxml.jackson.core.version>2.9.8</com.fasterxml.jackson.core.version>
-        <siddhi.version>5.0.0-m10</siddhi.version>
+        <siddhi.version>5.0.1-SNAPSHOT</siddhi.version>
         <antlr4.runtime.version>4.6.wso2v1</antlr4.runtime.version>
         <commons-lang3.version>3.8.1</commons-lang3.version>
         <common.collections4.version>4.1</common.collections4.version>
@@ -140,5 +191,13 @@
         <siddhi.map.text.version>1.1.0</siddhi.map.text.version>
         <siddhi.map.json.version>5.0.1</siddhi.map.json.version>
         <slf4j.version>1.7.12</slf4j.version>
+        <testng.version>6.9.4</testng.version>
+        <!-- nats test dependencies -->
+        <io.nats.version>2.1.2</io.nats.version>
+        <siddhi.io.nats.version>2.0.1</siddhi.io.nats.version>
+        <org.testcontainers.version>1.8.0</org.testcontainers.version>
+        <siddhi.map.xml.version>5.0.0</siddhi.map.xml.version>
+        <siddhi.map.binary.version>2.0.0</siddhi.map.binary.version>
+        <siddhi.io.tcp.version>3.0.1</siddhi.io.tcp.version>
     </properties>
 </project>

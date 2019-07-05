@@ -21,11 +21,16 @@ import io.siddhi.core.SiddhiManager;
 import io.siddhi.core.stream.ServiceDeploymentInfo;
 import io.siddhi.core.stream.input.source.Source;
 import io.siddhi.core.util.config.InMemoryConfigManager;
-import io.siddhi.operator.parser.bean.AppDeploymentInfo;
+import io.siddhi.operator.app.builder.core.SiddhiAppCreator;
+import io.siddhi.operator.app.builder.core.SiddhiTopologyCreator;
+import io.siddhi.operator.app.builder.core.appcreator.DeployableSiddhiQueryGroup;
+import io.siddhi.operator.app.builder.core.appcreator.NatsSiddhiAppCreator;
+import io.siddhi.operator.app.builder.core.appcreator.SiddhiQuery;
+import io.siddhi.operator.app.builder.core.topology.SiddhiTopology;
+import io.siddhi.operator.app.builder.core.topology.SiddhiTopologyCreatorImpl;
+import io.siddhi.operator.parser.bean.DeployableSiddhiApp;
 import io.siddhi.operator.parser.bean.SiddhiParserRequest;
-import io.siddhi.operator.parser.bean.SiddhiAppConfig;
 import io.siddhi.operator.parser.bean.SourceDeploymentConfig;
-import io.siddhi.operator.parser.bean.SourceList;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -47,7 +52,7 @@ import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 
 /**
- * Siddhi Parser Service used by the Kubernetes Operator to parse the Siddhi Apps
+ * Siddhi Parser Service used by the Siddhi Kubernetes Operator to parse the Siddhi Apps
  */
 @Path("/siddhi-parser")
 public class SiddhiParserService {
@@ -68,6 +73,12 @@ public class SiddhiParserService {
         siddhimanager.setConfigManager(inMemoryConfigManager);
     }
 
+    private static void setCarbonHome() {
+        java.nio.file.Path carbonHome = Paths.get("");
+        carbonHome = Paths.get(carbonHome.toString(), "src", "test");
+        System.setProperty(CARBON_HOME, carbonHome.toString());
+    }
+
     @GET
     @Path("/")
     public String get() {
@@ -78,75 +89,96 @@ public class SiddhiParserService {
     @Path("/parse")
     @Consumes({"application/json"})
     @Produces({"application/json"})
-    public Response query(SiddhiParserRequest request)
-            throws NotFoundException {
+    public Response parseSiddhiApp(SiddhiParserRequest request) throws NotFoundException {
         try {
-            List<String> siddhiApps = populateEnvs(request.getPropertyMap(), request.getSiddhiApp());
-            AppDeploymentInfo appDeploymentInfo = getExposedDeploymentConfigs(siddhiApps);
-            String jsonString = new Gson().toJson(appDeploymentInfo);
+            List<DeployableSiddhiApp> deployableSiddhiApps = new ArrayList<>();
+            List<String> userGivenApps = populateAppWithEnvs(request.getPropertyMap(), request.getSiddhiApps());
+            for (String app : userGivenApps) {
+                List<SourceDeploymentConfig> sourceDeploymentConfigs = getSourceDeploymentConfigs(app);
+                SiddhiTopologyCreator siddhiTopologyCreator = new SiddhiTopologyCreatorImpl();
+                SiddhiTopology topology = siddhiTopologyCreator.createTopology(app);
+                if (request.getMessagingSystem() != null) {
+                    SiddhiAppCreator appCreator = new NatsSiddhiAppCreator();
+                    List<DeployableSiddhiQueryGroup> queryGroupList = appCreator.createApps(topology,
+                            request.getMessagingSystem());
+                    boolean isAppStateful = ((SiddhiTopologyCreatorImpl) siddhiTopologyCreator).isAppStateful();
+                    for (DeployableSiddhiQueryGroup deployableSiddhiQueryGroup : queryGroupList) {
+                        if (deployableSiddhiQueryGroup.isReceiverQueryGroup()) {
+                            for (SiddhiQuery siddhiQuery : deployableSiddhiQueryGroup.getSiddhiQueries()) {
+                                deployableSiddhiApps.add(new DeployableSiddhiApp(siddhiQuery.getApp(),
+                                        sourceDeploymentConfigs));
+                            }
+                        } else {
+                            for (SiddhiQuery siddhiQuery : deployableSiddhiQueryGroup.getSiddhiQueries()) {
+                                DeployableSiddhiApp deployableSiddhiApp = new DeployableSiddhiApp(siddhiQuery.getApp(),
+                                        isAppStateful);
+                                if (deployableSiddhiQueryGroup.isUserGivenSource()) {
+                                    deployableSiddhiApp.setSourceDeploymentConfigs(sourceDeploymentConfigs);
+                                }
+                                deployableSiddhiApps.add(deployableSiddhiApp);
+                            }
+                        }
+                    }
+                } else {
+                    DeployableSiddhiApp deployableSiddhiApp = new DeployableSiddhiApp(app);
+                    if (((SiddhiTopologyCreatorImpl) siddhiTopologyCreator).isUsergiveSource()) {
+                        deployableSiddhiApp.setSourceDeploymentConfigs(sourceDeploymentConfigs);
+                    }
+                    deployableSiddhiApps.add(deployableSiddhiApp);
+                }
+            }
+            String jsonString = new Gson().toJson(deployableSiddhiApps);
             return Response.ok(jsonString, MediaType.APPLICATION_JSON)
                     .build();
         } catch (Exception e) {
-            log.error("Failed to parse Siddhi app. ", e);
-            return Response.serverError().entity("Failed passing the Siddhi apps").build();
+            log.error("Exception caught while parsing the app. ", e);
+            return Response.serverError().entity("Exception caught while parsing the app. " + e.getMessage()).build();
         }
     }
 
-    private List<String> populateEnvs(Map<String, String> envMap, List<String> siddhiApps) {
+    private List<String> populateAppWithEnvs(Map<String, String> envMap, List<String> siddhiApps) {
         List<String> populatedApps = new ArrayList<>();
-        for (String siddhiApp : siddhiApps) {
-            if (siddhiApp.contains("$")) {
-                String envPattern = "\\$\\{(\\w+)\\}";
-                Pattern expr = Pattern.compile(envPattern);
-                Matcher matcher = expr.matcher(siddhiApp);
-                while (matcher.find()) {
-                    for (int i = 1; i <= matcher.groupCount(); i++) {
-                        String envValue = envMap.get(matcher.group(i).toUpperCase());
-                        if (envValue == null) {
-                            envValue = "";
-                        } else {
-                            envValue = envValue.replace("\\", "\\\\");
+        if (siddhiApps != null) {
+            for (String siddhiApp : siddhiApps) {
+                if (siddhiApp.contains("$")) {
+                    if (envMap != null) {
+                        String envPattern = "\\$\\{(\\w+)\\}";
+                        Pattern expr = Pattern.compile(envPattern);
+                        Matcher matcher = expr.matcher(siddhiApp);
+                        while (matcher.find()) {
+                            for (int i = 1; i <= matcher.groupCount(); i++) {
+                                String envValue = envMap.getOrDefault(matcher.group(i).toUpperCase(), "");
+                                envValue = envValue.replace("\\", "\\\\");
+                                Pattern subexpr = Pattern.compile("\\$\\{" + matcher.group(i) + "\\}");
+                                siddhiApp = subexpr.matcher(siddhiApp).replaceAll(envValue);
+                            }
                         }
-                        Pattern subexpr = Pattern.compile("\\$\\{" + matcher.group(i) + "\\}");
-                        siddhiApp = subexpr.matcher(siddhiApp).replaceAll(envValue);
                     }
                 }
+                populatedApps.add(siddhiApp);
             }
-            populatedApps.add(siddhiApp);
         }
         return populatedApps;
     }
 
-    private AppDeploymentInfo getExposedDeploymentConfigs(List<String> siddhiApps) {
-        AppDeploymentInfo appDeploymentInfo = new AppDeploymentInfo();
-        for (String siddhiApp : siddhiApps) {
-            SiddhiAppConfig siddhiAppConfig = new SiddhiAppConfig();
-            siddhiAppConfig.setSiddhiApp(siddhiApp);
-            SiddhiAppRuntime siddhiAppRuntime = siddhimanager.createSiddhiAppRuntime(siddhiApp);
-            SourceList sourceConfigs = new SourceList();
-            Collection<List<Source>> sources = siddhiAppRuntime.getSources();
-            for (List<Source> sourceList : sources) {
-                for (Source source : sourceList) {
-                    if (source.getType().equalsIgnoreCase("http")) {
-                        SourceDeploymentConfig response = new SourceDeploymentConfig();
-                        ServiceDeploymentInfo serviceDeploymentInfo = source.getServiceDeploymentInfo();
-                        response.setPort(serviceDeploymentInfo.getPort());
-                        response.setServiceProtocol(serviceDeploymentInfo.getServiceProtocol().name());
-                        response.setSecured(serviceDeploymentInfo.isSecured());
-                        response.setDeploymentProperties(serviceDeploymentInfo.getDeploymentProperties());
-                        sourceConfigs.addSourceDeploymentConfig(response);
-                    }
+    private List<SourceDeploymentConfig> getSourceDeploymentConfigs(String siddhiApp) {
+        List<SourceDeploymentConfig> sourceDeploymentConfigs = new ArrayList<>();
+        SiddhiAppRuntime siddhiAppRuntime = siddhimanager.createSiddhiAppRuntime(siddhiApp);
+        Collection<List<Source>> sources = siddhiAppRuntime.getSources();
+        for (List<Source> sourceList : sources) {
+            for (Source source : sourceList) {
+                SourceDeploymentConfig response = new SourceDeploymentConfig();
+                ServiceDeploymentInfo serviceDeploymentInfo = source.getServiceDeploymentInfo();
+                if (serviceDeploymentInfo != null) {
+                    response.setPort(serviceDeploymentInfo.getPort());
+                    response.setServiceProtocol(serviceDeploymentInfo.getServiceProtocol().name());
+                    response.setSecured(serviceDeploymentInfo.isSecured());
+                    response.setPulling(serviceDeploymentInfo.isPulling());
+                    response.setDeploymentProperties(serviceDeploymentInfo.getDeploymentProperties());
+                    sourceDeploymentConfigs.add(response);
                 }
             }
-            siddhiAppConfig.setSourceList(sourceConfigs);
-            appDeploymentInfo.addSiddhiAppConfigs(siddhiAppConfig);
         }
-        return appDeploymentInfo;
-    }
-
-    private static void setCarbonHome() {
-        java.nio.file.Path carbonHome = Paths.get("");
-        carbonHome = Paths.get(carbonHome.toString(), "src", "test");
-        System.setProperty(CARBON_HOME, carbonHome.toString());
+        return sourceDeploymentConfigs;
     }
 }
