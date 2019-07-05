@@ -16,14 +16,7 @@
  * under the License.
  */
 
-package e2e
-
-import (
-	"testing"
-
-	framework "github.com/operator-framework/operator-sdk/pkg/test"
-)
-
-func TestMain(m *testing.M) {
-	framework.MainEntry(m)
-}
+// Package v1alpha2 contains API Schema definitions for the siddhi v1alpha2 API group
+// +k8s:deepcopy-gen=package,register
+// +groupName=siddhi.io
+package v1alpha2

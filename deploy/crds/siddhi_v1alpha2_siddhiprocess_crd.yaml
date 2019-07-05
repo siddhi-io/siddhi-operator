@@ -13,6 +13,8 @@ spec:
     shortNames:
       - sp
       - sps
+      - siddhi
+      - siddhis
   scope: Namespaced
   subresources:
     status: {}
@@ -29,9 +31,9 @@ spec:
           type: object
         status:
           type: object
-  version: v1alpha1
+  version: v1alpha2
   versions:
-  - name: v1alpha1
+  - name: v1alpha2
     served: true
     storage: true
   additionalPrinterColumns:
@@ -39,6 +41,10 @@ spec:
       type: string
       description: Status
       JSONPath: .status.status
+    - name: Ready
+      type: string
+      description: Ready deployments
+      JSONPath: .status.ready
     - name: Age
       type: date
       description: Age

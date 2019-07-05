@@ -16,14 +16,13 @@
  * under the License.
  */
 
-package e2e
+package apis
 
 import (
-	"testing"
-
-	framework "github.com/operator-framework/operator-sdk/pkg/test"
+	"github.com/siddhi-io/siddhi-operator/pkg/apis/siddhi/v1alpha2"
 )
 
-func TestMain(m *testing.M) {
-	framework.MainEntry(m)
+func init() {
+	// Register the types with the Scheme so the components can map objects to GroupVersionKinds and back
+	AddToSchemes = append(AddToSchemes, v1alpha2.SchemeBuilder.AddToScheme)
 }

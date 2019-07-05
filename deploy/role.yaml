@@ -45,6 +45,17 @@ rules:
   verbs:
   - '*'
 - apiGroups:
+  - nats.io
+  resources:
+  - natsclusters
+  - natsserviceroles
+  verbs: ["*"]
+- apiGroups:
+  - streaming.nats.io
+  resources:
+  - natsstreamingclusters
+  verbs: ["*"]
+- apiGroups:
   - "extensions"
   - ""
   resources:

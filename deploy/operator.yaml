@@ -1,3 +1,16 @@
+---
+# This config map used to parse configurations to the siddhi operator.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: siddhi-operator-config
+data:
+  siddhiRunnerHome: /home/siddhi_user/
+  siddhiRunnerImage: siddhiio/siddhi-runner-alpine:5.1.0
+  autoIngressCreation: "true"
+---
+
+# Deployment of the siddhi operator
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -15,7 +28,7 @@ spec:
       serviceAccountName: siddhi-operator
       containers:
         - name: siddhi-operator
-          image: docker.io/siddhiio/siddhi-operator:0.1.1
+          image: siddhiio/siddhi-operator:0.2.0
           command:
           - siddhi-operator
           imagePullPolicy: Always
@@ -31,22 +44,13 @@ spec:
             - name: OPERATOR_NAME
               value: siddhi-operator
             - name: OPERATOR_VERSION
-              value: 0.1.1
-            - name: SIDDHI_RUNNER_IMAGE
-              value: siddhiio/siddhi-runner-alpine
-            - name: SIDDHI_RUNNER_IMAGE_TAG
-              value: 0.1.0
-            - name: SIDDHI_RUNNER_IMAGE_SECRET
-              value: null
-            - name: SIDDHI_RUNNER_HOME
-              value: /home/siddhi_user/siddhi-runner-0.1.0/
-            - name: SIDDHI_PARSER_URL
-              value: http://siddhi-parser/parse
-            - name: AUTO_INGRESS_CREATION
-              value: "true"
-
+              value: 0.2.0
+            - name: OPERATOR_CONFIGMAP
+              value: siddhi-operator-config
 
 ---
+
+# Deployment of the siddhi parser
 apiVersion: extensions/v1beta1
 kind: Deployment
 metadata:
@@ -61,7 +65,7 @@ spec:
   selector:
     matchLabels:
       name: siddhi-parser
-      version: 1.0.0
+      version: 0.2.0
   strategy:
     rollingUpdate:
       maxSurge: 25%
@@ -72,10 +76,10 @@ spec:
       creationTimestamp: null
       labels:
         name: siddhi-parser
-        version: 1.0.0
+        version: 0.2.0
     spec:
       containers:
-      - image: siddhiio/siddhi-parser:0.1.1
+      - image: siddhiio/siddhi-parser:0.2.0
         imagePullPolicy: IfNotPresent
         name: siddhirunner-msf4j
         ports:
@@ -85,12 +89,12 @@ spec:
 
 ---
 
+# Service of the siddhi parser
 apiVersion: v1
 kind: Service
 metadata:
   name: siddhi-parser
 spec:
-  externalTrafficPolicy: Cluster
   ports:
   - name: msf4j
     port: 9090
@@ -98,8 +102,10 @@ spec:
     targetPort: 9090
   selector:
     name: siddhi-parser
-    version: 1.0.0
+    version: 0.2.0
   sessionAffinity: None
-  type: LoadBalancer
+  type: ClusterIP
 status:
   loadBalancer: {}
+
+---
