@@ -32,7 +32,7 @@ import (
 
 // Default configurations stored as constants. Further these constants used by the Configurations() function.
 const (
-	SiddhiHome         string = "/home/siddhi_user/"
+	SiddhiHome         string = "/home/siddhi_user/siddhi-runner/"
 	SiddhiImage        string = "siddhiio/siddhi-runner-alpine:5.1.0"
 	SiddhiRunnerPath   string = "wso2/runner/"
 	SiddhiCMExt        string = "-siddhi"
@@ -42,10 +42,10 @@ const (
 	DepConfigName      string = "deploymentconfig"
 	DepConfMountPath   string = "tmp/configs/"
 	DepConfParameter   string = "-Dconfig="
-	AppConfParameter   string = "-Dconfig="
+	AppConfParameter   string = "-Dapps="
 	DepCMExt           string = "-depyml"
 	Shell              string = "sh"
-	RunnerRPath        string = "init.sh"
+	RunnerRPath        string = "bin/runner.sh"
 	HostName           string = "siddhi"
 	OperatorName       string = "siddhi-operator"
 	OperatorVersion    string = "0.2.0"
@@ -54,7 +54,7 @@ const (
 	ReadOnlyMany       string = "ReadOnlyMany"
 	ReadWriteMany      string = "ReadWriteMany"
 	PVCExt             string = "-pvc"
-	FilePersistentPath string = "siddhi-app-persistence"
+	FilePersistentPath string = "wso2/runner/siddhi-app-persistence"
 	ParserDomain       string = "http://siddhi-parser."
 	ParserContext      string = ".svc.cluster.local:9090/siddhi-parser/parse"
 	PVCSize            string = "1Gi"
