@@ -48,4 +48,8 @@ public class SiddhiTopology {
     public boolean isTransportChannelCreationEnabled() {
         return transportChannelCreationEnabled;
     }
+
+    public void setTransportChannelCreationEnabled(boolean transportChannelCreationEnabled) {
+        this.transportChannelCreationEnabled = transportChannelCreationEnabled;
+    }
 }

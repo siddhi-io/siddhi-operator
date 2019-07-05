@@ -105,11 +105,13 @@
             <groupId>org.wso2.extension.siddhi.io.http</groupId>
             <artifactId>siddhi-io-http</artifactId>
             <version>${siddhi.io.http.version}</version>
+            <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>org.wso2.extension.siddhi.map.json</groupId>
             <artifactId>siddhi-map-json</artifactId>
             <version>${siddhi.map.json.version}</version>
+            <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>org.slf4j</groupId>
@@ -137,18 +139,19 @@
             <groupId>io.nats</groupId>
             <artifactId>java-nats-streaming</artifactId>
             <version>${io.nats.version}</version>
-            <scope>test</scope>
         </dependency>
         <!--SiddhiRuntime dependancies-->
         <dependency>
             <groupId>org.wso2.extension.siddhi.io.nats</groupId>
             <artifactId>siddhi-io-nats</artifactId>
             <version>${siddhi.io.nats.version}</version>
+            <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>org.wso2.extension.siddhi.io.tcp</groupId>
             <artifactId>siddhi-io-tcp</artifactId>
             <version>${siddhi.io.tcp.version}</version>
+            <scope>test</scope>
         </dependency>
 
         <!--Map Extensions-->

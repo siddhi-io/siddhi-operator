@@ -20,6 +20,7 @@ package io.siddhi.operator.app.builder.core;
 
 import io.siddhi.operator.app.builder.core.appcreator.DeployableSiddhiQueryGroup;
 import io.siddhi.operator.app.builder.core.topology.SiddhiTopology;
+import io.siddhi.operator.parser.bean.MessagingSystem;
 
 import java.util.List;
 /**
@@ -36,5 +37,5 @@ public interface SiddhiAppCreator {
      * @return List of {@link DeployableSiddhiQueryGroup}s. Length of the list should be equal to no. of groups user
      * has defined. Length of the list should be greater than zero always.
      */
-    List<DeployableSiddhiQueryGroup> createApps(SiddhiTopology topology);
+    List<DeployableSiddhiQueryGroup> createApps(SiddhiTopology topology, MessagingSystem messagingSystem);
 }

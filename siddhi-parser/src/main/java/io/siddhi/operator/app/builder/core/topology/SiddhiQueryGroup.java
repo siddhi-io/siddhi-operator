@@ -31,9 +31,20 @@ public class SiddhiQueryGroup {
     private String name;
     private int parallelism;
     private String siddhiApp;
+    private boolean isStateful = false;
     private Map<String, InputStreamDataHolder> inputStreams;
     private Map<String, OutputStreamDataHolder> outputStreams;
+    private boolean isMessagingSource = false;
 
+    public boolean isUserGivenSource() {
+        return isUserGivenSource;
+    }
+
+    public void setUserGivenSource(boolean userGivenSource) {
+        isUserGivenSource = userGivenSource;
+    }
+
+    private boolean isUserGivenSource = false;
     public List<String> getQueryList() {
         return queryList;
     }
@@ -65,7 +76,7 @@ public class SiddhiQueryGroup {
 
     public String getSiddhiApp() {
         //combination of InputStream definitions , OutputStream and queries
-        StringBuilder stringBuilder = new StringBuilder("@App:name('${" + APP_NAME + "}') \n");
+        StringBuilder stringBuilder = new StringBuilder("@App:name(\"${" + APP_NAME + "}\") \n");
 
         for (InputStreamDataHolder inputStreamDataHolder : inputStreams.values()) {
 
@@ -108,7 +119,6 @@ public class SiddhiQueryGroup {
         if (inputStreamDataHolderMap != null) {
             this.inputStreams.putAll(inputStreamDataHolderMap);
         }
-
     }
 
     public Map<String, InputStreamDataHolder> getInputStreams() {
@@ -129,5 +139,13 @@ public class SiddhiQueryGroup {
 
     public void setParallelism(int parallelism) {
         this.parallelism = parallelism;
+    }
+
+    public boolean isMessagingSource() {
+        return isMessagingSource;
+    }
+
+    public void setMessagingSource(boolean messagingSource) {
+        isMessagingSource = messagingSource;
     }
 }

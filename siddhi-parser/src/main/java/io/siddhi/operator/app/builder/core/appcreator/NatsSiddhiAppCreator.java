@@ -17,14 +17,15 @@
  */
 package io.siddhi.operator.app.builder.core.appcreator;
 
-import org.apache.commons.lang3.StringUtils;
-import org.apache.log4j.Logger;
 import io.siddhi.operator.app.builder.core.topology.InputStreamDataHolder;
 import io.siddhi.operator.app.builder.core.topology.OutputStreamDataHolder;
 import io.siddhi.operator.app.builder.core.topology.PublishingStrategyDataHolder;
 import io.siddhi.operator.app.builder.core.topology.SiddhiQueryGroup;
 import io.siddhi.operator.app.builder.core.topology.SubscriptionStrategyDataHolder;
 import io.siddhi.operator.app.builder.core.util.TransportStrategy;
+import io.siddhi.operator.parser.bean.MessagingSystem;
+import org.apache.commons.lang3.StringUtils;
+import org.apache.log4j.Logger;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -36,6 +37,7 @@ import java.util.Map;
  * Creates distributed siddhi application which can be distributed using Nats-streaming.
  */
 public class NatsSiddhiAppCreator extends AbstractSiddhiAppCreator {
+
     private static final Logger log = Logger.getLogger(NatsSiddhiAppCreator.class);
     //App creator constants
     public static final String APP_NAME = "appName";
@@ -46,7 +48,7 @@ public class NatsSiddhiAppCreator extends AbstractSiddhiAppCreator {
     public static final String PARTITION_KEY = "partitionKey";
     public static final String DESTINATIONS = "destinations";
     public static final String PARTITION_NO = "partitionNo";
-    public static final String MAPPING = "xml";
+    public static final String MAPPING = "text";
     public static final String PARTITION_TOPIC = "partitionTopic";
     public static final String DESTINATION_TOPIC = "@destination(destination = '${"
             + PARTITION_TOPIC + "}')";
@@ -59,36 +61,38 @@ public class NatsSiddhiAppCreator extends AbstractSiddhiAppCreator {
             + "'${" + NATS_SERVER_URL + "}',@map(type='" + MAPPING + "'))";
     public static final String DEFAULT_NATS_SINK_TEMPLATE = "@sink(type='nats',"
             + "cluster.id='${" + CLUSTER_ID + "}',"
-            + "destination = '${" + TOPIC_LIST +  "}', bootstrap.servers="
+            + "destination = '${" + TOPIC_LIST + "}', bootstrap.servers="
             + "'${" + NATS_SERVER_URL + "}',@map(type='" + MAPPING + "'))";
     public static final String DEFAULT_NATS_SOURCE_TEMPLATE = "@source(type='nats',"
             + "cluster.id='${" + CLUSTER_ID + "}',"
-            + "destination = '${" + TOPIC_LIST +  "}', bootstrap.servers="
+            + "destination = '${" + TOPIC_LIST + "}', bootstrap.servers="
             + "'${" + NATS_SERVER_URL + "}',@map(type='" + MAPPING + "'))";
     public static final String QUEUE_GROUP_NAME = "queueGroupName";
     public static final String RR_NATS_SOURCE_TEMPLATE = "@source(type='nats',"
             + "cluster.id='${" + CLUSTER_ID + "}',"
-            + "queue.group.name='${"  + QUEUE_GROUP_NAME + "}',"
-            + "destination = '${" + TOPIC_LIST +  "}', bootstrap.servers="
+            + "queue.group.name='${" + QUEUE_GROUP_NAME + "}',"
+            + "destination = '${" + TOPIC_LIST + "}', bootstrap.servers="
             + "'${" + NATS_SERVER_URL + "}',@map(type='" + MAPPING + "'))";
 
-
-
-    private String clusterId;
-    private String natsServerUrl;
+    private String clusterId = "";
+    private String natsServerUrl = "";
 
     @Override
-    protected List<SiddhiQuery> createApps(String siddhiAppName, SiddhiQueryGroup queryGroup) {
+    protected List<SiddhiQuery> createApps(String siddhiAppName, SiddhiQueryGroup queryGroup,
+                                           MessagingSystem messagingSystem) {
+
         String groupName = queryGroup.getName();
         String queryTemplate = queryGroup.getSiddhiApp();
         List<SiddhiQuery> queryList = generateQueryList(queryTemplate, groupName, queryGroup
                 .getParallelism());
-        natsServerUrl = "nats://localhost:4222";
-        clusterId = "test-cluster";
+        if (messagingSystem != null && messagingSystem.getConfig() != null) {
+            natsServerUrl = messagingSystem.getConfig().getBootstrapServers()[0];
+            clusterId = messagingSystem.getConfig().getClusterId();
+        }
         processInputStreams(siddhiAppName, groupName, queryList, queryGroup.getInputStreams().values());
         processOutputStreams(siddhiAppName, queryList, queryGroup.getOutputStreams().values());
         if (log.isDebugEnabled()) {
-            log.debug("Following query list is created for the Siddhi Query Group " + queryGroup.getName() + " "
+            log.debug("Following parse list is created for the Siddhi Query Group " + queryGroup.getName() + " "
                     + "representing Siddhi App " + siddhiAppName + ".");
             for (SiddhiQuery siddhiQuery : queryList) {
                 log.debug(siddhiQuery.getApp());
@@ -98,15 +102,15 @@ public class NatsSiddhiAppCreator extends AbstractSiddhiAppCreator {
     }
 
     /**
-     *
      * @param siddhiAppName Name of the initial user defined siddhi application.
-     * @param queryList     Contains the query of the current execution group replicated
+     * @param queryList     Contains the parse of the current execution group replicated
      *                      to the parallelism of the group.
      * @param outputStreams Collection of current execution group's output streams
-     * Assigns the nats sink configurations for output streams.
+     *                      Assigns the nats sink configurations for output streams.
      */
     private void processOutputStreams(String siddhiAppName, List<SiddhiQuery> queryList,
                                       Collection<OutputStreamDataHolder> outputStreams) {
+
         Map<String, String> sinkValuesMap = new HashMap<>();
         sinkValuesMap.put("clusterid", clusterId);
         sinkValuesMap.put("natsserverurl", natsServerUrl);
@@ -149,7 +153,7 @@ public class NatsSiddhiAppCreator extends AbstractSiddhiAppCreator {
                     //ATM we are handling both strategies in same manner. Later will improve to have multiple
                     // partitions for RR
                     String sinkString = getUpdatedQuery(DEFAULT_NATS_SINK_TEMPLATE,
-                                sinkValuesMap);
+                            sinkValuesMap);
                     sinkList.put(sinkValuesMap.get(TOPIC_LIST), sinkString);
                 }
             }
@@ -160,15 +164,15 @@ public class NatsSiddhiAppCreator extends AbstractSiddhiAppCreator {
     }
 
     /**
-     *
      * @param siddhiAppName Name of the initial user defined siddhi application.
-     * @param queryList     Contains the query of the current execution group replicated
+     * @param queryList     Contains the parse of the current execution group replicated
      *                      to the parallelism of the group.
      * @param inputStreams  Collection of current execution group's input streams
-     * Assigns the nats source configurations for input streams.
+     *                      Assigns the nats source configurations for input streams.
      */
     private void processInputStreams(String siddhiAppName, String groupName, List<SiddhiQuery> queryList,
                                      Collection<InputStreamDataHolder> inputStreams) {
+
         Map<String, String> sourceValuesMap = new HashMap<>();
         for (InputStreamDataHolder inputStream : inputStreams) {
             SubscriptionStrategyDataHolder subscriptionStrategy = inputStream.getSubscriptionStrategy();
@@ -182,7 +186,7 @@ public class NatsSiddhiAppCreator extends AbstractSiddhiAppCreator {
                     for (int i = 0; i < queryList.size(); i++) {
                         List<String> sourceQueries = new ArrayList<>();
                         List<Integer> partitionNumbers = getPartitionNumbers(queryList.size(), subscriptionStrategy
-                                        .getOfferedParallelism(), i);
+                                .getOfferedParallelism(), i);
                         for (int topicCount : partitionNumbers) {
                             String topicName = getTopicName(siddhiAppName, inputStream.getStreamName(),
                                     inputStream.getSubscriptionStrategy().getPartitionKey()) + "_"

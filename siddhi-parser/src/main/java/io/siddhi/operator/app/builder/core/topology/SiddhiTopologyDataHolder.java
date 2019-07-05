@@ -36,6 +36,7 @@ public class SiddhiTopologyDataHolder {
     private Map<String, List<String>> partitionGroupMap; //<streamID,GroupList>
     private Map<String, String> partitionKeyGroupMap; //<PartitionKey+StreamID,GroupName>
     private Map<String, SiddhiQueryGroup> siddhiQueryGroupMap;
+    private boolean isStatefulApp = false;
 
     public SiddhiTopologyDataHolder(String siddhiAppName, String userDefinedSiddhiApp) {
         this.siddhiAppName = siddhiAppName;
@@ -75,5 +76,13 @@ public class SiddhiTopologyDataHolder {
 
     public Map<String, List<String>> getPartitionGroupMap() {
         return partitionGroupMap;
+    }
+
+    public boolean isStatefulApp() {
+        return isStatefulApp;
+    }
+
+    public void setStatefulApp(boolean statefulApp) {
+        isStatefulApp = statefulApp;
     }
 }
