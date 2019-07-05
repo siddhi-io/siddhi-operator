@@ -22,11 +22,7 @@
 <suite name="wso2sp-test-suite">
     <test name="siddhi-distributed-unit-tests" parallel="false">
         <classes>
-            <class name="io.siddhi.operator.app.builder.core.SiddhiTopologyCreatorTestCase"/>
-            <class name="io.siddhi.operator.app.builder.core.TopologyCreatorExceptionHandlerTestCase"/>
-            <class name="io.siddhi.operator.app.builder.core.BeanTestCase"/>
-            <class name="io.siddhi.operator.app.builder.core.DistributedAggregationTestCase"/>
-            <class name="io.siddhi.operator.app.builder.core.JmsTransportTestCase"/>
+            <class name="io.siddhi.operator.app.builder.core.NatsAppCreatorTestCase"/>
         </classes>
     </test>
 </suite>
