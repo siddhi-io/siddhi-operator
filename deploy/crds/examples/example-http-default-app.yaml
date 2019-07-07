@@ -1,7 +1,7 @@
 apiVersion: siddhi.io/v1alpha2
 kind: SiddhiProcess
 metadata: 
-  name: nats-app
+  name: monitor-app
 spec: 
   apps: 
     - script: |
@@ -33,7 +33,6 @@ spec:
         name: BASIC_AUTH_ENABLED
         value: "false"
     image: "siddhiio/siddhi-runner-ubuntu:5.1.0"
-  imagePullSecret: siddhi
 
   runner: |
     state.persistence:
