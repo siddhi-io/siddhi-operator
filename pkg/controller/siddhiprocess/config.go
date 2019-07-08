@@ -33,7 +33,7 @@ import (
 // Default configurations stored as constants. Further these constants used by the Configurations() function.
 const (
 	SiddhiHome         string = "/home/siddhi_user/siddhi-runner/"
-	SiddhiImage        string = "siddhiio/siddhi-runner-alpine:5.1.0"
+	SiddhiImage        string = "siddhiio/siddhi-runner-alpine:5.1.0-m1"
 	SiddhiRunnerPath   string = "wso2/runner/"
 	SiddhiCMExt        string = "-siddhi"
 	SiddhiExt          string = ".siddhi"
@@ -48,7 +48,7 @@ const (
 	RunnerRPath        string = "bin/runner.sh"
 	HostName           string = "siddhi"
 	OperatorName       string = "siddhi-operator"
-	OperatorVersion    string = "0.2.0"
+	OperatorVersion    string = "0.2.0-m1"
 	CRDName            string = "SiddhiProcess"
 	ReadWriteOnce      string = "ReadWriteOnce"
 	ReadOnlyMany       string = "ReadOnlyMany"
@@ -305,7 +305,7 @@ var testSP = &siddhiv1alpha2.SiddhiProcess{
 	},
 	Spec: siddhiv1alpha2.SiddhiProcessSpec{
 		Container: corev1.Container{
-			Image: "siddhiio/siddhi-runner:5.1.0",
+			Image: SiddhiImage,
 		},
 		MessagingSystem: siddhiv1alpha2.MessagingSystem{
 			Type: "nats",
