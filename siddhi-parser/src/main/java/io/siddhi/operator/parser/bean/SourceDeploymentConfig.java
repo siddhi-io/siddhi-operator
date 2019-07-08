@@ -22,6 +22,7 @@ public class SourceDeploymentConfig {
     private String serviceProtocol;
     private boolean secured = false;
     private int port;
+    private boolean isPulling;
     private Map<String, String> deploymentProperties = new HashMap<>();
 
     public String getServiceProtocol() {
@@ -48,6 +49,14 @@ public class SourceDeploymentConfig {
 
     public void setPort(int port) {
         this.port = port;
+    }
+
+    public boolean isPulling() {
+        return isPulling;
+    }
+
+    public void setPulling(boolean pulling) {
+        isPulling = pulling;
     }
 
     public Map<String, String> getDeploymentProperties() {

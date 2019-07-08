@@ -28,14 +28,8 @@ public class SiddhiParserRequest {
     @SerializedName("propertyMap")
     private Map<String, String> propertyMap = null;
 
-    public List<String> getSiddhiApp() {
-        return siddhiApps;
-    }
-
-    public SiddhiParserRequest setSiddhiApp(List<String> siddhiApp) {
-        this.siddhiApps = siddhiApp;
-        return this;
-    }
+    @SerializedName("messagingSystem")
+    private MessagingSystem messagingSystem = null;
 
     public Map<String, String> getPropertyMap() {
         return propertyMap;
@@ -44,5 +38,21 @@ public class SiddhiParserRequest {
     public SiddhiParserRequest setPropertyMap(Map<String, String> propertyMap) {
         this.propertyMap = propertyMap;
         return this;
+    }
+
+    public List<String> getSiddhiApps() {
+        return siddhiApps;
+    }
+
+    public void setSiddhiApps(List<String> siddhiApps) {
+        this.siddhiApps = siddhiApps;
+    }
+
+    public MessagingSystem getMessagingSystem() {
+        return messagingSystem;
+    }
+
+    public void setMessagingSystem(MessagingSystem messagingSystem) {
+        this.messagingSystem = messagingSystem;
     }
 }
