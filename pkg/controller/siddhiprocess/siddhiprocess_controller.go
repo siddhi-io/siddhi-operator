@@ -97,6 +97,7 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 		return err
 	}
 
+	// Watch for changes to secondary resource Deployments and requeue the owner SiddhiProcess
 	err = c.Watch(&source.Kind{Type: &appsv1.Deployment{}}, &handler.EnqueueRequestForOwner{
 		IsController: true,
 		OwnerType:    &siddhiv1alpha2.SiddhiProcess{},
@@ -105,6 +106,7 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 		return err
 	}
 
+	// Watch for changes to secondary resource Services and requeue the owner SiddhiProcess
 	err = c.Watch(&source.Kind{Type: &corev1.Service{}}, &handler.EnqueueRequestForOwner{
 		IsController: true,
 		OwnerType:    &siddhiv1alpha2.SiddhiProcess{},
@@ -113,6 +115,7 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 		return err
 	}
 
+	// Watch for changes to secondary resource PersistentVolumeClaims and requeue the owner SiddhiProcess
 	err = c.Watch(&source.Kind{Type: &corev1.PersistentVolumeClaim{}}, &handler.EnqueueRequestForOwner{
 		IsController: true,
 		OwnerType:    &siddhiv1alpha2.SiddhiProcess{},
@@ -121,6 +124,7 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 		return err
 	}
 
+	// Watch for changes to secondary resource NatsClusters and requeue the owner SiddhiProcess
 	err = c.Watch(&source.Kind{Type: &natsv1alpha2.NatsCluster{}}, &handler.EnqueueRequestForOwner{
 		IsController: true,
 		OwnerType:    &siddhiv1alpha2.SiddhiProcess{},
@@ -129,6 +133,7 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 		return err
 	}
 
+	// Watch for changes to secondary resource NatsStreamingClusters and requeue the owner SiddhiProcess
 	err = c.Watch(&source.Kind{Type: &streamingv1alpha1.NatsStreamingCluster{}}, &handler.EnqueueRequestForOwner{
 		IsController: true,
 		OwnerType:    &siddhiv1alpha2.SiddhiProcess{},
@@ -137,6 +142,7 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 		return err
 	}
 
+	// Watch for changes to secondary resource Pods and requeue the owner SiddhiProcess
 	err = c.Watch(&source.Kind{Type: &corev1.Pod{}}, &handler.EnqueueRequestForOwner{
 		IsController: true,
 		OwnerType:    &siddhiv1alpha2.SiddhiProcess{},
