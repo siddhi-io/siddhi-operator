@@ -94,7 +94,7 @@ func TestCreateAndUpdateIngress(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-	if len(ingress.Spec.Rules) != 2 {
+	if len(ingress.Spec.Rules[0].HTTP.Paths) != 2 {
 		t.Error("Ingress update error. Expected entries 2, but found " + strconv.Itoa(len(ingress.Spec.Rules)))
 	}
 }
@@ -197,6 +197,7 @@ func TestCreateDeployment(t *testing.T) {
 		corev1.PullAlways,
 		[]corev1.LocalObjectReference{},
 		[]corev1.Volume{},
+		appsv1.DeploymentStrategy{},
 	)
 	if err != nil {
 		t.Error(err)

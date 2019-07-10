@@ -21,7 +21,6 @@ package siddhiprocess
 import (
 	"context"
 	"errors"
-	"reflect"
 	"strconv"
 	"strings"
 
@@ -169,41 +168,53 @@ func (rsp *ReconcileSiddhiProcess) UpdateIngress(
 	}
 
 	currentRules := currentIngress.Spec.Rules
-	newRule := extensionsv1beta1.IngressRule{
-		Host: configs.HostName,
-		IngressRuleValue: extensionsv1beta1.IngressRuleValue{
-			HTTP: &extensionsv1beta1.HTTPIngressRuleValue{
-				Paths: ingressPaths,
-			},
+	ruleValue := extensionsv1beta1.IngressRuleValue{
+		HTTP: &extensionsv1beta1.HTTPIngressRuleValue{
+			Paths: ingressPaths,
 		},
 	}
+	newRule := extensionsv1beta1.IngressRule{
+		Host:             configs.HostName,
+		IngressRuleValue: ruleValue,
+	}
 	ruleExists := false
+	needUpdate := false
 	for _, rule := range currentRules {
-		if reflect.DeepEqual(rule, newRule) {
+		if rule.Host == configs.HostName {
 			ruleExists = true
+			for _, path := range ingressPaths {
+				if !pathContains(rule.HTTP.Paths, path) {
+					needUpdate = true
+					rule.HTTP.Paths = append(rule.HTTP.Paths, path)
+				}
+			}
 		}
 	}
+
 	if !ruleExists {
+		needUpdate = true
 		currentRules = append(currentRules, newRule)
 	}
-	var ingressSpec extensionsv1beta1.IngressSpec
-	if configs.IngressTLS != "" {
-		ingressSpec = extensionsv1beta1.IngressSpec{
-			TLS: []extensionsv1beta1.IngressTLS{
-				extensionsv1beta1.IngressTLS{
-					Hosts:      []string{configs.HostName},
-					SecretName: configs.IngressTLS,
+	if needUpdate {
+		var ingressSpec extensionsv1beta1.IngressSpec
+		if configs.IngressTLS != "" {
+			ingressSpec = extensionsv1beta1.IngressSpec{
+				TLS: []extensionsv1beta1.IngressTLS{
+					extensionsv1beta1.IngressTLS{
+						Hosts:      []string{configs.HostName},
+						SecretName: configs.IngressTLS,
+					},
 				},
-			},
-			Rules: currentRules,
+				Rules: currentRules,
+			}
+		} else {
+			ingressSpec = extensionsv1beta1.IngressSpec{
+				Rules: currentRules,
+			}
 		}
-	} else {
-		ingressSpec = extensionsv1beta1.IngressSpec{
-			Rules: currentRules,
-		}
+		currentIngress.Spec = ingressSpec
+		err = rsp.client.Update(context.TODO(), currentIngress)
 	}
-	currentIngress.Spec = ingressSpec
-	err = rsp.client.Update(context.TODO(), currentIngress)
 	return
 }
 
@@ -366,6 +377,7 @@ func (rsp *ReconcileSiddhiProcess) CreateDeployment(
 	ipp corev1.PullPolicy,
 	secrets []corev1.LocalObjectReference,
 	volumes []corev1.Volume,
+	strategy appsv1.DeploymentStrategy,
 ) (err error) {
 	deployment := &appsv1.Deployment{
 		TypeMeta: metav1.TypeMeta{
@@ -403,6 +415,7 @@ func (rsp *ReconcileSiddhiProcess) CreateDeployment(
 					Volumes:          volumes,
 				},
 			},
+			Strategy: strategy,
 		},
 	}
 	controllerutil.SetControllerReference(sp, deployment, rsp.scheme)

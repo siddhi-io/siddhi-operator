@@ -76,6 +76,8 @@ const (
 	NATSTimeout        int    = 5
 	DefaultRTime       int    = 1
 	DeploymentSize     int32  = 1
+	MaxUnavailable     int32  = 0
+	MaxSurge           int32  = 2
 )
 
 // State persistence config is the different string constant used by the deployApp() function. This constant holds a YAML object
@@ -178,6 +180,8 @@ type Configs struct {
 	NATSTimeout        int
 	DefaultRTime       int
 	DeploymentSize     int32
+	MaxUnavailable     int32
+	MaxSurge           int32
 }
 
 // SPConfig contains the state persistence configs
@@ -388,6 +392,8 @@ func (rsp *ReconcileSiddhiProcess) Configurations(sp *siddhiv1alpha2.SiddhiProce
 		NATSTimeout:        NATSTimeout,
 		DefaultRTime:       DefaultRTime,
 		DeploymentSize:     DeploymentSize,
+		MaxUnavailable:     MaxUnavailable,
+		MaxSurge:           MaxSurge,
 	}
 	cmName := OperatorCMName
 	env := os.Getenv("OPERATOR_CONFIGMAP")

@@ -30,6 +30,7 @@ import (
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/apimachinery/pkg/util/intstr"
 	"k8s.io/client-go/tools/record"
 )
 
@@ -45,6 +46,7 @@ func (rsp *ReconcileSiddhiProcess) deployApp(
 	var volumes []corev1.Volume
 	var volumeMounts []corev1.VolumeMount
 	var imagePullSecrets []corev1.LocalObjectReference
+	var strategy appsv1.DeploymentStrategy
 	configMapData := make(map[string]string)
 	labels := labelsForSiddhiProcess(siddhiApp.Name, configs)
 	siddhiRunnerImage, siddhiHome, siddhiImageSecret := populateRunnerConfigs(sp, configs)
@@ -55,24 +57,23 @@ func (rsp *ReconcileSiddhiProcess) deployApp(
 		imagePullSecrets = append(imagePullSecrets, secret)
 	}
 
-	q := siddhiv1alpha2.PV{}
-	if !(sp.Spec.PV.Equals(&q)) && siddhiApp.PersistenceEnabled {
-		pvcName := siddhiApp.Name + configs.PVCExt
-		err = rsp.CreatePVC(sp, configs, pvcName)
-		if err != nil {
-			return
-		}
-		mountPath, err := populateMountPath(sp, configs)
-		if err != nil {
-			return err
-		}
-		volume, volumeMount := createPVCVolumes(pvcName, mountPath)
-		volumes = append(volumes, volume)
-		volumeMounts = append(volumeMounts, volumeMount)
-	}
-
 	configParameter := ""
+	q := siddhiv1alpha2.PV{}
 	if siddhiApp.PersistenceEnabled {
+		if !sp.Spec.PV.Equals(&q) {
+			pvcName := siddhiApp.Name + configs.PVCExt
+			err = rsp.CreatePVC(sp, configs, pvcName)
+			if err != nil {
+				return
+			}
+			mountPath, err := populateMountPath(sp, configs)
+			if err != nil {
+				return err
+			}
+			volume, volumeMount := createPVCVolumes(pvcName, mountPath)
+			volumes = append(volumes, volume)
+			volumeMounts = append(volumeMounts, volumeMount)
+		}
 		deployYAMLCMName := sp.Name + configs.DepCMExt
 		siddhiConfig := StatePersistenceConf
 		if sp.Spec.SiddhiConfig != "" {
@@ -90,20 +91,38 @@ func (rsp *ReconcileSiddhiProcess) deployApp(
 		volumes = append(volumes, volume)
 		volumeMounts = append(volumeMounts, volumeMount)
 		configParameter = configs.DepConfParameter + mountPath + deployYAMLCMName
-	} else if sp.Spec.SiddhiConfig != "" {
-		deployYAMLCMName := sp.Name + configs.DepCMExt
-		data := map[string]string{
-			deployYAMLCMName: sp.Spec.SiddhiConfig,
+	} else {
+		if sp.Spec.SiddhiConfig != "" {
+			deployYAMLCMName := sp.Name + configs.DepCMExt
+			data := map[string]string{
+				deployYAMLCMName: sp.Spec.SiddhiConfig,
+			}
+			err = rsp.CreateConfigMap(sp, deployYAMLCMName, data)
+			if err != nil {
+				return
+			}
+			mountPath := configs.SiddhiHome + configs.DepConfMountPath
+			volume, volumeMount := createCMVolumes(deployYAMLCMName, mountPath)
+			volumes = append(volumes, volume)
+			volumeMounts = append(volumeMounts, volumeMount)
+			configParameter = configs.DepConfParameter + mountPath + deployYAMLCMName
 		}
-		err = rsp.CreateConfigMap(sp, deployYAMLCMName, data)
-		if err != nil {
-			return
+		maxUnavailable := intstr.IntOrString{
+			Type:   Int,
+			IntVal: configs.MaxUnavailable,
 		}
-		mountPath := configs.SiddhiHome + configs.DepConfMountPath
-		volume, volumeMount := createCMVolumes(deployYAMLCMName, mountPath)
-		volumes = append(volumes, volume)
-		volumeMounts = append(volumeMounts, volumeMount)
-		configParameter = configs.DepConfParameter + mountPath + deployYAMLCMName
+		maxSurge := intstr.IntOrString{
+			Type:   Int,
+			IntVal: configs.MaxSurge,
+		}
+		rollingUpdate := appsv1.RollingUpdateDeployment{
+			MaxUnavailable: &maxUnavailable,
+			MaxSurge:       &maxSurge,
+		}
+		strategy = appsv1.DeploymentStrategy{
+			Type:          appsv1.RollingUpdateDeploymentStrategyType,
+			RollingUpdate: &rollingUpdate,
+		}
 	}
 
 	configMapName := siddhiApp.Name + configs.SiddhiCMExt
@@ -138,6 +157,7 @@ func (rsp *ReconcileSiddhiProcess) deployApp(
 		corev1.PullAlways,
 		imagePullSecrets,
 		volumes,
+		strategy,
 	)
 	return
 }

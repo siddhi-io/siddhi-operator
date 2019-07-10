@@ -23,12 +23,14 @@ import (
 	"encoding/json"
 	"errors"
 	"net/http"
+	"reflect"
 	"regexp"
 	"strconv"
 	"strings"
 
 	siddhiv1alpha2 "github.com/siddhi-io/siddhi-operator/pkg/apis/siddhi/v1alpha2"
 	corev1 "k8s.io/api/core/v1"
+	extensionsv1beta1 "k8s.io/api/extensions/v1beta1"
 
 	"gopkg.in/yaml.v2"
 	"path/filepath"
@@ -210,4 +212,14 @@ func createPVCVolumes(pvcName string, mountPath string) (volume corev1.Volume, v
 		MountPath: mountPath,
 	}
 	return
+}
+
+// pathContains checks the given path is available on ingress path lists or not
+func pathContains(paths []extensionsv1beta1.HTTPIngressPath, path extensionsv1beta1.HTTPIngressPath) bool {
+	for _, p := range paths {
+		if reflect.DeepEqual(p, path) {
+			return true
+		}
+	}
+	return false
 }
