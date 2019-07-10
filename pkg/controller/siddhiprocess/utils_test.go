@@ -23,8 +23,10 @@ import (
 
 	siddhiv1alpha2 "github.com/siddhi-io/siddhi-operator/pkg/apis/siddhi/v1alpha2"
 	corev1 "k8s.io/api/core/v1"
+	extensionsv1beta1 "k8s.io/api/extensions/v1beta1"
 
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/util/intstr"
 	"k8s.io/client-go/kubernetes/scheme"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 )
@@ -138,6 +140,58 @@ func TestCreatePVCVolumes(t *testing.T) {
 	}
 	if volumeMount.MountPath != mountPath {
 		t.Error("Expected volume mount name " + mountPath + " but found " + volumeMount.MountPath)
+	}
+}
+
+func TestPathContains(t *testing.T) {
+	paths := []extensionsv1beta1.HTTPIngressPath{
+		extensionsv1beta1.HTTPIngressPath{
+			Path: "/app1/8080/example",
+			Backend: extensionsv1beta1.IngressBackend{
+				ServiceName: "app1",
+				ServicePort: intstr.IntOrString{
+					Type:   Int,
+					IntVal: 8080,
+				},
+			},
+		},
+		extensionsv1beta1.HTTPIngressPath{
+			Path: "/app2/8080/example",
+			Backend: extensionsv1beta1.IngressBackend{
+				ServiceName: "app2",
+				ServicePort: intstr.IntOrString{
+					Type:   Int,
+					IntVal: 8080,
+				},
+			},
+		},
+	}
+	negativePath := extensionsv1beta1.HTTPIngressPath{
+		Path: "/app3/8080/example",
+		Backend: extensionsv1beta1.IngressBackend{
+			ServiceName: "app3",
+			ServicePort: intstr.IntOrString{
+				Type:   Int,
+				IntVal: 8080,
+			},
+		},
+	}
+	positivePath := extensionsv1beta1.HTTPIngressPath{
+		Path: "/app2/8080/example",
+		Backend: extensionsv1beta1.IngressBackend{
+			ServiceName: "app2",
+			ServicePort: intstr.IntOrString{
+				Type:   Int,
+				IntVal: 8080,
+			},
+		},
+	}
+
+	if pathContains(paths, negativePath) {
+		t.Error("Expected value pathContains=false but found true")
+	}
+	if !pathContains(paths, positivePath) {
+		t.Error("Expected value pathContains=true but found false")
 	}
 }
 
