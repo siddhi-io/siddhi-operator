@@ -198,6 +198,7 @@ func TestCreateDeployment(t *testing.T) {
 		[]corev1.LocalObjectReference{},
 		[]corev1.Volume{},
 		appsv1.DeploymentStrategy{},
+		configs,
 	)
 	if err != nil {
 		t.Error(err)

@@ -158,6 +158,7 @@ func (rsp *ReconcileSiddhiProcess) deployApp(
 		imagePullSecrets,
 		volumes,
 		strategy,
+		configs,
 	)
 	return
 }
@@ -281,7 +282,6 @@ func (rsp *ReconcileSiddhiProcess) createArtifacts(sp *siddhiv1alpha2.SiddhiProc
 						sp = rsp.updateErrorStatus(sp, ER, ERROR, "IngressUpdationError", err)
 						continue
 					}
-					reqLogger.Info("Ingress updated successfully", "Ingress.Name", configs.HostName)
 				}
 			}
 		}
