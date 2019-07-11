@@ -32,52 +32,59 @@ import (
 
 // Default configurations stored as constants. Further these constants used by the Configurations() function.
 const (
-	SiddhiHome         string = "/home/siddhi_user/siddhi-runner/"
-	SiddhiImage        string = "siddhiio/siddhi-runner-alpine:5.1.0-m1"
-	SiddhiRunnerPath   string = "wso2/runner/"
-	SiddhiCMExt        string = "-siddhi"
-	SiddhiExt          string = ".siddhi"
-	SiddhiFileRPath    string = "siddhi-files/"
-	ContainerName      string = "siddhi-runner-runtime"
-	DepConfigName      string = "deploymentconfig"
-	DepConfMountPath   string = "tmp/configs/"
-	DepConfParameter   string = "-Dconfig="
-	AppConfParameter   string = "-Dapps="
-	DepCMExt           string = "-depyml"
-	Shell              string = "sh"
-	RunnerRPath        string = "bin/runner.sh"
-	HostName           string = "siddhi"
-	OperatorName       string = "siddhi-operator"
-	OperatorVersion    string = "0.2.0-m1"
-	CRDName            string = "SiddhiProcess"
-	ReadWriteOnce      string = "ReadWriteOnce"
-	ReadOnlyMany       string = "ReadOnlyMany"
-	ReadWriteMany      string = "ReadWriteMany"
-	PVCExt             string = "-pvc"
-	FilePersistentPath string = "wso2/runner/siddhi-app-persistence"
-	ParserDomain       string = "http://siddhi-parser."
-	ParserContext      string = ".svc.cluster.local:9090/siddhi-parser/parse"
-	PVCSize            string = "1Gi"
-	NATSAPIVersion     string = "nats.io/v1alpha2"
-	STANAPIVersion     string = "streaming.nats.io/v1alpha1"
-	NATSKind           string = "NatsCluster"
-	STANKind           string = "NatsStreamingCluster"
-	NATSExt            string = "-nats"
-	STANExt            string = "-stan"
-	NATSClusterName    string = "siddhi-nats"
-	STANClusterName    string = "siddhi-stan"
-	NATSDefaultURL     string = "nats://siddhi-nats:4222"
-	NATSTCPHost        string = "siddhi-nats:4222"
-	NATSMSType         string = "nats"
-	TCP                string = "tcp"
-	IngressTLS         string = ""
-	AutoCreateIngress  bool   = false
-	NATSSize           int    = 1
-	NATSTimeout        int    = 5
-	DefaultRTime       int    = 1
-	DeploymentSize     int32  = 1
-	MaxUnavailable     int32  = 0
-	MaxSurge           int32  = 2
+	SiddhiHome                 string = "/home/siddhi_user/siddhi-runner/"
+	SiddhiImage                string = "siddhiio/siddhi-runner-alpine:5.1.0-m1"
+	SiddhiRunnerPath           string = "wso2/runner/"
+	SiddhiCMExt                string = "-siddhi"
+	SiddhiExt                  string = ".siddhi"
+	SiddhiFileRPath            string = "siddhi-files/"
+	ContainerName              string = "siddhi-runner-runtime"
+	DepConfigName              string = "deploymentconfig"
+	DepConfMountPath           string = "tmp/configs/"
+	DepConfParameter           string = "-Dconfig="
+	AppConfParameter           string = "-Dapps="
+	DepCMExt                   string = "-depyml"
+	Shell                      string = "sh"
+	RunnerRPath                string = "bin/runner.sh"
+	HostName                   string = "siddhi"
+	OperatorName               string = "siddhi-operator"
+	OperatorVersion            string = "0.2.0-m1"
+	CRDName                    string = "SiddhiProcess"
+	ReadWriteOnce              string = "ReadWriteOnce"
+	ReadOnlyMany               string = "ReadOnlyMany"
+	ReadWriteMany              string = "ReadWriteMany"
+	PVCExt                     string = "-pvc"
+	FilePersistentPath         string = "wso2/runner/siddhi-app-persistence"
+	ParserDomain               string = "http://siddhi-parser."
+	ParserContext              string = ".svc.cluster.local:9090/siddhi-parser/parse"
+	PVCSize                    string = "1Gi"
+	NATSAPIVersion             string = "nats.io/v1alpha2"
+	STANAPIVersion             string = "streaming.nats.io/v1alpha1"
+	NATSKind                   string = "NatsCluster"
+	STANKind                   string = "NatsStreamingCluster"
+	NATSExt                    string = "-nats"
+	STANExt                    string = "-stan"
+	NATSClusterName            string = "siddhi-nats"
+	STANClusterName            string = "siddhi-stan"
+	NATSDefaultURL             string = "nats://siddhi-nats:4222"
+	NATSTCPHost                string = "siddhi-nats:4222"
+	NATSMSType                 string = "nats"
+	TCP                        string = "tcp"
+	IngressTLS                 string = ""
+	HealthPortName             string = "hport"
+	HealthPath                 string = "/health"
+	AutoCreateIngress          bool   = false
+	NATSSize                   int    = 1
+	NATSTimeout                int    = 5
+	DefaultRTime               int    = 1
+	DeploymentSize             int32  = 1
+	MaxUnavailable             int32  = 0
+	MaxSurge                   int32  = 2
+	HealthPort                 int32  = 9090
+	ReadyPrPeriodSeconds       int32  = 20
+	ReadyPrInitialDelaySeconds int32  = 60
+	LivePrPeriodSeconds        int32  = 120
+	LivePrInitialDelaySeconds  int32  = 120
 )
 
 // State persistence config is the different string constant used by the deployApp() function. This constant holds a YAML object
@@ -135,53 +142,60 @@ const (
 
 // Configs is the struct definition of the object which used to bundle the all default configurations
 type Configs struct {
-	SiddhiHome         string
-	SiddhiImage        string
-	SiddhiImageSecret  string
-	SiddhiCMExt        string
-	SiddhiExt          string
-	SiddhiFileRPath    string
-	SiddhiRunnerPath   string
-	ContainerName      string
-	DepConfigName      string
-	DepConfMountPath   string
-	DepConfParameter   string
-	AppConfParameter   string
-	DepCMExt           string
-	Shell              string
-	RunnerRPath        string
-	HostName           string
-	OperatorName       string
-	OperatorVersion    string
-	CRDName            string
-	ReadWriteOnce      string
-	ReadOnlyMany       string
-	ReadWriteMany      string
-	PVCExt             string
-	FilePersistentPath string
-	ParserDomain       string
-	ParserContext      string
-	PVCSize            string
-	NATSAPIVersion     string
-	STANAPIVersion     string
-	NATSKind           string
-	STANKind           string
-	NATSExt            string
-	STANExt            string
-	NATSClusterName    string
-	STANClusterName    string
-	NATSDefaultURL     string
-	NATSTCPHost        string
-	NATSMSType         string
-	TCP                string
-	IngressTLS         string
-	AutoCreateIngress  bool
-	NATSSize           int
-	NATSTimeout        int
-	DefaultRTime       int
-	DeploymentSize     int32
-	MaxUnavailable     int32
-	MaxSurge           int32
+	SiddhiHome                 string
+	SiddhiImage                string
+	SiddhiImageSecret          string
+	SiddhiCMExt                string
+	SiddhiExt                  string
+	SiddhiFileRPath            string
+	SiddhiRunnerPath           string
+	ContainerName              string
+	DepConfigName              string
+	DepConfMountPath           string
+	DepConfParameter           string
+	AppConfParameter           string
+	DepCMExt                   string
+	Shell                      string
+	RunnerRPath                string
+	HostName                   string
+	OperatorName               string
+	OperatorVersion            string
+	CRDName                    string
+	ReadWriteOnce              string
+	ReadOnlyMany               string
+	ReadWriteMany              string
+	PVCExt                     string
+	FilePersistentPath         string
+	ParserDomain               string
+	ParserContext              string
+	PVCSize                    string
+	NATSAPIVersion             string
+	STANAPIVersion             string
+	NATSKind                   string
+	STANKind                   string
+	NATSExt                    string
+	STANExt                    string
+	NATSClusterName            string
+	STANClusterName            string
+	NATSDefaultURL             string
+	NATSTCPHost                string
+	NATSMSType                 string
+	TCP                        string
+	IngressTLS                 string
+	HealthPortName             string
+	HealthPath                 string
+	AutoCreateIngress          bool
+	NATSSize                   int
+	NATSTimeout                int
+	DefaultRTime               int
+	DeploymentSize             int32
+	MaxUnavailable             int32
+	MaxSurge                   int32
+	HealthPort                 int32
+	ReadyPrPeriodSeconds       int32
+	ReadyPrInitialDelaySeconds int32
+	LivePrPeriodSeconds        int32
+	LivePrInitialDelaySeconds  int32
 }
 
 // SPConfig contains the state persistence configs
@@ -348,52 +362,58 @@ var testSiddhiApp = SiddhiApp{
 // object and then returns that object. This object used to differenciate default configs from other variables.
 func (rsp *ReconcileSiddhiProcess) Configurations(sp *siddhiv1alpha2.SiddhiProcess) Configs {
 	configs := Configs{
-		SiddhiHome:         SiddhiHome,
-		SiddhiImage:        SiddhiImage,
-		SiddhiCMExt:        SiddhiCMExt,
-		SiddhiExt:          SiddhiExt,
-		SiddhiFileRPath:    SiddhiFileRPath,
-		SiddhiRunnerPath:   SiddhiRunnerPath,
-		ContainerName:      ContainerName,
-		DepConfigName:      DepConfigName,
-		DepConfMountPath:   DepConfMountPath,
-		DepConfParameter:   DepConfParameter,
-		AppConfParameter:   AppConfParameter,
-		DepCMExt:           DepCMExt,
-		Shell:              Shell,
-		RunnerRPath:        RunnerRPath,
-		HostName:           HostName,
-		OperatorName:       OperatorName,
-		OperatorVersion:    OperatorVersion,
-		CRDName:            CRDName,
-		ReadWriteOnce:      ReadWriteOnce,
-		ReadOnlyMany:       ReadOnlyMany,
-		ReadWriteMany:      ReadWriteMany,
-		PVCExt:             PVCExt,
-		FilePersistentPath: FilePersistentPath,
-		ParserDomain:       ParserDomain,
-		ParserContext:      ParserContext,
-		PVCSize:            PVCSize,
-		NATSAPIVersion:     NATSAPIVersion,
-		STANAPIVersion:     STANAPIVersion,
-		NATSKind:           NATSKind,
-		STANKind:           STANKind,
-		NATSExt:            NATSExt,
-		STANExt:            STANExt,
-		NATSClusterName:    NATSClusterName,
-		STANClusterName:    STANClusterName,
-		NATSDefaultURL:     NATSDefaultURL,
-		NATSTCPHost:        NATSTCPHost,
-		NATSMSType:         NATSMSType,
-		TCP:                TCP,
-		IngressTLS:         IngressTLS,
-		AutoCreateIngress:  AutoCreateIngress,
-		NATSSize:           NATSSize,
-		NATSTimeout:        NATSTimeout,
-		DefaultRTime:       DefaultRTime,
-		DeploymentSize:     DeploymentSize,
-		MaxUnavailable:     MaxUnavailable,
-		MaxSurge:           MaxSurge,
+		SiddhiHome:                 SiddhiHome,
+		SiddhiImage:                SiddhiImage,
+		SiddhiCMExt:                SiddhiCMExt,
+		SiddhiExt:                  SiddhiExt,
+		SiddhiFileRPath:            SiddhiFileRPath,
+		SiddhiRunnerPath:           SiddhiRunnerPath,
+		ContainerName:              ContainerName,
+		DepConfigName:              DepConfigName,
+		DepConfMountPath:           DepConfMountPath,
+		DepConfParameter:           DepConfParameter,
+		AppConfParameter:           AppConfParameter,
+		DepCMExt:                   DepCMExt,
+		Shell:                      Shell,
+		RunnerRPath:                RunnerRPath,
+		HostName:                   HostName,
+		OperatorName:               OperatorName,
+		OperatorVersion:            OperatorVersion,
+		CRDName:                    CRDName,
+		ReadWriteOnce:              ReadWriteOnce,
+		ReadOnlyMany:               ReadOnlyMany,
+		ReadWriteMany:              ReadWriteMany,
+		PVCExt:                     PVCExt,
+		FilePersistentPath:         FilePersistentPath,
+		ParserDomain:               ParserDomain,
+		ParserContext:              ParserContext,
+		PVCSize:                    PVCSize,
+		NATSAPIVersion:             NATSAPIVersion,
+		STANAPIVersion:             STANAPIVersion,
+		NATSKind:                   NATSKind,
+		STANKind:                   STANKind,
+		NATSExt:                    NATSExt,
+		STANExt:                    STANExt,
+		NATSClusterName:            NATSClusterName,
+		STANClusterName:            STANClusterName,
+		NATSDefaultURL:             NATSDefaultURL,
+		NATSTCPHost:                NATSTCPHost,
+		NATSMSType:                 NATSMSType,
+		TCP:                        TCP,
+		IngressTLS:                 IngressTLS,
+		HealthPort:                 HealthPort,
+		HealthPath:                 HealthPath,
+		AutoCreateIngress:          AutoCreateIngress,
+		NATSSize:                   NATSSize,
+		NATSTimeout:                NATSTimeout,
+		DefaultRTime:               DefaultRTime,
+		DeploymentSize:             DeploymentSize,
+		MaxUnavailable:             MaxUnavailable,
+		MaxSurge:                   MaxSurge,
+		ReadyPrPeriodSeconds:       ReadyPrPeriodSeconds,
+		ReadyPrInitialDelaySeconds: ReadyPrInitialDelaySeconds,
+		LivePrPeriodSeconds:        LivePrPeriodSeconds,
+		LivePrInitialDelaySeconds:  LivePrInitialDelaySeconds,
 	}
 	cmName := OperatorCMName
 	env := os.Getenv("OPERATOR_CONFIGMAP")

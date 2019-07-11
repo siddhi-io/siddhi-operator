@@ -378,7 +378,35 @@ func (rsp *ReconcileSiddhiProcess) CreateDeployment(
 	secrets []corev1.LocalObjectReference,
 	volumes []corev1.Volume,
 	strategy appsv1.DeploymentStrategy,
+	configs Configs,
 ) (err error) {
+	httpGetAction := corev1.HTTPGetAction{
+		Path: configs.HealthPath,
+		Port: intstr.IntOrString{
+			Type:   Int,
+			IntVal: configs.HealthPort,
+		},
+	}
+	readyProbe := corev1.Probe{
+		Handler: corev1.Handler{
+			HTTPGet: &httpGetAction,
+		},
+		PeriodSeconds:       configs.ReadyPrPeriodSeconds,
+		InitialDelaySeconds: configs.ReadyPrInitialDelaySeconds,
+	}
+	liveProbe := corev1.Probe{
+		Handler: corev1.Handler{
+			HTTPGet: &httpGetAction,
+		},
+		PeriodSeconds:       configs.LivePrPeriodSeconds,
+		InitialDelaySeconds: configs.LivePrInitialDelaySeconds,
+	}
+	defaultPort := corev1.ContainerPort{
+		Name:          configs.HealthPortName,
+		ContainerPort: configs.HealthPort,
+		Protocol:      corev1.ProtocolTCP,
+	}
+	ports = append(ports, defaultPort)
 	deployment := &appsv1.Deployment{
 		TypeMeta: metav1.TypeMeta{
 			APIVersion: appsv1.SchemeGroupVersion.String(),
@@ -399,7 +427,7 @@ func (rsp *ReconcileSiddhiProcess) CreateDeployment(
 				},
 				Spec: corev1.PodSpec{
 					Containers: []corev1.Container{
-						{
+						corev1.Container{
 							Image:           image,
 							Name:            containerName,
 							Command:         command,
@@ -409,6 +437,8 @@ func (rsp *ReconcileSiddhiProcess) CreateDeployment(
 							Env:             envs,
 							SecurityContext: &sc,
 							ImagePullPolicy: ipp,
+							ReadinessProbe:  &readyProbe,
+							LivenessProbe:   &liveProbe,
 						},
 					},
 					ImagePullSecrets: secrets,
