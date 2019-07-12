@@ -4,10 +4,10 @@ import com.google.gson.annotations.SerializedName;
 
 public class MessagingConfig {
 
-    @SerializedName("cluster.id")
+    @SerializedName("clusterID")
     private String clusterId;
 
-    @SerializedName("bootstrap.servers")
+    @SerializedName("bootstrapServers")
     private String[] bootstrapServers;
 
     public String getClusterId() {
