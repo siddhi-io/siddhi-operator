@@ -29,7 +29,7 @@ spec:
       serviceAccountName: siddhi-operator
       containers:
         - name: siddhi-operator
-          image: buddhiwathsala/siddhi-operator:0.2.0-m2
+          image: siddhiio/siddhi-operator:0.2.0-m1
           command:
           - siddhi-operator
           imagePullPolicy: Always
