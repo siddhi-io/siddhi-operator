@@ -129,7 +129,7 @@ func invokeParser(
 	}
 	defer resp.Body.Close()
 	if resp.StatusCode != http.StatusOK {
-		err = errors.New(url + " invalid HTTP response status " + strconv.Itoa(http.StatusOK))
+		err = errors.New(url + " invalid HTTP response status " + strconv.Itoa(resp.StatusCode))
 		return
 	}
 	err = json.NewDecoder(resp.Body).Decode(&siddhiAppConfigs)

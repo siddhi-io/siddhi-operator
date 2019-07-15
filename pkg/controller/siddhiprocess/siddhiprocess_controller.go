@@ -125,22 +125,16 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 	}
 
 	// Watch for changes to secondary resource NatsClusters and requeue the owner SiddhiProcess
-	err = c.Watch(&source.Kind{Type: &natsv1alpha2.NatsCluster{}}, &handler.EnqueueRequestForOwner{
+	_ = c.Watch(&source.Kind{Type: &natsv1alpha2.NatsCluster{}}, &handler.EnqueueRequestForOwner{
 		IsController: true,
 		OwnerType:    &siddhiv1alpha2.SiddhiProcess{},
 	})
-	if err != nil {
-		return err
-	}
 
 	// Watch for changes to secondary resource NatsStreamingClusters and requeue the owner SiddhiProcess
-	err = c.Watch(&source.Kind{Type: &streamingv1alpha1.NatsStreamingCluster{}}, &handler.EnqueueRequestForOwner{
+	_ = c.Watch(&source.Kind{Type: &streamingv1alpha1.NatsStreamingCluster{}}, &handler.EnqueueRequestForOwner{
 		IsController: true,
 		OwnerType:    &siddhiv1alpha2.SiddhiProcess{},
 	})
-	if err != nil {
-		return err
-	}
 
 	// Watch for changes to secondary resource Pods and requeue the owner SiddhiProcess
 	err = c.Watch(&source.Kind{Type: &corev1.Pod{}}, &handler.EnqueueRequestForOwner{
