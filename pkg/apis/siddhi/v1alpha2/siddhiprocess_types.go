@@ -40,16 +40,16 @@ type PVCResource struct {
 
 // PV contains the configurations of the persistence volume
 type PV struct {
-	AccessModes []string    `json:"access.modes"`
-	VolumeMode  string      `json:"volume.mode"`
+	AccessModes []string    `json:"accessModes"`
+	VolumeMode  string      `json:"volumeMode"`
 	Class       string      `json:"storageClassName"`
 	Resources   PVCResource `json:"resources"`
 }
 
 // MessagingConfig contains the configs of the messaging layer
 type MessagingConfig struct {
-	ClusterID        string   `json:"cluster.id"`
-	BootstrapServers []string `json:"bootstrap.servers"`
+	ClusterID        string   `json:"clusterID"`
+	BootstrapServers []string `json:"bootstrapServers"`
 }
 
 // MessagingSystem contains the details about the messaging layer

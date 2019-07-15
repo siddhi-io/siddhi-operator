@@ -8,6 +8,7 @@ data:
   siddhiRunnerHome: /home/siddhi_user/siddhi-runner/
   siddhiRunnerImage: siddhiio/siddhi-runner-alpine:5.1.0-m1
   autoIngressCreation: "true"
+  # ingressTLS: siddhi-tls
 ---
 
 # Deployment of the siddhi operator
