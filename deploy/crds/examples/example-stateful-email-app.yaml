@@ -1,0 +1,79 @@
+apiVersion: siddhi.io/v1alpha2
+kind: SiddhiProcess
+metadata: 
+  name: power-consume-app
+spec: 
+  apps: 
+    - script: |
+        @App:name("PowerConsumptionSurgeDetection")
+        @App:description("App consumes events from HTTP as a JSON message of { 'deviceType': 'dryer', 'power': 6000 } format and inserts the events into DevicePowerStream, and alerts the user if the power consumption in 1 minute is greater than or equal to 10000W by sending an email in the log for every 30 seconds.")
+
+        /*
+            Input: deviceType string and powerConsuption int(Joules)
+            Output: Alert user from sending an email, if there is a power surge in the dryer within 1 minute period. 
+                    Notify the user in every 30 seconds when total power consumption is greater than or equal to 10000W in 1 minute time period.
+        */
+
+        @source(
+          type='http',
+          receiver.url='${RECEIVER_URL}',
+          basic.auth.enabled='false',
+          @map(type='json')
+        )
+        define stream DevicePowerStream(deviceType string, power int);
+
+        @sink(type='email',
+              username ='send.alert.account',
+              address ='send.alert.account@gmail.com',
+              password= 'send.alert.account.password', 
+              subject='Alert from Power Surge Detection - High Power Consumption {{power}}J from {{deviceType}} ',
+              to='receive.alert.account1@gmail.com, receive.alert.account2@gmail.com',
+              port = '465',
+              host = 'smtp.gmail.com',
+              ssl.enable = 'true',
+              auth = 'true', 
+              @map(type='text')) 
+        define stream PowerSurgeAlertStream(deviceType string, powerConsumed long); 
+
+        @info(name='power-consumption-window')  
+        from DevicePowerStream#window.time(1 min) 
+        select deviceType, sum(power) as powerConsumed
+        group by deviceType
+        having powerConsumed > 10000
+        output every 30 sec
+        insert into PowerSurgeAlertStream;
+
+  container: 
+    env: 
+      - 
+        name: RECEIVER_URL
+        value: "http://0.0.0.0:8080/checkPower"
+      - 
+        name: BASIC_AUTH_ENABLED
+        value: "false"
+    image: "siddhiio/siddhi-runner-ubuntu:5.1.0"
+  
+  messagingSystem:
+    type: nats
+    # config: 
+    #   bootstrapServers: 
+    #     - "nats://siddhi-nats:4222"
+    #   clusterID: siddhi-stan
+  
+  persistentVolume: 
+    accessModes: 
+      - ReadWriteOnce
+    resources: 
+      requests: 
+        storage: 1Gi
+    storageClassName: standard
+    volumeMode: Filesystem
+  
+  runner: |
+    state.persistence:
+      enabled: true
+      intervalInMin: 1
+      revisionsToKeep: 2
+      persistenceStore: io.siddhi.distribution.core.persistence.FileSystemPersistenceStore
+      config:
+        location: siddhi-app-persistence
