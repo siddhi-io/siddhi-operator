@@ -76,7 +76,7 @@ func (rsp *ReconcileSiddhiProcess) CreateIngress(
 
 	var ingressPaths []extensionsv1beta1.HTTPIngressPath
 	for _, port := range siddhiApp.ContainerPorts {
-		path := "/" + strings.ToLower(siddhiApp.Name) + "/" + strconv.Itoa(int(port.ContainerPort)) + "/"
+		path := "/" + strings.ToLower(siddhiApp.Name) + "/" + strconv.Itoa(int(port.ContainerPort)) + "(/|$)(.*)"
 		ingressPath := extensionsv1beta1.HTTPIngressPath{
 			Path: path,
 			Backend: extensionsv1beta1.IngressBackend{
@@ -132,9 +132,8 @@ func (rsp *ReconcileSiddhiProcess) CreateIngress(
 			Name:      configs.HostName,
 			Namespace: sp.Namespace,
 			Annotations: map[string]string{
-				"kubernetes.io/ingress.class":                 "nginx",
-				"nginx.ingress.kubernetes.io/rewrite-target":  "/",
-				"nginx.ingress.kubernetes.io/ssl-passthrough": "true",
+				"kubernetes.io/ingress.class":                "nginx",
+				"nginx.ingress.kubernetes.io/rewrite-target": "/$2",
 			},
 		},
 		Spec: ingressSpec,
@@ -153,7 +152,7 @@ func (rsp *ReconcileSiddhiProcess) UpdateIngress(
 
 	var ingressPaths []extensionsv1beta1.HTTPIngressPath
 	for _, port := range siddhiApp.ContainerPorts {
-		path := "/" + strings.ToLower(siddhiApp.Name) + "/" + strconv.Itoa(int(port.ContainerPort)) + "/"
+		path := "/" + strings.ToLower(siddhiApp.Name) + "/" + strconv.Itoa(int(port.ContainerPort)) + "(/|$)(.*)"
 		ingressPath := extensionsv1beta1.HTTPIngressPath{
 			Path: path,
 			Backend: extensionsv1beta1.IngressBackend{

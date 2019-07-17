@@ -45,10 +45,10 @@ spec:
   
   messagingSystem:
     type: nats
-    config: 
-      bootstrapServers: 
-        - "nats://nats-siddhi:4222"
-      clusterID: stan-siddhi
+    # config: 
+    #   bootstrapServers: 
+    #     - "nats://nats-siddhi:4222"
+    #   clusterID: stan-siddhi
   
   persistentVolume: 
     accessModes: 
