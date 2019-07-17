@@ -73,7 +73,7 @@ const (
 	IngressTLS                 string = ""
 	HealthPortName             string = "hport"
 	HealthPath                 string = "/health"
-	AutoCreateIngress          bool   = false
+	AutoCreateIngress          bool   = true
 	NATSSize                   int    = 1
 	NATSTimeout                int    = 5
 	DefaultRTime               int    = 1
@@ -121,7 +121,7 @@ const (
 	Distributed    string = "distributed"
 	ProcessApp     string = "process"
 	PassthroughApp string = "passthrough"
-	OperatorCMName string = "siddhi-operator"
+	OperatorCMName string = "siddhi-operator-config"
 )
 
 // Int - Type
