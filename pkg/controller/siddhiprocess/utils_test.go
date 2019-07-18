@@ -87,7 +87,7 @@ func TestPopulateMountPath(t *testing.T) {
 	}
 	testSP.Spec = spec
 	configs := getTestConfigs(testSP)
-	path := configs.SiddhiHome + configs.FilePersistentPath
+	path := configs.SiddhiHome + configs.WSO2Dir + "/" + configs.SiddhiProfile + "/" + configs.FilePersistentDir
 	p, err := populateMountPath(testSP, configs)
 	if err != nil {
 		t.Error(err)
