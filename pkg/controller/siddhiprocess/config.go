@@ -81,8 +81,8 @@ const (
 	MaxUnavailable             int32  = 0
 	MaxSurge                   int32  = 2
 	HealthPort                 int32  = 9090
-	ReadyPrPeriodSeconds       int32  = 20
-	ReadyPrInitialDelaySeconds int32  = 40
+	ReadyPrPeriodSeconds       int32  = 5
+	ReadyPrInitialDelaySeconds int32  = 5
 	LivePrPeriodSeconds        int32  = 120
 	LivePrInitialDelaySeconds  int32  = 120
 )
