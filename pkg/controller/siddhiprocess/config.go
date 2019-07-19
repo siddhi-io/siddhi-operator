@@ -81,10 +81,10 @@ const (
 	MaxUnavailable             int32  = 0
 	MaxSurge                   int32  = 2
 	HealthPort                 int32  = 9090
-	ReadyPrPeriodSeconds       int32  = 5
-	ReadyPrInitialDelaySeconds int32  = 5
-	LivePrPeriodSeconds        int32  = 120
-	LivePrInitialDelaySeconds  int32  = 120
+	ReadyPrPeriodSeconds       int32  = 10
+	ReadyPrInitialDelaySeconds int32  = 10
+	LivePrPeriodSeconds        int32  = 70
+	LivePrInitialDelaySeconds  int32  = 20
 )
 
 // State persistence config is the different string constant used by the deployApp() function. This constant holds a YAML object
