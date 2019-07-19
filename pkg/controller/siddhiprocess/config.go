@@ -34,18 +34,17 @@ import (
 const (
 	SiddhiHome                 string = "/home/siddhi_user/siddhi-runner/"
 	SiddhiImage                string = "siddhiio/siddhi-runner-alpine:5.1.0-m1"
-	SiddhiRunnerPath           string = "wso2/runner/"
+	SiddhiProfile              string = "runner"
 	SiddhiCMExt                string = "-siddhi"
 	SiddhiExt                  string = ".siddhi"
-	SiddhiFileRPath            string = "siddhi-files/"
+	SiddhiFilesDir             string = "siddhi-files/"
 	ContainerName              string = "siddhi-runner-runtime"
-	DepConfigName              string = "deploymentconfig"
 	DepConfMountPath           string = "tmp/configs/"
 	DepConfParameter           string = "-Dconfig="
 	AppConfParameter           string = "-Dapps="
 	DepCMExt                   string = "-depyml"
 	Shell                      string = "sh"
-	RunnerRPath                string = "bin/runner.sh"
+	SiddhiBin                  string = "bin"
 	HostName                   string = "siddhi"
 	OperatorName               string = "siddhi-operator"
 	OperatorVersion            string = "0.2.0-m1"
@@ -54,7 +53,8 @@ const (
 	ReadOnlyMany               string = "ReadOnlyMany"
 	ReadWriteMany              string = "ReadWriteMany"
 	PVCExt                     string = "-pvc"
-	FilePersistentPath         string = "wso2/runner/siddhi-app-persistence"
+	FilePersistentDir          string = "siddhi-app-persistence"
+	WSO2Dir                    string = "wso2"
 	ParserDomain               string = "http://siddhi-parser."
 	ParserContext              string = ".svc.cluster.local:9090/siddhi-parser/parse"
 	PVCSize                    string = "1Gi"
@@ -81,10 +81,10 @@ const (
 	MaxUnavailable             int32  = 0
 	MaxSurge                   int32  = 2
 	HealthPort                 int32  = 9090
-	ReadyPrPeriodSeconds       int32  = 20
-	ReadyPrInitialDelaySeconds int32  = 60
-	LivePrPeriodSeconds        int32  = 120
-	LivePrInitialDelaySeconds  int32  = 120
+	ReadyPrPeriodSeconds       int32  = 10
+	ReadyPrInitialDelaySeconds int32  = 10
+	LivePrPeriodSeconds        int32  = 70
+	LivePrInitialDelaySeconds  int32  = 20
 )
 
 // State persistence config is the different string constant used by the deployApp() function. This constant holds a YAML object
@@ -147,16 +147,15 @@ type Configs struct {
 	SiddhiImageSecret          string
 	SiddhiCMExt                string
 	SiddhiExt                  string
-	SiddhiFileRPath            string
-	SiddhiRunnerPath           string
+	SiddhiFilesDir             string
+	SiddhiProfile              string
 	ContainerName              string
-	DepConfigName              string
 	DepConfMountPath           string
 	DepConfParameter           string
 	AppConfParameter           string
 	DepCMExt                   string
 	Shell                      string
-	RunnerRPath                string
+	SiddhiBin                  string
 	HostName                   string
 	OperatorName               string
 	OperatorVersion            string
@@ -165,7 +164,8 @@ type Configs struct {
 	ReadOnlyMany               string
 	ReadWriteMany              string
 	PVCExt                     string
-	FilePersistentPath         string
+	FilePersistentDir          string
+	WSO2Dir                    string
 	ParserDomain               string
 	ParserContext              string
 	PVCSize                    string
@@ -366,16 +366,15 @@ func (rsp *ReconcileSiddhiProcess) Configurations(sp *siddhiv1alpha2.SiddhiProce
 		SiddhiImage:                SiddhiImage,
 		SiddhiCMExt:                SiddhiCMExt,
 		SiddhiExt:                  SiddhiExt,
-		SiddhiFileRPath:            SiddhiFileRPath,
-		SiddhiRunnerPath:           SiddhiRunnerPath,
+		SiddhiFilesDir:             SiddhiFilesDir,
+		SiddhiProfile:              SiddhiProfile,
 		ContainerName:              ContainerName,
-		DepConfigName:              DepConfigName,
 		DepConfMountPath:           DepConfMountPath,
 		DepConfParameter:           DepConfParameter,
 		AppConfParameter:           AppConfParameter,
 		DepCMExt:                   DepCMExt,
 		Shell:                      Shell,
-		RunnerRPath:                RunnerRPath,
+		SiddhiBin:                  SiddhiBin,
 		HostName:                   HostName,
 		OperatorName:               OperatorName,
 		OperatorVersion:            OperatorVersion,
@@ -384,7 +383,8 @@ func (rsp *ReconcileSiddhiProcess) Configurations(sp *siddhiv1alpha2.SiddhiProce
 		ReadOnlyMany:               ReadOnlyMany,
 		ReadWriteMany:              ReadWriteMany,
 		PVCExt:                     PVCExt,
-		FilePersistentPath:         FilePersistentPath,
+		FilePersistentDir:          FilePersistentDir,
+		WSO2Dir:                    WSO2Dir,
 		ParserDomain:               ParserDomain,
 		ParserContext:              ParserContext,
 		PVCSize:                    PVCSize,
@@ -423,16 +423,20 @@ func (rsp *ReconcileSiddhiProcess) Configurations(sp *siddhiv1alpha2.SiddhiProce
 	configMap := &corev1.ConfigMap{}
 	err := rsp.client.Get(context.TODO(), types.NamespacedName{Name: cmName, Namespace: sp.Namespace}, configMap)
 	if err == nil {
-		if configMap.Data["siddhiRunnerHome"] != "" {
-			configs.SiddhiHome = configMap.Data["siddhiRunnerHome"]
+		if configMap.Data["siddhiHome"] != "" {
+			configs.SiddhiHome = configMap.Data["siddhiHome"]
 		}
 
-		if configMap.Data["siddhiRunnerImage"] != "" {
-			configs.SiddhiImage = configMap.Data["siddhiRunnerImage"]
+		if configMap.Data["siddhiImage"] != "" {
+			configs.SiddhiImage = configMap.Data["siddhiImage"]
 		}
 
-		if configMap.Data["siddhiRunnerImageSecret"] != "" {
-			configs.SiddhiImageSecret = configMap.Data["siddhiRunnerImageSecret"]
+		if configMap.Data["siddhiImageSecret"] != "" {
+			configs.SiddhiImageSecret = configMap.Data["siddhiImageSecret"]
+		}
+
+		if configMap.Data["siddhiProfile"] != "" {
+			configs.SiddhiProfile = configMap.Data["siddhiProfile"]
 		}
 
 		if configMap.Data["autoIngressCreation"] != "" {

@@ -134,7 +134,7 @@ func (rsp *ReconcileSiddhiProcess) deployApp(
 	if err != nil {
 		return err
 	}
-	siddhiFilesPath := configs.SiddhiHome + configs.SiddhiFileRPath
+	siddhiFilesPath := configs.SiddhiHome + configs.SiddhiFilesDir
 	volume, volumeMount := createCMVolumes(configMapName, siddhiFilesPath)
 	volumes = append(volumes, volume)
 	volumeMounts = append(volumeMounts, volumeMount)
@@ -149,7 +149,11 @@ func (rsp *ReconcileSiddhiProcess) deployApp(
 		siddhiRunnerImage,
 		configs.ContainerName,
 		[]string{configs.Shell},
-		[]string{siddhiHome + configs.RunnerRPath, siddhiFilesParameter, configParameter},
+		[]string{
+			siddhiHome + configs.SiddhiBin + "/" + configs.SiddhiProfile + ".sh",
+			siddhiFilesParameter,
+			configParameter,
+		},
 		containerPorts,
 		volumeMounts,
 		sp.Spec.Container.Env,

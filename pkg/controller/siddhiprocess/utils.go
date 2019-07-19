@@ -169,11 +169,11 @@ func populateMountPath(sp *siddhiv1alpha2.SiddhiProcess, configs Configs) (mount
 	if err != nil {
 		return
 	}
-	mountPath = configs.SiddhiHome + configs.FilePersistentPath
+	mountPath = configs.SiddhiHome + configs.WSO2Dir + "/" + configs.SiddhiProfile + "/" + configs.FilePersistentDir
 	if spConf.StatePersistence.SPConfig.Location != "" && filepath.IsAbs(spConf.StatePersistence.SPConfig.Location) {
 		mountPath = spConf.StatePersistence.SPConfig.Location
 	} else if spConf.StatePersistence.SPConfig.Location != "" {
-		mountPath = configs.SiddhiHome + configs.SiddhiRunnerPath + spConf.StatePersistence.SPConfig.Location
+		mountPath = configs.SiddhiHome + configs.WSO2Dir + "/" + configs.SiddhiProfile + "/" + spConf.StatePersistence.SPConfig.Location
 	}
 	return
 }

@@ -5,8 +5,9 @@ kind: ConfigMap
 metadata:
   name: siddhi-operator-config
 data:
-  siddhiRunnerHome: /home/siddhi_user/siddhi-runner/
-  siddhiRunnerImage: siddhiio/siddhi-runner-alpine:5.1.0-m1
+  siddhiHome: /home/siddhi_user/siddhi-runner/
+  siddhiProfile: runner
+  siddhiImage: siddhiio/siddhi-runner-alpine:5.1.0-m1
   autoIngressCreation: "true"
   # ingressTLS: siddhi-tls
 ---

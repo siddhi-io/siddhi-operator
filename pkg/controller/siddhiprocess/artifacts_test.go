@@ -189,7 +189,7 @@ func TestCreateDeployment(t *testing.T) {
 		configs.SiddhiImage,
 		"siddhirunner",
 		[]string{configs.Shell},
-		[]string{configs.SiddhiHome + configs.RunnerRPath},
+		[]string{configs.SiddhiHome + configs.SiddhiBin + "/" + configs.SiddhiProfile + ".sh"},
 		testSiddhiApp.ContainerPorts,
 		[]corev1.VolumeMount{},
 		[]corev1.EnvVar{},
