@@ -30,10 +30,11 @@ import (
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	extensionsv1beta1 "k8s.io/api/extensions/v1beta1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/resource"
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/intstr"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
@@ -49,21 +50,19 @@ func (rsp *ReconcileSiddhiProcess) CreateConfigMap(
 
 	configMap := &corev1.ConfigMap{}
 	err := rsp.client.Get(context.TODO(), types.NamespacedName{Name: configMapName, Namespace: sp.Namespace}, configMap)
-	if err != nil && apierrors.IsNotFound(err) {
-		configMap = &corev1.ConfigMap{
-			TypeMeta: metav1.TypeMeta{
-				APIVersion: corev1.SchemeGroupVersion.String(),
-				Kind:       "ConfigMap",
-			},
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      configMapName,
-				Namespace: sp.Namespace,
-			},
-			Data: data,
-		}
-		controllerutil.SetControllerReference(sp, configMap, rsp.scheme)
-		err = rsp.client.Create(context.TODO(), configMap)
+	configMap = &corev1.ConfigMap{
+		TypeMeta: metav1.TypeMeta{
+			APIVersion: corev1.SchemeGroupVersion.String(),
+			Kind:       "ConfigMap",
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      configMapName,
+			Namespace: sp.Namespace,
+		},
+		Data: data,
 	}
+	controllerutil.SetControllerReference(sp, configMap, rsp.scheme)
+	_, err = controllerutil.CreateOrUpdate(context.TODO(), rsp.client, configMap, ConfigMapMutateFunc(data))
 	return err
 }
 
@@ -138,82 +137,7 @@ func (rsp *ReconcileSiddhiProcess) CreateIngress(
 		},
 		Spec: ingressSpec,
 	}
-	err = rsp.client.Create(context.TODO(), ingress)
-	return
-}
-
-// UpdateIngress updates the given ingress object
-func (rsp *ReconcileSiddhiProcess) UpdateIngress(
-	sp *siddhiv1alpha2.SiddhiProcess,
-	currentIngress *extensionsv1beta1.Ingress,
-	siddhiApp SiddhiApp,
-	configs Configs,
-) (err error) {
-
-	var ingressPaths []extensionsv1beta1.HTTPIngressPath
-	for _, port := range siddhiApp.ContainerPorts {
-		path := "/" + strings.ToLower(siddhiApp.Name) + "/" + strconv.Itoa(int(port.ContainerPort)) + "(/|$)(.*)"
-		ingressPath := extensionsv1beta1.HTTPIngressPath{
-			Path: path,
-			Backend: extensionsv1beta1.IngressBackend{
-				ServiceName: strings.ToLower(siddhiApp.Name),
-				ServicePort: intstr.IntOrString{
-					Type:   Int,
-					IntVal: port.ContainerPort,
-				},
-			},
-		}
-		ingressPaths = append(ingressPaths, ingressPath)
-	}
-
-	currentRules := currentIngress.Spec.Rules
-	ruleValue := extensionsv1beta1.IngressRuleValue{
-		HTTP: &extensionsv1beta1.HTTPIngressRuleValue{
-			Paths: ingressPaths,
-		},
-	}
-	newRule := extensionsv1beta1.IngressRule{
-		Host:             configs.HostName,
-		IngressRuleValue: ruleValue,
-	}
-	ruleExists := false
-	needUpdate := false
-	for _, rule := range currentRules {
-		if rule.Host == configs.HostName {
-			ruleExists = true
-			for _, path := range ingressPaths {
-				if !pathContains(rule.HTTP.Paths, path) {
-					needUpdate = true
-					rule.HTTP.Paths = append(rule.HTTP.Paths, path)
-				}
-			}
-		}
-	}
-
-	if !ruleExists {
-		needUpdate = true
-		currentRules = append(currentRules, newRule)
-	}
-	if needUpdate {
-		var ingressSpec extensionsv1beta1.IngressSpec
-		if configs.IngressTLS != "" {
-			ingressSpec = extensionsv1beta1.IngressSpec{
-				TLS: []extensionsv1beta1.IngressTLS{
-					extensionsv1beta1.IngressTLS{
-						Hosts:      []string{configs.HostName},
-						SecretName: configs.IngressTLS,
-					},
-				},
-				Rules: currentRules,
-			}
-		} else {
-			ingressSpec = extensionsv1beta1.IngressSpec{
-				Rules: currentRules,
-			}
-		}
-		currentIngress.Spec = ingressSpec
-		err = rsp.client.Update(context.TODO(), currentIngress)
-	}
+	_, err = controllerutil.CreateOrUpdate(context.TODO(), rsp.client, ingress, IngressMutateFunc(siddhiApp, configs))
 	return
 }
 
@@ -314,7 +238,7 @@ func (rsp *ReconcileSiddhiProcess) CreatePVC(sp *siddhiv1alpha2.SiddhiProcess, c
 			},
 		}
 		controllerutil.SetControllerReference(sp, pvc, rsp.scheme)
-		err = rsp.client.Create(context.TODO(), pvc)
+		_, err = controllerutil.CreateOrUpdate(context.TODO(), rsp.client, pvc, PVCMutateFunc(accessModes, p.Resources.Requests.Storage, p.Class))
 	}
 	return err
 }
@@ -324,7 +248,7 @@ func (rsp *ReconcileSiddhiProcess) CreateService(
 	sp *siddhiv1alpha2.SiddhiProcess,
 	siddhiApp SiddhiApp,
 	configs Configs,
-) (err error) {
+) (operationResult controllerutil.OperationResult, err error) {
 
 	labels := labelsForSiddhiProcess(strings.ToLower(siddhiApp.Name), configs)
 	var servicePorts []corev1.ServicePort
@@ -351,10 +275,7 @@ func (rsp *ReconcileSiddhiProcess) CreateService(
 		},
 	}
 	controllerutil.SetControllerReference(sp, service, rsp.scheme)
-	err = rsp.client.Create(context.TODO(), service)
-	if err != nil {
-		return
-	}
+	operationResult, err = controllerutil.CreateOrUpdate(context.TODO(), rsp.client, service, ServiceMutateFunc(labels, servicePorts))
 	return
 }
 
@@ -370,7 +291,7 @@ func (rsp *ReconcileSiddhiProcess) CreateDeployment(
 	command []string,
 	args []string,
 	ports []corev1.ContainerPort,
-	vms []corev1.VolumeMount,
+	volumeMounts []corev1.VolumeMount,
 	envs []corev1.EnvVar,
 	sc corev1.SecurityContext,
 	ipp corev1.PullPolicy,
@@ -378,7 +299,7 @@ func (rsp *ReconcileSiddhiProcess) CreateDeployment(
 	volumes []corev1.Volume,
 	strategy appsv1.DeploymentStrategy,
 	configs Configs,
-) (err error) {
+) (operationResult controllerutil.OperationResult, err error) {
 	httpGetAction := corev1.HTTPGetAction{
 		Path: configs.HealthPath,
 		Port: intstr.IntOrString{
@@ -432,7 +353,7 @@ func (rsp *ReconcileSiddhiProcess) CreateDeployment(
 							Command:         command,
 							Args:            args,
 							Ports:           ports,
-							VolumeMounts:    vms,
+							VolumeMounts:    volumeMounts,
 							Env:             envs,
 							SecurityContext: &sc,
 							ImagePullPolicy: ipp,
@@ -448,9 +369,160 @@ func (rsp *ReconcileSiddhiProcess) CreateDeployment(
 		},
 	}
 	controllerutil.SetControllerReference(sp, deployment, rsp.scheme)
-	err = rsp.client.Create(context.TODO(), deployment)
-	if err != nil {
-		return
-	}
+	operationResult, err = controllerutil.CreateOrUpdate(
+		context.TODO(),
+		rsp.client,
+		deployment,
+		DeploymentMutateFunc(
+			replicas,
+			labels,
+			image,
+			containerName,
+			command,
+			args,
+			ports,
+			volumeMounts,
+			envs,
+			sc,
+			ipp,
+			secrets,
+			volumes,
+		),
+	)
 	return
+}
+
+// ConfigMapMutateFunc is the mutate function for k8s config map creation
+func ConfigMapMutateFunc(data map[string]string) controllerutil.MutateFn {
+	return func(obj runtime.Object) error {
+		configMap := obj.(*corev1.ConfigMap)
+		configMap.Data = data
+		return nil
+	}
+}
+
+// PVCMutateFunc is the mutate function for k8s pvc creation
+func PVCMutateFunc(accessModes []corev1.PersistentVolumeAccessMode, storage string, class string) controllerutil.MutateFn {
+	return func(obj runtime.Object) error {
+		pvc := obj.(*corev1.PersistentVolumeClaim)
+		pvc.Spec.AccessModes = accessModes
+		pvc.Spec.Resources.Requests = corev1.ResourceList{
+			corev1.ResourceStorage: resource.MustParse(storage),
+		}
+		pvc.Spec.StorageClassName = &class
+		return nil
+	}
+}
+
+// ServiceMutateFunc is the mutate function for k8s service creation
+func ServiceMutateFunc(labels map[string]string, ports []corev1.ServicePort) controllerutil.MutateFn {
+	return func(obj runtime.Object) error {
+		service := obj.(*corev1.Service)
+		service.Spec.Selector = labels
+		service.Spec.Ports = ports
+		return nil
+	}
+}
+
+// DeploymentMutateFunc is the mutate function for k8s deployment creation
+func DeploymentMutateFunc(
+	replicas int32,
+	labels map[string]string,
+	image string,
+	containerName string,
+	command []string,
+	args []string,
+	ports []corev1.ContainerPort,
+	volumeMounts []corev1.VolumeMount,
+	envs []corev1.EnvVar,
+	sc corev1.SecurityContext,
+	ipp corev1.PullPolicy,
+	secrets []corev1.LocalObjectReference,
+	volumes []corev1.Volume,
+) controllerutil.MutateFn {
+	return func(obj runtime.Object) error {
+		deployment := obj.(*appsv1.Deployment)
+		deployment.Spec.Template.Spec = corev1.PodSpec{
+			Containers: []corev1.Container{
+				corev1.Container{
+					Image:           image,
+					Name:            containerName,
+					Command:         command,
+					Args:            args,
+					Ports:           ports,
+					VolumeMounts:    volumeMounts,
+					Env:             envs,
+					SecurityContext: &sc,
+					ImagePullPolicy: ipp,
+				},
+			},
+			ImagePullSecrets: secrets,
+			Volumes:          volumes,
+		}
+		return nil
+	}
+}
+
+// IngressMutateFunc is the mutate function for k8s ingress creation
+func IngressMutateFunc(siddhiApp SiddhiApp, configs Configs) controllerutil.MutateFn {
+	return func(obj runtime.Object) error {
+		ingress := obj.(*extensionsv1beta1.Ingress)
+		var ingressPaths []extensionsv1beta1.HTTPIngressPath
+		for _, port := range siddhiApp.ContainerPorts {
+			path := "/" + strings.ToLower(siddhiApp.Name) + "/" + strconv.Itoa(int(port.ContainerPort)) + "(/|$)(.*)"
+			ingressPath := extensionsv1beta1.HTTPIngressPath{
+				Path: path,
+				Backend: extensionsv1beta1.IngressBackend{
+					ServiceName: strings.ToLower(siddhiApp.Name),
+					ServicePort: intstr.IntOrString{
+						Type:   Int,
+						IntVal: port.ContainerPort,
+					},
+				},
+			}
+			ingressPaths = append(ingressPaths, ingressPath)
+		}
+		currentRules := ingress.Spec.Rules
+		ruleValue := extensionsv1beta1.IngressRuleValue{
+			HTTP: &extensionsv1beta1.HTTPIngressRuleValue{
+				Paths: ingressPaths,
+			},
+		}
+		newRule := extensionsv1beta1.IngressRule{
+			Host:             configs.HostName,
+			IngressRuleValue: ruleValue,
+		}
+		ruleExists := false
+		for _, rule := range currentRules {
+			if rule.Host == configs.HostName {
+				ruleExists = true
+				for _, path := range ingressPaths {
+					if !pathContains(rule.HTTP.Paths, path) {
+						rule.HTTP.Paths = append(rule.HTTP.Paths, path)
+					}
+				}
+			}
+		}
+		if !ruleExists {
+			currentRules = append(currentRules, newRule)
+		}
+		var ingressSpec extensionsv1beta1.IngressSpec
+		if configs.IngressTLS != "" {
+			ingressSpec = extensionsv1beta1.IngressSpec{
+				TLS: []extensionsv1beta1.IngressTLS{
+					extensionsv1beta1.IngressTLS{
+						Hosts:      []string{configs.HostName},
+						SecretName: configs.IngressTLS,
+					},
+				},
+				Rules: currentRules,
+			}
+		} else {
+			ingressSpec = extensionsv1beta1.IngressSpec{
+				Rules: currentRules,
+			}
+		}
+		ingress.Spec = ingressSpec
+		return nil
+	}
 }

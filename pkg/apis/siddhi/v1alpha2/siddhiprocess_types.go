@@ -85,9 +85,9 @@ type SiddhiProcessSpec struct {
 // SiddhiProcessStatus defines the observed state of SiddhiProcess
 // +k8s:openapi-gen=true
 type SiddhiProcessStatus struct {
-	Nodes  []string `json:"nodes"`
 	Status string   `json:"status"`
 	Ready  string   `json:"ready"`
+	ObservedGeneration int64 `json:"observedGeneration,omitempty"`
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
