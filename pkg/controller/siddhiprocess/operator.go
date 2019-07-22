@@ -61,7 +61,7 @@ func (rsp *ReconcileSiddhiProcess) deployApp(
 	if siddhiApp.PersistenceEnabled {
 		if !sp.Spec.PV.Equals(&q) {
 			pvcName := siddhiApp.Name + configs.PVCExt
-			err = rsp.CreatePVC(sp, configs, pvcName)
+			err = rsp.CreateOrUpdatePVC(sp, configs, pvcName)
 			if err != nil {
 				return
 			}
@@ -82,7 +82,7 @@ func (rsp *ReconcileSiddhiProcess) deployApp(
 		data := map[string]string{
 			deployYAMLCMName: siddhiConfig,
 		}
-		err = rsp.CreateConfigMap(sp, deployYAMLCMName, data)
+		err = rsp.CreateOrUpdateCM(sp, deployYAMLCMName, data)
 		if err != nil {
 			return
 		}
@@ -97,7 +97,7 @@ func (rsp *ReconcileSiddhiProcess) deployApp(
 			data := map[string]string{
 				deployYAMLCMName: sp.Spec.SiddhiConfig,
 			}
-			err = rsp.CreateConfigMap(sp, deployYAMLCMName, data)
+			err = rsp.CreateOrUpdateCM(sp, deployYAMLCMName, data)
 			if err != nil {
 				return
 			}
@@ -129,7 +129,7 @@ func (rsp *ReconcileSiddhiProcess) deployApp(
 		key := k + configs.SiddhiExt
 		configMapData[key] = v
 	}
-	err = rsp.CreateConfigMap(sp, configMapName, configMapData)
+	err = rsp.CreateOrUpdateCM(sp, configMapName, configMapData)
 	if err != nil {
 		return
 	}
@@ -139,7 +139,7 @@ func (rsp *ReconcileSiddhiProcess) deployApp(
 	volumeMounts = append(volumeMounts, volumeMount)
 	siddhiFilesParameter := configs.AppConfParameter + siddhiFilesPath + " "
 	userID := int64(802)
-	operationResult, err = rsp.CreateDeployment(
+	operationResult, err = rsp.CreateOrUpdateDeployment(
 		sp,
 		strings.ToLower(siddhiApp.Name),
 		sp.Namespace,
@@ -263,7 +263,7 @@ func (rsp *ReconcileSiddhiProcess) createArtifacts(sp *siddhiv1alpha2.SiddhiProc
 		}
 
 		if siddhiApp.ServiceEnabled {
-			operationResult, err = rsp.CreateService(sp, siddhiApp, configs)
+			operationResult, err = rsp.CreateOrUpdateService(sp, siddhiApp, configs)
 			if err != nil {
 				sp = rsp.updateErrorStatus(sp, ER, WARNING, "ServiceCreationError", err)
 				continue
@@ -275,7 +275,7 @@ func (rsp *ReconcileSiddhiProcess) createArtifacts(sp *siddhiv1alpha2.SiddhiProc
 			}
 
 			if configs.AutoCreateIngress {
-				err := rsp.CreateIngress(sp, siddhiApp, configs)
+				err := rsp.CreateOrUpdateIngress(sp, siddhiApp, configs)
 				if err != nil {
 					sp = rsp.updateErrorStatus(sp, ER, ERROR, "IngressCreationError", err)
 					continue

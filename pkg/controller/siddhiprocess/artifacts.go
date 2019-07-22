@@ -40,9 +40,9 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 )
 
-// CreateConfigMap creates a k8s config map for given set of data.
+// CreateOrUpdateCM creates a k8s config map for given set of data.
 // This function initialize the config map object, set the controller reference, and then creates the config map.
-func (rsp *ReconcileSiddhiProcess) CreateConfigMap(
+func (rsp *ReconcileSiddhiProcess) CreateOrUpdateCM(
 	sp *siddhiv1alpha2.SiddhiProcess,
 	configMapName string,
 	data map[string]string,
@@ -66,8 +66,8 @@ func (rsp *ReconcileSiddhiProcess) CreateConfigMap(
 	return err
 }
 
-// CreateIngress creates a NGINX Ingress load balancer object called siddhi
-func (rsp *ReconcileSiddhiProcess) CreateIngress(
+// CreateOrUpdateIngress creates a NGINX Ingress load balancer object called siddhi
+func (rsp *ReconcileSiddhiProcess) CreateOrUpdateIngress(
 	sp *siddhiv1alpha2.SiddhiProcess,
 	siddhiApp SiddhiApp,
 	configs Configs,
@@ -194,8 +194,8 @@ func (rsp *ReconcileSiddhiProcess) CreateNATS(sp *siddhiv1alpha2.SiddhiProcess, 
 	return err
 }
 
-// CreatePVC function creates a persistence volume claim for a K8s cluster
-func (rsp *ReconcileSiddhiProcess) CreatePVC(sp *siddhiv1alpha2.SiddhiProcess, configs Configs, pvcName string) error {
+// CreateOrUpdatePVC function creates a persistence volume claim for a K8s cluster
+func (rsp *ReconcileSiddhiProcess) CreateOrUpdatePVC(sp *siddhiv1alpha2.SiddhiProcess, configs Configs, pvcName string) error {
 	var accessModes []corev1.PersistentVolumeAccessMode
 	pvc := &corev1.PersistentVolumeClaim{}
 	p := sp.Spec.PV
@@ -243,8 +243,8 @@ func (rsp *ReconcileSiddhiProcess) CreatePVC(sp *siddhiv1alpha2.SiddhiProcess, c
 	return err
 }
 
-// CreateService returns a Service object for a deployment
-func (rsp *ReconcileSiddhiProcess) CreateService(
+// CreateOrUpdateService returns a Service object for a deployment
+func (rsp *ReconcileSiddhiProcess) CreateOrUpdateService(
 	sp *siddhiv1alpha2.SiddhiProcess,
 	siddhiApp SiddhiApp,
 	configs Configs,
@@ -279,8 +279,8 @@ func (rsp *ReconcileSiddhiProcess) CreateService(
 	return
 }
 
-// CreateDeployment creates a deployment for given set of configuration data
-func (rsp *ReconcileSiddhiProcess) CreateDeployment(
+// CreateOrUpdateDeployment creates a deployment for given set of configuration data
+func (rsp *ReconcileSiddhiProcess) CreateOrUpdateDeployment(
 	sp *siddhiv1alpha2.SiddhiProcess,
 	name string,
 	namespace string,
