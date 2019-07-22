@@ -177,7 +177,13 @@ func (rsp *ReconcileSiddhiProcess) populateUserEnvs(sp *siddhiv1alpha2.SiddhiPro
 
 // UpdateErrorStatus update the status of the CR object and send events to the SiddhiProcess object using EventRecorder object
 // These status can be Warning, Error
-func (rsp *ReconcileSiddhiProcess) updateErrorStatus(sp *siddhiv1alpha2.SiddhiProcess, eventRecorder record.EventRecorder, status Status, reason string, er error) *siddhiv1alpha2.SiddhiProcess {
+func (rsp *ReconcileSiddhiProcess) updateErrorStatus(
+	sp *siddhiv1alpha2.SiddhiProcess,
+	eventRecorder record.EventRecorder,
+	status Status,
+	reason string,
+	er error,
+) *siddhiv1alpha2.SiddhiProcess {
 	reqLogger := log.WithValues("Request.Namespace", sp.Namespace, "Request.Name", sp.Name)
 	st := getStatus(status)
 	s := sp
@@ -200,7 +206,13 @@ func (rsp *ReconcileSiddhiProcess) updateErrorStatus(sp *siddhiv1alpha2.SiddhiPr
 
 // UpdateRunningStatus update the status of the CR object and send events to the SiddhiProcess object using EventRecorder object
 // These status can be Pending, Running
-func (rsp *ReconcileSiddhiProcess) updateRunningStatus(sp *siddhiv1alpha2.SiddhiProcess, eventRecorder record.EventRecorder, status Status, reason string, message string) *siddhiv1alpha2.SiddhiProcess {
+func (rsp *ReconcileSiddhiProcess) updateRunningStatus(
+	sp *siddhiv1alpha2.SiddhiProcess,
+	eventRecorder record.EventRecorder,
+	status Status,
+	reason string,
+	message string,
+) *siddhiv1alpha2.SiddhiProcess {
 	reqLogger := log.WithValues("Request.Namespace", sp.Namespace, "Request.Name", sp.Name)
 	st := getStatus(status)
 	s := sp
@@ -230,7 +242,11 @@ func (rsp *ReconcileSiddhiProcess) updateReady(sp *siddhiv1alpha2.SiddhiProcess,
 
 // createArtifacts simply create all the k8s artifacts which needed in the siddhiApps list.
 // This function creates deployment, service, and ingress. If ingress was available the it will update the ingress.
-func (rsp *ReconcileSiddhiProcess) createArtifacts(sp *siddhiv1alpha2.SiddhiProcess, siddhiApps []SiddhiApp, configs Configs) *siddhiv1alpha2.SiddhiProcess {
+func (rsp *ReconcileSiddhiProcess) createArtifacts(
+	sp *siddhiv1alpha2.SiddhiProcess,
+	siddhiApps []SiddhiApp,
+	configs Configs,
+) *siddhiv1alpha2.SiddhiProcess {
 	needDep := 0
 	availableDep := 0
 	reqLogger := log.WithValues("Request.Namespace", sp.Namespace, "Request.Name", sp.Name)
@@ -246,7 +262,8 @@ func (rsp *ReconcileSiddhiProcess) createArtifacts(sp *siddhiv1alpha2.SiddhiProc
 
 	}
 	for _, siddhiApp := range siddhiApps {
-		if eventType == controllerutil.OperationResultCreated || eventType == controllerutil.OperationResultUpdated {
+		if (eventType == controllerutil.OperationResultCreated) ||
+			(eventType == controllerutil.OperationResultUpdated) {
 			needDep++
 		}
 		operationResult, err := rsp.deployApp(sp, siddhiApp, ER, configs)
@@ -254,12 +271,26 @@ func (rsp *ReconcileSiddhiProcess) createArtifacts(sp *siddhiv1alpha2.SiddhiProc
 			sp = rsp.updateErrorStatus(sp, ER, ERROR, "AppDeploymentError", err)
 			continue
 		}
-		if (eventType != controllerutil.OperationResultNone) && (operationResult == controllerutil.OperationResultCreated) {
+		if (eventType != controllerutil.OperationResultNone) &&
+			(operationResult == controllerutil.OperationResultCreated) {
 			availableDep++
-			sp = rsp.updateRunningStatus(sp, ER, RUNNING, "DeploymentCreated", (siddhiApp.Name + " deployment created successfully"))
-		} else if (eventType != controllerutil.OperationResultNone) && (operationResult == controllerutil.OperationResultUpdated) {
+			sp = rsp.updateRunningStatus(
+				sp,
+				ER,
+				RUNNING,
+				"DeploymentCreated",
+				(siddhiApp.Name + " deployment created successfully"),
+			)
+		} else if (eventType != controllerutil.OperationResultNone) &&
+			(operationResult == controllerutil.OperationResultUpdated) {
 			availableDep++
-			sp = rsp.updateRunningStatus(sp, ER, RUNNING, "DeploymentUpdated", (siddhiApp.Name + " deployment updated successfully"))
+			sp = rsp.updateRunningStatus(
+				sp,
+				ER,
+				RUNNING,
+				"DeploymentUpdated",
+				(siddhiApp.Name + " deployment updated successfully"),
+			)
 		}
 
 		if siddhiApp.ServiceEnabled {
@@ -268,10 +299,24 @@ func (rsp *ReconcileSiddhiProcess) createArtifacts(sp *siddhiv1alpha2.SiddhiProc
 				sp = rsp.updateErrorStatus(sp, ER, WARNING, "ServiceCreationError", err)
 				continue
 			}
-			if (eventType != controllerutil.OperationResultNone) && (operationResult == controllerutil.OperationResultCreated) {
-				sp = rsp.updateRunningStatus(sp, ER, RUNNING, "ServiceCreated", (siddhiApp.Name + " service created successfully"))
-			} else if (eventType != controllerutil.OperationResultNone) && (operationResult == controllerutil.OperationResultUpdated) {
-				sp = rsp.updateRunningStatus(sp, ER, RUNNING, "ServiceUpdated", (siddhiApp.Name + " service updated successfully"))
+			if (eventType != controllerutil.OperationResultNone) &&
+				(operationResult == controllerutil.OperationResultCreated) {
+				sp = rsp.updateRunningStatus(
+					sp,
+					ER,
+					RUNNING,
+					"ServiceCreated",
+					(siddhiApp.Name + " service created successfully"),
+				)
+			} else if (eventType != controllerutil.OperationResultNone) &&
+				(operationResult == controllerutil.OperationResultUpdated) {
+				sp = rsp.updateRunningStatus(
+					sp,
+					ER,
+					RUNNING,
+					"ServiceUpdated",
+					(siddhiApp.Name + " service updated successfully"),
+				)
 			}
 
 			if configs.AutoCreateIngress {
@@ -280,21 +325,26 @@ func (rsp *ReconcileSiddhiProcess) createArtifacts(sp *siddhiv1alpha2.SiddhiProc
 					sp = rsp.updateErrorStatus(sp, ER, ERROR, "IngressCreationError", err)
 					continue
 				}
-				if eventType == controllerutil.OperationResultCreated || eventType == controllerutil.OperationResultUpdated {
+				if eventType == controllerutil.OperationResultCreated ||
+					eventType == controllerutil.OperationResultUpdated {
 					reqLogger.Info("Ingress changed", "Ingress.Name", configs.HostName)
 				}
 			}
 		}
 	}
 	sp = rsp.syncGeneration(sp)
-	if eventType == controllerutil.OperationResultCreated || eventType == controllerutil.OperationResultUpdated {
+	if (eventType == controllerutil.OperationResultCreated) ||
+		(eventType == controllerutil.OperationResultUpdated) {
 		sp = rsp.updateReady(sp, availableDep, needDep)
 	}
 	return sp
 }
 
 // checkDeployments function check the availability of deployments and the replications of the deployments.
-func (rsp *ReconcileSiddhiProcess) checkDeployments(sp *siddhiv1alpha2.SiddhiProcess, siddhiApps []SiddhiApp) *siddhiv1alpha2.SiddhiProcess {
+func (rsp *ReconcileSiddhiProcess) checkDeployments(
+	sp *siddhiv1alpha2.SiddhiProcess,
+	siddhiApps []SiddhiApp,
+) *siddhiv1alpha2.SiddhiProcess {
 	for _, siddhiApp := range siddhiApps {
 		deployment := &appsv1.Deployment{}
 		err := rsp.client.Get(context.TODO(), types.NamespacedName{Name: strings.ToLower(siddhiApp.Name), Namespace: sp.Namespace}, deployment)
@@ -312,7 +362,10 @@ func (rsp *ReconcileSiddhiProcess) checkDeployments(sp *siddhiv1alpha2.SiddhiPro
 
 // populateSiddhiApps function invoke parserApp function to retrieve relevant siddhi apps.
 // Or else it will give you exixting siddhiApps list relevant to a particulat SiddhiProcess deployment.
-func (rsp *ReconcileSiddhiProcess) populateSiddhiApps(sp *siddhiv1alpha2.SiddhiProcess, configs Configs) (*siddhiv1alpha2.SiddhiProcess, []SiddhiApp, error) {
+func (rsp *ReconcileSiddhiProcess) populateSiddhiApps(
+	sp *siddhiv1alpha2.SiddhiProcess,
+	configs Configs,
+) (*siddhiv1alpha2.SiddhiProcess, []SiddhiApp, error) {
 	var siddhiApps []SiddhiApp
 	var err error
 	modified := false
@@ -394,7 +447,12 @@ func (rsp *ReconcileSiddhiProcess) syncGeneration(sp *siddhiv1alpha2.SiddhiProce
 
 // cleanArtifacts function delete the k8s artifacts that are not relavant when user changes the existing SiddhiProcess
 // When user change stateful siddhi process to stateless the unwanted artifacts will be deleted by this function
-func (rsp *ReconcileSiddhiProcess) cleanArtifacts(sp *siddhiv1alpha2.SiddhiProcess, configs Configs, oldSiddhiApps []SiddhiApp, newSiddhiApps []SiddhiApp) (*siddhiv1alpha2.SiddhiProcess, error) {
+func (rsp *ReconcileSiddhiProcess) cleanArtifacts(
+	sp *siddhiv1alpha2.SiddhiProcess,
+	configs Configs,
+	oldSiddhiApps []SiddhiApp,
+	newSiddhiApps []SiddhiApp,
+) (*siddhiv1alpha2.SiddhiProcess, error) {
 	var err error
 	oldSiddhiAppsLen := len(oldSiddhiApps)
 	newSiddhiAppsLen := len(newSiddhiApps)
@@ -402,28 +460,52 @@ func (rsp *ReconcileSiddhiProcess) cleanArtifacts(sp *siddhiv1alpha2.SiddhiProce
 		for i := newSiddhiAppsLen; i < oldSiddhiAppsLen; i++ {
 			artifactName := sp.Name + "-" + strconv.Itoa(i)
 			deployment := &appsv1.Deployment{}
-			er := rsp.client.Get(context.TODO(), types.NamespacedName{Name: artifactName, Namespace: sp.Namespace}, deployment)
+			er := rsp.client.Get(
+				context.TODO(),
+				types.NamespacedName{Name: artifactName, Namespace: sp.Namespace},
+				deployment,
+			)
 			if er == nil {
 				err = rsp.client.Delete(context.TODO(), deployment)
 				if err != nil {
 					return sp, err
 				}
-				sp = rsp.updateRunningStatus(sp, ER, RUNNING, "DeploymentDeleted", (artifactName + " deployment deleted successfully"))
+				sp = rsp.updateRunningStatus(
+					sp,
+					ER,
+					RUNNING,
+					"DeploymentDeleted",
+					(artifactName + " deployment deleted successfully"),
+				)
 			}
 
 			service := &corev1.Service{}
-			er = rsp.client.Get(context.TODO(), types.NamespacedName{Name: artifactName, Namespace: sp.Namespace}, service)
+			er = rsp.client.Get(
+				context.TODO(),
+				types.NamespacedName{Name: artifactName, Namespace: sp.Namespace},
+				service,
+			)
 			if er == nil {
 				err = rsp.client.Delete(context.TODO(), service)
 				if err != nil {
 					return sp, err
 				}
-				sp = rsp.updateRunningStatus(sp, ER, RUNNING, "ServiceDeleted", (artifactName + " service deleted successfully"))
+				sp = rsp.updateRunningStatus(
+					sp,
+					ER,
+					RUNNING,
+					"ServiceDeleted",
+					(artifactName + " service deleted successfully"),
+				)
 			}
 
 			pvcName := artifactName + configs.PVCExt
 			pvc := &corev1.PersistentVolumeClaim{}
-			er = rsp.client.Get(context.TODO(), types.NamespacedName{Name: pvcName, Namespace: sp.Namespace}, pvc)
+			er = rsp.client.Get(
+				context.TODO(),
+				types.NamespacedName{Name: pvcName, Namespace: sp.Namespace},
+				pvc,
+			)
 			if er == nil {
 				err = rsp.client.Delete(context.TODO(), pvc)
 				if err != nil {
@@ -433,7 +515,11 @@ func (rsp *ReconcileSiddhiProcess) cleanArtifacts(sp *siddhiv1alpha2.SiddhiProce
 
 			cmName := artifactName + strconv.Itoa(int(sp.Status.ObservedGeneration))
 			cm := &corev1.ConfigMap{}
-			er = rsp.client.Get(context.TODO(), types.NamespacedName{Name: cmName, Namespace: sp.Namespace}, cm)
+			er = rsp.client.Get(
+				context.TODO(),
+				types.NamespacedName{Name: cmName, Namespace: sp.Namespace},
+				cm,
+			)
 			if er == nil {
 				err = rsp.client.Delete(context.TODO(), cm)
 				if err != nil {

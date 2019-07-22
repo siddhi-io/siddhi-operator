@@ -49,7 +49,11 @@ func (rsp *ReconcileSiddhiProcess) CreateOrUpdateCM(
 ) error {
 
 	configMap := &corev1.ConfigMap{}
-	err := rsp.client.Get(context.TODO(), types.NamespacedName{Name: configMapName, Namespace: sp.Namespace}, configMap)
+	err := rsp.client.Get(
+		context.TODO(),
+		types.NamespacedName{Name: configMapName, Namespace: sp.Namespace},
+		configMap,
+	)
 	configMap = &corev1.ConfigMap{
 		TypeMeta: metav1.TypeMeta{
 			APIVersion: corev1.SchemeGroupVersion.String(),
@@ -75,7 +79,8 @@ func (rsp *ReconcileSiddhiProcess) CreateOrUpdateIngress(
 
 	var ingressPaths []extensionsv1beta1.HTTPIngressPath
 	for _, port := range siddhiApp.ContainerPorts {
-		path := "/" + strings.ToLower(siddhiApp.Name) + "/" + strconv.Itoa(int(port.ContainerPort)) + "(/|$)(.*)"
+		path := "/" + strings.ToLower(siddhiApp.Name) +
+			"/" + strconv.Itoa(int(port.ContainerPort)) + "(/|$)(.*)"
 		ingressPath := extensionsv1beta1.HTTPIngressPath{
 			Path: path,
 			Backend: extensionsv1beta1.IngressBackend{
@@ -137,7 +142,12 @@ func (rsp *ReconcileSiddhiProcess) CreateOrUpdateIngress(
 		},
 		Spec: ingressSpec,
 	}
-	_, err = controllerutil.CreateOrUpdate(context.TODO(), rsp.client, ingress, IngressMutateFunc(siddhiApp, configs))
+	_, err = controllerutil.CreateOrUpdate(
+		context.TODO(),
+		rsp.client,
+		ingress,
+		IngressMutateFunc(siddhiApp, configs),
+	)
 	return
 }
 
@@ -146,7 +156,11 @@ func (rsp *ReconcileSiddhiProcess) CreateOrUpdateIngress(
 // More about NATS streaming cluster - https://github.com/nats-io/nats-streaming-operator
 func (rsp *ReconcileSiddhiProcess) CreateNATS(sp *siddhiv1alpha2.SiddhiProcess, configs Configs) error {
 	natsCluster := &natsv1alpha2.NatsCluster{}
-	err := rsp.client.Get(context.TODO(), types.NamespacedName{Name: configs.NATSClusterName, Namespace: sp.Namespace}, natsCluster)
+	err := rsp.client.Get(
+		context.TODO(),
+		types.NamespacedName{Name: configs.NATSClusterName, Namespace: sp.Namespace},
+		natsCluster,
+	)
 	if err != nil && apierrors.IsNotFound(err) {
 		natsCluster = &natsv1alpha2.NatsCluster{
 			TypeMeta: metav1.TypeMeta{
@@ -170,7 +184,11 @@ func (rsp *ReconcileSiddhiProcess) CreateNATS(sp *siddhiv1alpha2.SiddhiProcess, 
 	}
 
 	stanCluster := &streamingv1alpha1.NatsStreamingCluster{}
-	err = rsp.client.Get(context.TODO(), types.NamespacedName{Name: configs.STANClusterName, Namespace: sp.Namespace}, stanCluster)
+	err = rsp.client.Get(
+		context.TODO(),
+		types.NamespacedName{Name: configs.STANClusterName, Namespace: sp.Namespace},
+		stanCluster,
+	)
 	if err != nil && apierrors.IsNotFound(err) {
 		stanCluster = &streamingv1alpha1.NatsStreamingCluster{
 			TypeMeta: metav1.TypeMeta{
@@ -195,11 +213,19 @@ func (rsp *ReconcileSiddhiProcess) CreateNATS(sp *siddhiv1alpha2.SiddhiProcess, 
 }
 
 // CreateOrUpdatePVC function creates a persistence volume claim for a K8s cluster
-func (rsp *ReconcileSiddhiProcess) CreateOrUpdatePVC(sp *siddhiv1alpha2.SiddhiProcess, configs Configs, pvcName string) error {
+func (rsp *ReconcileSiddhiProcess) CreateOrUpdatePVC(
+	sp *siddhiv1alpha2.SiddhiProcess,
+	configs Configs,
+	pvcName string,
+) error {
 	var accessModes []corev1.PersistentVolumeAccessMode
 	pvc := &corev1.PersistentVolumeClaim{}
 	p := sp.Spec.PV
-	err := rsp.client.Get(context.TODO(), types.NamespacedName{Name: pvcName, Namespace: sp.Namespace}, pvc)
+	err := rsp.client.Get(
+		context.TODO(),
+		types.NamespacedName{Name: pvcName, Namespace: sp.Namespace},
+		pvc,
+	)
 	if err != nil && apierrors.IsNotFound(err) {
 		if len(p.AccessModes) == 1 && p.AccessModes[0] == ReadOnlyMany {
 			return errors.New("Restricted access mode " + ReadOnlyMany + " in " + pvcName)
@@ -238,7 +264,12 @@ func (rsp *ReconcileSiddhiProcess) CreateOrUpdatePVC(sp *siddhiv1alpha2.SiddhiPr
 			},
 		}
 		controllerutil.SetControllerReference(sp, pvc, rsp.scheme)
-		_, err = controllerutil.CreateOrUpdate(context.TODO(), rsp.client, pvc, PVCMutateFunc(accessModes, p.Resources.Requests.Storage, p.Class))
+		_, err = controllerutil.CreateOrUpdate(
+			context.TODO(),
+			rsp.client,
+			pvc,
+			PVCMutateFunc(accessModes, p.Resources.Requests.Storage, p.Class),
+		)
 	}
 	return err
 }
@@ -275,7 +306,11 @@ func (rsp *ReconcileSiddhiProcess) CreateOrUpdateService(
 		},
 	}
 	controllerutil.SetControllerReference(sp, service, rsp.scheme)
-	operationResult, err = controllerutil.CreateOrUpdate(context.TODO(), rsp.client, service, ServiceMutateFunc(labels, servicePorts))
+	operationResult, err = controllerutil.CreateOrUpdate(
+		context.TODO(),
+		rsp.client, service,
+		ServiceMutateFunc(labels, servicePorts),
+	)
 	return
 }
 
@@ -402,7 +437,11 @@ func ConfigMapMutateFunc(data map[string]string) controllerutil.MutateFn {
 }
 
 // PVCMutateFunc is the mutate function for k8s pvc creation
-func PVCMutateFunc(accessModes []corev1.PersistentVolumeAccessMode, storage string, class string) controllerutil.MutateFn {
+func PVCMutateFunc(
+	accessModes []corev1.PersistentVolumeAccessMode,
+	storage string,
+	class string,
+) controllerutil.MutateFn {
 	return func(obj runtime.Object) error {
 		pvc := obj.(*corev1.PersistentVolumeClaim)
 		pvc.Spec.AccessModes = accessModes
@@ -469,7 +508,8 @@ func IngressMutateFunc(siddhiApp SiddhiApp, configs Configs) controllerutil.Muta
 		ingress := obj.(*extensionsv1beta1.Ingress)
 		var ingressPaths []extensionsv1beta1.HTTPIngressPath
 		for _, port := range siddhiApp.ContainerPorts {
-			path := "/" + strings.ToLower(siddhiApp.Name) + "/" + strconv.Itoa(int(port.ContainerPort)) + "(/|$)(.*)"
+			path := "/" + strings.ToLower(siddhiApp.Name) +
+				"/" + strconv.Itoa(int(port.ContainerPort)) + "(/|$)(.*)"
 			ingressPath := extensionsv1beta1.HTTPIngressPath{
 				Path: path,
 				Backend: extensionsv1beta1.IngressBackend{
