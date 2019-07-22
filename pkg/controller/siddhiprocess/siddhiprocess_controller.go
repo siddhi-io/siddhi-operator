@@ -41,7 +41,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/source"
 )
 
-var log = logf.Log.WithName("controller_siddhiprocess")
+var log = logf.Log.WithName("siddhi")
 
 // SPContainer holds siddhi apps
 var SPContainer map[string][]SiddhiApp
@@ -71,11 +71,6 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 		return err
 	}
 
-	sp := &source.Kind{Type: &siddhiv1alpha2.SiddhiProcess{}}
-	h := &handler.EnqueueRequestForOwner{
-		IsController: true,
-		OwnerType:    &siddhiv1alpha2.SiddhiProcess{},
-	}
 	pred := predicate.Funcs{
 		DeleteFunc: func(e event.DeleteEvent) bool {
 			if _, ok := SPContainer[e.Meta.GetName()]; ok {
@@ -83,16 +78,26 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 			}
 			return !e.DeleteStateUnknown
 		},
-	}
-
-	// Watch for Pod events.
-	err = c.Watch(sp, h, pred)
-	if err != nil {
-		return err
+		UpdateFunc: func(e event.UpdateEvent) bool {
+			oldObject := e.ObjectOld.(*siddhiv1alpha2.SiddhiProcess)
+			newObject := e.ObjectNew.(*siddhiv1alpha2.SiddhiProcess)
+			if !oldObject.Spec.Equals(&newObject.Spec) {
+				return true
+			}
+			return false
+		},
+		CreateFunc: func(e event.CreateEvent) bool {
+			object := e.Object.(*siddhiv1alpha2.SiddhiProcess)
+			object.Status.ObservedGeneration = 0
+			return true
+		},
+		GenericFunc: func(e event.GenericEvent) bool {
+			return false
+		},
 	}
 
 	// Watch for changes to primary resource SiddhiProcess
-	err = c.Watch(&source.Kind{Type: &siddhiv1alpha2.SiddhiProcess{}}, &handler.EnqueueRequestForObject{})
+	err = c.Watch(&source.Kind{Type: &siddhiv1alpha2.SiddhiProcess{}}, &handler.EnqueueRequestForObject{}, pred)
 	if err != nil {
 		return err
 	}
@@ -161,9 +166,6 @@ type ReconcileSiddhiProcess struct {
 // Reconcile reads that state of the cluster for a SiddhiProcess object and makes changes based on the state read
 // and what is in the SiddhiProcess.Spec
 func (rsp *ReconcileSiddhiProcess) Reconcile(request reconcile.Request) (reconcile.Result, error) {
-	reqLogger := log.WithValues("Request.Namespace", request.Namespace, "Request.Name", request.Name)
-	reqLogger.V(1).Info("Reconciling SiddhiProcess")
-
 	sp := &siddhiv1alpha2.SiddhiProcess{}
 	err := rsp.client.Get(context.TODO(), request.NamespacedName, sp)
 	if err != nil {
@@ -172,9 +174,8 @@ func (rsp *ReconcileSiddhiProcess) Reconcile(request reconcile.Request) (reconci
 		}
 		return reconcile.Result{}, err
 	}
-
 	configs := rsp.Configurations(sp)
-	siddhiApps, err := rsp.populateSiddhiApps(sp, configs)
+	sp, siddhiApps, err := rsp.populateSiddhiApps(sp, configs)
 	if err != nil {
 		sp = rsp.updateErrorStatus(sp, ER, ERROR, "ParserFailed", err)
 		return reconcile.Result{}, nil

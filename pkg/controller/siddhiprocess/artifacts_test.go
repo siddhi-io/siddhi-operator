@@ -36,7 +36,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 )
 
-func TestCreateConfigMap(t *testing.T) {
+func TestCreateOrUpdateCM(t *testing.T) {
 	objs := []runtime.Object{testSP}
 	s := scheme.Scheme
 	s.AddKnownTypes(siddhiv1alpha2.SchemeGroupVersion, testSP)
@@ -46,7 +46,7 @@ func TestCreateConfigMap(t *testing.T) {
 		"MonitorApp": app,
 	}
 	configMapName := "siddhiApp"
-	err := rsp.CreateConfigMap(testSP, configMapName, data)
+	err := rsp.CreateOrUpdateCM(testSP, configMapName, data)
 	if err != nil {
 		t.Error(err)
 	}
@@ -57,14 +57,14 @@ func TestCreateConfigMap(t *testing.T) {
 	}
 }
 
-func TestCreateAndUpdateIngress(t *testing.T) {
+func TestCreateOrUpdateIngress(t *testing.T) {
 	objs := []runtime.Object{testSP}
 	s := scheme.Scheme
 	s.AddKnownTypes(siddhiv1alpha2.SchemeGroupVersion, testSP)
 	cl := fake.NewFakeClient(objs...)
 	rsp := &ReconcileSiddhiProcess{client: cl, scheme: s}
 	configs := getTestConfigs(testSP)
-	err := rsp.CreateIngress(testSP, testSiddhiApp, configs)
+	err := rsp.CreateOrUpdateIngress(testSP, testSiddhiApp, configs)
 	if err != nil {
 		t.Error(err)
 	}
@@ -86,7 +86,7 @@ func TestCreateAndUpdateIngress(t *testing.T) {
 		},
 		PersistenceEnabled: true,
 	}
-	err = rsp.UpdateIngress(testSP, ingress, sa, configs)
+	err = rsp.CreateOrUpdateIngress(testSP, sa, configs)
 	if err != nil {
 		t.Error(err)
 	}
@@ -133,7 +133,7 @@ func TestCreateNATS(t *testing.T) {
 
 }
 
-func TestCreatePVC(t *testing.T) {
+func TestCreateOrUpdatePVC(t *testing.T) {
 	objs := []runtime.Object{testSP}
 	s := scheme.Scheme
 	s.AddKnownTypes(siddhiv1alpha2.SchemeGroupVersion, testSP)
@@ -141,7 +141,7 @@ func TestCreatePVC(t *testing.T) {
 	rsp := &ReconcileSiddhiProcess{client: cl, scheme: s}
 	pvcName := "monitorapp-pvc"
 	configs := getTestConfigs(testSP)
-	err := rsp.CreatePVC(testSP, configs, pvcName)
+	err := rsp.CreateOrUpdatePVC(testSP, configs, pvcName)
 	if err != nil {
 		t.Error(err)
 	}
@@ -152,14 +152,14 @@ func TestCreatePVC(t *testing.T) {
 	}
 }
 
-func TestCreateService(t *testing.T) {
+func TestCreateOrUpdateService(t *testing.T) {
 	objs := []runtime.Object{testSP}
 	s := scheme.Scheme
 	s.AddKnownTypes(siddhiv1alpha2.SchemeGroupVersion, testSP)
 	cl := fake.NewFakeClient(objs...)
 	rsp := &ReconcileSiddhiProcess{client: cl, scheme: s}
 	configs := getTestConfigs(testSP)
-	err := rsp.CreateService(testSP, testSiddhiApp, configs)
+	_, err := rsp.CreateOrUpdateService(testSP, testSiddhiApp, configs)
 	if err != nil {
 		t.Error(err)
 	}
@@ -170,7 +170,7 @@ func TestCreateService(t *testing.T) {
 	}
 }
 
-func TestCreateDeployment(t *testing.T) {
+func TestCreateOrUpdateDeployment(t *testing.T) {
 	objs := []runtime.Object{testSP}
 	s := scheme.Scheme
 	s.AddKnownTypes(siddhiv1alpha2.SchemeGroupVersion, testSP)
@@ -180,7 +180,7 @@ func TestCreateDeployment(t *testing.T) {
 	labels := map[string]string{
 		"appName": "monitorapp",
 	}
-	err := rsp.CreateDeployment(
+	_, err := rsp.CreateOrUpdateDeployment(
 		testSP,
 		testSiddhiApp.Name,
 		testSP.Namespace,
