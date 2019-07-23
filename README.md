@@ -48,7 +48,7 @@ Supported Version: nginx 0.22.0+
 
 2. Execute the following commands to setup the Siddhi Operator in the kubernetes cluster.
    ```sh
-    kubectl create -f ./deploy/crds/siddhi_v1alpha2_siddhiprocess_crd.yaml
+    kubectl create -f ./deploy/siddhi_v1alpha2_siddhiprocess_crd.yaml
     kubectl create -f ./deploy/service_account.yaml
     kubectl create -f ./deploy/role.yaml
     kubectl create -f ./deploy/role_binding.yaml
@@ -58,7 +58,7 @@ Supported Version: nginx 0.22.0+
 ## Testing a sample
 
 1. Execute the below command to create a sample siddhi deployment.  
-`kubectl create -f ./deploy/crds/examples/example-stateless-log-app.yaml`
+`kubectl create -f ./deploy/examples/example-stateless-log-app.yaml`
 
    Siddhi Operator would create a Siddhi-Runner deployment with the Siddhi app deployed through the example-siddhi-app CRD, a service, and an ingress to expose the http endpoint which is in the Siddhi sample.
    
@@ -187,7 +187,7 @@ Execute the below commands to set up the needed infrastructure for the test-case
 1. Then you have to set up the siddhi-operator in `operator-test` namespace using following commands.
 
    ``` sh
-   $ kubectl create -f ./deploy/crds/siddhi_v1alpha2_siddhiprocess_crd.yaml --namespace operator-test
+   $ kubectl create -f ./deploy/siddhi_v1alpha2_siddhiprocess_crd.yaml --namespace operator-test
    $ kubectl create -f ./deploy/service_account.yaml --namespace operator-test
    $ kubectl create -f ./deploy/role.yaml --namespace operator-test
    $ kubectl create -f ./deploy/role_binding.yaml --namespace operator-test
