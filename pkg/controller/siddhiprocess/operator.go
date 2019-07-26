@@ -265,69 +265,69 @@ func (rsp *ReconcileSiddhiProcess) createArtifacts(
 		if (eventType == controllerutil.OperationResultCreated) ||
 			(eventType == controllerutil.OperationResultUpdated) {
 			needDep++
-		}
-		operationResult, err := rsp.deployApp(sp, siddhiApp, ER, configs)
-		if err != nil {
-			sp = rsp.updateErrorStatus(sp, ER, ERROR, "AppDeploymentError", err)
-			continue
-		}
-		if (eventType != controllerutil.OperationResultNone) &&
-			(operationResult == controllerutil.OperationResultCreated) {
-			availableDep++
-			sp = rsp.updateRunningStatus(
-				sp,
-				ER,
-				RUNNING,
-				"DeploymentCreated",
-				(siddhiApp.Name + " deployment created successfully"),
-			)
-		} else if (eventType != controllerutil.OperationResultNone) &&
-			(operationResult == controllerutil.OperationResultUpdated) {
-			availableDep++
-			sp = rsp.updateRunningStatus(
-				sp,
-				ER,
-				RUNNING,
-				"DeploymentUpdated",
-				(siddhiApp.Name + " deployment updated successfully"),
-			)
-		}
-
-		if siddhiApp.ServiceEnabled {
-			operationResult, err = rsp.CreateOrUpdateService(sp, siddhiApp, configs)
+			operationResult, err := rsp.deployApp(sp, siddhiApp, ER, configs)
 			if err != nil {
-				sp = rsp.updateErrorStatus(sp, ER, WARNING, "ServiceCreationError", err)
+				sp = rsp.updateErrorStatus(sp, ER, ERROR, "AppDeploymentError", err)
 				continue
 			}
 			if (eventType != controllerutil.OperationResultNone) &&
 				(operationResult == controllerutil.OperationResultCreated) {
+				availableDep++
 				sp = rsp.updateRunningStatus(
 					sp,
 					ER,
 					RUNNING,
-					"ServiceCreated",
-					(siddhiApp.Name + " service created successfully"),
+					"DeploymentCreated",
+					(siddhiApp.Name + " deployment created successfully"),
 				)
 			} else if (eventType != controllerutil.OperationResultNone) &&
 				(operationResult == controllerutil.OperationResultUpdated) {
+				availableDep++
 				sp = rsp.updateRunningStatus(
 					sp,
 					ER,
 					RUNNING,
-					"ServiceUpdated",
-					(siddhiApp.Name + " service updated successfully"),
+					"DeploymentUpdated",
+					(siddhiApp.Name + " deployment updated successfully"),
 				)
 			}
 
-			if configs.AutoCreateIngress {
-				err := rsp.CreateOrUpdateIngress(sp, siddhiApp, configs)
+			if siddhiApp.ServiceEnabled {
+				operationResult, err = rsp.CreateOrUpdateService(sp, siddhiApp, configs)
 				if err != nil {
-					sp = rsp.updateErrorStatus(sp, ER, ERROR, "IngressCreationError", err)
+					sp = rsp.updateErrorStatus(sp, ER, WARNING, "ServiceCreationError", err)
 					continue
 				}
-				if eventType == controllerutil.OperationResultCreated ||
-					eventType == controllerutil.OperationResultUpdated {
-					reqLogger.Info("Ingress changed", "Ingress.Name", configs.HostName)
+				if (eventType != controllerutil.OperationResultNone) &&
+					(operationResult == controllerutil.OperationResultCreated) {
+					sp = rsp.updateRunningStatus(
+						sp,
+						ER,
+						RUNNING,
+						"ServiceCreated",
+						(siddhiApp.Name + " service created successfully"),
+					)
+				} else if (eventType != controllerutil.OperationResultNone) &&
+					(operationResult == controllerutil.OperationResultUpdated) {
+					sp = rsp.updateRunningStatus(
+						sp,
+						ER,
+						RUNNING,
+						"ServiceUpdated",
+						(siddhiApp.Name + " service updated successfully"),
+					)
+				}
+
+				if configs.AutoCreateIngress {
+					err := rsp.CreateOrUpdateIngress(sp, siddhiApp, configs)
+					if err != nil {
+						sp = rsp.updateErrorStatus(sp, ER, ERROR, "IngressCreationError", err)
+						continue
+					}
+					if eventType == controllerutil.OperationResultCreated ||
+						eventType == controllerutil.OperationResultUpdated {
+						reqLogger.Info("Ingress changed", "Ingress.Name", configs.HostName)
+					}
 				}
 			}
 		}
