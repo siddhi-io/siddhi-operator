@@ -147,7 +147,7 @@ public class SiddhiParserService {
                         Matcher matcher = expr.matcher(siddhiApp);
                         while (matcher.find()) {
                             for (int i = 1; i <= matcher.groupCount(); i++) {
-                                String envValue = envMap.getOrDefault(matcher.group(i).toUpperCase(), "");
+                                String envValue = envMap.getOrDefault(matcher.group(i), "");
                                 envValue = envValue.replace("\\", "\\\\");
                                 Pattern subexpr = Pattern.compile("\\$\\{" + matcher.group(i) + "\\}");
                                 siddhiApp = subexpr.matcher(siddhiApp).replaceAll(envValue);
