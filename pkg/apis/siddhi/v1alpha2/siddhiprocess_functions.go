@@ -60,11 +60,11 @@ func (p *MessagingSystem) Equals(q *MessagingSystem) bool {
 	return (typeEq && cidEq)
 }
 
-// Equals 
+// Equals function checks the equality of two SiddhiProcess specs
 func (p *SiddhiProcessSpec) Equals(q *SiddhiProcessSpec) bool {
 	if !EqualApps(p.Apps, q.Apps) {
 		return false
-	}
+	} 
 	if p.SiddhiConfig != q.SiddhiConfig {
 		return false
 	}
@@ -83,7 +83,7 @@ func (p *SiddhiProcessSpec) Equals(q *SiddhiProcessSpec) bool {
 	return true
 }
 
-// EqualApps 
+// EqualApps checks the equality of two app slices
 func EqualApps(p []Apps, q []Apps) bool {
 	if len(p) != len(q) {
 		return false
@@ -103,7 +103,7 @@ func EqualApps(p []Apps, q []Apps) bool {
 	return true
 }
 
-// EqualContainers 
+// EqualContainers checks the equality of two container specs
 func EqualContainers(p *corev1.Container, q *corev1.Container) bool {
 	if p.Image != q.Image {
 		return false
