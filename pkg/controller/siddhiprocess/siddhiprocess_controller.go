@@ -44,6 +44,9 @@ var log = logf.Log.WithName("siddhi")
 // SPContainer holds siddhi apps
 var SPContainer map[string][]SiddhiApp
 
+// CMContainer holds the config map name along with CM listner for listen changes of the CM
+var CMContainer map[string]ConfigMapListner
+
 // ER recoder
 var ER record.EventRecorder
 
@@ -61,6 +64,7 @@ func newReconciler(mgr manager.Manager) reconcile.Reconciler {
 // add adds a new Controller to mgr with rsp as the reconcile.Reconciler
 func add(mgr manager.Manager, r reconcile.Reconciler) error {
 	SPContainer = make(map[string][]SiddhiApp)
+	CMContainer = make(map[string]ConfigMapListner)
 	ER = mgr.GetRecorder("siddhiprocess-controller")
 
 	// Create a new controller
@@ -69,7 +73,7 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 		return err
 	}
 
-	pred := predicate.Funcs{
+	spPredicate := predicate.Funcs{
 		DeleteFunc: func(e event.DeleteEvent) bool {
 			if _, ok := SPContainer[e.Meta.GetName()]; ok {
 				delete(SPContainer, e.Meta.GetName())
@@ -80,13 +84,15 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 			oldObject := e.ObjectOld.(*siddhiv1alpha2.SiddhiProcess)
 			newObject := e.ObjectNew.(*siddhiv1alpha2.SiddhiProcess)
 			if !oldObject.Spec.Equals(&newObject.Spec) {
+				newObject.Status.CurrentVersion++
 				return true
 			}
 			return false
 		},
 		CreateFunc: func(e event.CreateEvent) bool {
 			object := e.Object.(*siddhiv1alpha2.SiddhiProcess)
-			object.Status.ObservedGeneration = 0
+			object.Status.CurrentVersion = 0
+			object.Status.PreviousVersion = 0
 			return true
 		},
 		GenericFunc: func(e event.GenericEvent) bool {
@@ -94,8 +100,29 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 		},
 	}
 
+	cmPredicate := predicate.Funcs{
+		UpdateFunc: func(e event.UpdateEvent) bool {
+			if _, ok := CMContainer[e.MetaNew.GetName()]; ok {
+				cmListner := CMContainer[e.MetaNew.GetName()]
+				cmListner.Changed = true
+				CMContainer[e.MetaNew.GetName()] = cmListner
+				return true
+			}
+			return false
+		},
+		CreateFunc: func(e event.CreateEvent) bool {
+			return false
+		},
+	}
+
 	// Watch for changes to primary resource SiddhiProcess
-	err = c.Watch(&source.Kind{Type: &siddhiv1alpha2.SiddhiProcess{}}, &handler.EnqueueRequestForObject{}, pred)
+	err = c.Watch(&source.Kind{Type: &siddhiv1alpha2.SiddhiProcess{}}, &handler.EnqueueRequestForObject{}, spPredicate)
+	if err != nil {
+		return err
+	}
+
+	// Watch for changes to secondary resource Config Map and requeue the owner SiddhiProcess
+	err = c.Watch(&source.Kind{Type: &corev1.ConfigMap{}}, &handler.EnqueueRequestForObject{}, cmPredicate)
 	if err != nil {
 		return err
 	}
@@ -144,13 +171,27 @@ type ReconcileSiddhiProcess struct {
 // and what is in the SiddhiProcess.Spec
 func (rsp *ReconcileSiddhiProcess) Reconcile(request reconcile.Request) (reconcile.Result, error) {
 	sp := &siddhiv1alpha2.SiddhiProcess{}
-	err := rsp.client.Get(context.TODO(), request.NamespacedName, sp)
+	cm := &corev1.ConfigMap{}
+	siddhiProcessName := request.NamespacedName
+	SiddhiProcessChanged := true
+	err := rsp.client.Get(context.TODO(), request.NamespacedName, cm)
+	if err == nil {
+		cmListner := CMContainer[request.NamespacedName.Name]
+		siddhiProcessName.Name = cmListner.SiddhiProcess
+		SiddhiProcessChanged = false
+	}
+
+	err = rsp.client.Get(context.TODO(), siddhiProcessName, sp)
 	if err != nil {
 		if errors.IsNotFound(err) {
 			return reconcile.Result{}, nil
 		}
 		return reconcile.Result{}, err
 	}
+	if !SiddhiProcessChanged {
+		sp = rsp.upgradeVersion(sp)
+	}
+
 	configs := rsp.Configurations(sp)
 	sp, siddhiApps, err := rsp.populateSiddhiApps(sp, configs)
 	if err != nil {
@@ -166,5 +207,10 @@ func (rsp *ReconcileSiddhiProcess) Reconcile(request reconcile.Request) (reconci
 
 	sp = rsp.createArtifacts(sp, siddhiApps, configs)
 	sp = rsp.checkDeployments(sp, siddhiApps)
+	if !SiddhiProcessChanged {
+		cmListner := CMContainer[request.NamespacedName.Name]
+		cmListner.Changed = false
+		CMContainer[request.NamespacedName.Name] = cmListner
+	}
 	return reconcile.Result{Requeue: false}, nil
 }

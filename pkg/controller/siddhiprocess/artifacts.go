@@ -75,7 +75,7 @@ func (rsp *ReconcileSiddhiProcess) CreateOrUpdateIngress(
 	sp *siddhiv1alpha2.SiddhiProcess,
 	siddhiApp SiddhiApp,
 	configs Configs,
-) (err error) {
+) (operationResult controllerutil.OperationResult, err error) {
 
 	var ingressPaths []extensionsv1beta1.HTTPIngressPath
 	for _, port := range siddhiApp.ContainerPorts {
@@ -142,7 +142,7 @@ func (rsp *ReconcileSiddhiProcess) CreateOrUpdateIngress(
 		},
 		Spec: ingressSpec,
 	}
-	_, err = controllerutil.CreateOrUpdate(
+	operationResult, err = controllerutil.CreateOrUpdate(
 		context.TODO(),
 		rsp.client,
 		ingress,

@@ -64,7 +64,7 @@ func TestCreateOrUpdateIngress(t *testing.T) {
 	cl := fake.NewFakeClient(objs...)
 	rsp := &ReconcileSiddhiProcess{client: cl, scheme: s}
 	configs := getTestConfigs(testSP)
-	err := rsp.CreateOrUpdateIngress(testSP, testSiddhiApp, configs)
+	_, err := rsp.CreateOrUpdateIngress(testSP, testSiddhiApp, configs)
 	if err != nil {
 		t.Error(err)
 	}
@@ -86,7 +86,7 @@ func TestCreateOrUpdateIngress(t *testing.T) {
 		},
 		PersistenceEnabled: true,
 	}
-	err = rsp.CreateOrUpdateIngress(testSP, sa, configs)
+	_, err = rsp.CreateOrUpdateIngress(testSP, sa, configs)
 	if err != nil {
 		t.Error(err)
 	}
