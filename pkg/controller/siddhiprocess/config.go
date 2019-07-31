@@ -262,6 +262,12 @@ type SiddhiAppConfig struct {
 	Replicas                int32                    `json:"replicas"`
 }
 
+// ConfigMapListner holds the change details of a config map
+type ConfigMapListner struct {
+	SiddhiProcess string `json:"siddhiProcess"`
+	Changed       bool   `json:"changed"`
+}
+
 // Status of a Siddhi process
 type Status int
 

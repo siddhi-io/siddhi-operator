@@ -124,7 +124,7 @@ func (rsp *ReconcileSiddhiProcess) deployApp(
 			RollingUpdate: &rollingUpdate,
 		}
 	}
-	configMapName := siddhiApp.Name + strconv.Itoa(int(sp.ObjectMeta.Generation))
+	configMapName := siddhiApp.Name + strconv.Itoa(int(sp.Status.CurrentVersion))
 	for k, v := range siddhiApp.Apps {
 		key := k + configs.SiddhiExt
 		configMapData[key] = v
@@ -251,10 +251,10 @@ func (rsp *ReconcileSiddhiProcess) createArtifacts(
 	availableDep := 0
 	reqLogger := log.WithValues("Request.Namespace", sp.Namespace, "Request.Name", sp.Name)
 	eventType := controllerutil.OperationResultNone
-	if sp.Status.ObservedGeneration == 0 {
+	if sp.Status.CurrentVersion == 0 {
 		eventType = controllerutil.OperationResultCreated
 	} else {
-		if sp.ObjectMeta.Generation > sp.Status.ObservedGeneration {
+		if sp.Status.CurrentVersion > sp.Status.PreviousVersion {
 			eventType = controllerutil.OperationResultUpdated
 		} else {
 			eventType = controllerutil.OperationResultNone
@@ -270,9 +270,8 @@ func (rsp *ReconcileSiddhiProcess) createArtifacts(
 				sp = rsp.updateErrorStatus(sp, ER, ERROR, "AppDeploymentError", err)
 				continue
 			}
-			if (eventType != controllerutil.OperationResultNone) &&
+			if (eventType == controllerutil.OperationResultCreated) &&
 				(operationResult == controllerutil.OperationResultCreated) {
-				availableDep++
 				sp = rsp.updateRunningStatus(
 					sp,
 					ER,
@@ -280,9 +279,8 @@ func (rsp *ReconcileSiddhiProcess) createArtifacts(
 					"DeploymentCreated",
 					(siddhiApp.Name + " deployment created successfully"),
 				)
-			} else if (eventType != controllerutil.OperationResultNone) &&
+			} else if (eventType == controllerutil.OperationResultUpdated) &&
 				(operationResult == controllerutil.OperationResultUpdated) {
-				availableDep++
 				sp = rsp.updateRunningStatus(
 					sp,
 					ER,
@@ -291,14 +289,14 @@ func (rsp *ReconcileSiddhiProcess) createArtifacts(
 					(siddhiApp.Name + " deployment updated successfully"),
 				)
 			}
-
+			availableDep++
 			if siddhiApp.ServiceEnabled {
 				operationResult, err = rsp.CreateOrUpdateService(sp, siddhiApp, configs)
 				if err != nil {
 					sp = rsp.updateErrorStatus(sp, ER, WARNING, "ServiceCreationError", err)
 					continue
 				}
-				if (eventType != controllerutil.OperationResultNone) &&
+				if (eventType == controllerutil.OperationResultCreated) &&
 					(operationResult == controllerutil.OperationResultCreated) {
 					sp = rsp.updateRunningStatus(
 						sp,
@@ -307,7 +305,7 @@ func (rsp *ReconcileSiddhiProcess) createArtifacts(
 						"ServiceCreated",
 						(siddhiApp.Name + " service created successfully"),
 					)
-				} else if (eventType != controllerutil.OperationResultNone) &&
+				} else if (eventType == controllerutil.OperationResultUpdated) &&
 					(operationResult == controllerutil.OperationResultUpdated) {
 					sp = rsp.updateRunningStatus(
 						sp,
@@ -319,20 +317,23 @@ func (rsp *ReconcileSiddhiProcess) createArtifacts(
 				}
 
 				if configs.AutoCreateIngress {
-					err := rsp.CreateOrUpdateIngress(sp, siddhiApp, configs)
+					operationResult, err = rsp.CreateOrUpdateIngress(sp, siddhiApp, configs)
 					if err != nil {
 						sp = rsp.updateErrorStatus(sp, ER, ERROR, "IngressCreationError", err)
 						continue
 					}
-					if eventType == controllerutil.OperationResultCreated ||
-						eventType == controllerutil.OperationResultUpdated {
+					if (eventType == controllerutil.OperationResultCreated) &&
+						(operationResult == controllerutil.OperationResultCreated) {
+						reqLogger.Info("Ingress created", "Ingress.Name", configs.HostName)
+					} else if (eventType == controllerutil.OperationResultUpdated) &&
+						(operationResult == controllerutil.OperationResultUpdated) {
 						reqLogger.Info("Ingress changed", "Ingress.Name", configs.HostName)
 					}
 				}
 			}
 		}
 	}
-	sp = rsp.syncGeneration(sp)
+	sp = rsp.syncVersion(sp)
 	if (eventType == controllerutil.OperationResultCreated) ||
 		(eventType == controllerutil.OperationResultUpdated) {
 		sp = rsp.updateReady(sp, availableDep, needDep)
@@ -369,7 +370,7 @@ func (rsp *ReconcileSiddhiProcess) populateSiddhiApps(
 	var siddhiApps []SiddhiApp
 	var err error
 	modified := false
-	if (sp.Status.ObservedGeneration > 0) && (sp.ObjectMeta.Generation > sp.Status.ObservedGeneration) {
+	if sp.Status.CurrentVersion > sp.Status.PreviousVersion {
 		modified = true
 	}
 	if modified {
@@ -425,6 +426,11 @@ func (rsp *ReconcileSiddhiProcess) getSiddhiApps(sp *siddhiv1alpha2.SiddhiProces
 			if err != nil {
 				return
 			}
+			cmListner := ConfigMapListner{
+				SiddhiProcess: sp.Name,
+				Changed:       false,
+			}
+			CMContainer[app.ConfigMap] = cmListner
 			for _, siddhiFileContent := range configMap.Data {
 				siddhiApps = append(siddhiApps, siddhiFileContent)
 			}
@@ -436,11 +442,18 @@ func (rsp *ReconcileSiddhiProcess) getSiddhiApps(sp *siddhiv1alpha2.SiddhiProces
 	return
 }
 
-// syncGeneration synchronize the siddhi process internal generation number
-// this simply assing ObjectMeta.Generation value to the Status.ObservedGeneration and update the sidhhi process
+// syncVersion synchronize the siddhi process internal version number
+// this simply assing Status.CurrentVersion value to the Status.PreviousVersion and update the siddhi process
 // this funtionality used for version controlling inside a siddhi process
-func (rsp *ReconcileSiddhiProcess) syncGeneration(sp *siddhiv1alpha2.SiddhiProcess) *siddhiv1alpha2.SiddhiProcess {
-	sp.Status.ObservedGeneration = sp.ObjectMeta.Generation
+func (rsp *ReconcileSiddhiProcess) syncVersion(sp *siddhiv1alpha2.SiddhiProcess) *siddhiv1alpha2.SiddhiProcess {
+	sp.Status.PreviousVersion = sp.Status.CurrentVersion
+	_ = rsp.client.Status().Update(context.TODO(), sp)
+	return sp
+}
+
+// upgradeVersion upgrade the siddhi process internal version number
+func (rsp *ReconcileSiddhiProcess) upgradeVersion(sp *siddhiv1alpha2.SiddhiProcess) *siddhiv1alpha2.SiddhiProcess {
+	sp.Status.CurrentVersion++
 	_ = rsp.client.Status().Update(context.TODO(), sp)
 	return sp
 }
@@ -513,7 +526,7 @@ func (rsp *ReconcileSiddhiProcess) cleanArtifacts(
 				}
 			}
 
-			cmName := artifactName + strconv.Itoa(int(sp.Status.ObservedGeneration))
+			cmName := artifactName + strconv.Itoa(int(sp.Status.PreviousVersion))
 			cm := &corev1.ConfigMap{}
 			er = rsp.client.Get(
 				context.TODO(),

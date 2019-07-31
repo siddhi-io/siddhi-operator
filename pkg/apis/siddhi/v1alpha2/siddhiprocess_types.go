@@ -87,7 +87,8 @@ type SiddhiProcessSpec struct {
 type SiddhiProcessStatus struct {
 	Status string   `json:"status"`
 	Ready  string   `json:"ready"`
-	ObservedGeneration int64 `json:"observedGeneration,omitempty"`
+	CurrentVersion int64 `json:"currentVersion"`
+	PreviousVersion int64 `json:"previousVersion"`
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
