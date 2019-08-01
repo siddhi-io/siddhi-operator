@@ -12,7 +12,7 @@ spec:
   accessModes:
     - ReadWriteOnce
   hostPath:
-    path: "/home/docker/"
+    path: "/home/siddhi_user/"
   # For NFS in GKE use the following block
   # nfs:
   #   server: <SERVER_IP>
