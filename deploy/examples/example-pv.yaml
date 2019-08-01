@@ -13,3 +13,7 @@ spec:
     - ReadWriteOnce
   hostPath:
     path: "/home/docker/"
+  # For NFS like GKE use the following block
+  # nfs:
+  #   server: <SERVER_IP>
+  #   path: <PATH>
