@@ -25,7 +25,7 @@ spec:
         @sink(type='log', prefix='LOGGER') 
         define stream PowerSurgeAlertStream(deviceType string, powerConsumed long); 
 
-        @info(name='power-consumption-window')  
+        @info(name='surge-detector')  
         from DevicePowerStream#window.time(1 min) 
         select deviceType, sum(power) as powerConsumed
         group by deviceType
@@ -42,13 +42,6 @@ spec:
         name: BASIC_AUTH_ENABLED
         value: "false"
     image: "siddhiio/siddhi-runner-ubuntu:5.1.0-m1"
-  
-  messagingSystem:
-    type: nats
-    # config: 
-    #   bootstrapServers: 
-    #     - "nats://nats-siddhi:4222"
-    #   clusterID: stan-siddhi
   
   persistentVolume: 
     accessModes: 
