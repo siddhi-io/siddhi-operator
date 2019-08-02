@@ -24,7 +24,7 @@ spec:
         @sink(type='log', prefix='LOGGER')  
         define stream PowerSurgeAlertStream(deviceType string, power int); 
 
-        @info(name='power-filter')  
+        @info(name='surge-detector')  
         from DevicePowerStream[deviceType == 'dryer' and power >= 600] 
         select deviceType, power  
         insert into PowerSurgeAlertStream;
