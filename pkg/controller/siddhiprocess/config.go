@@ -55,8 +55,9 @@ const (
 	PVCExt                     string = "-pvc"
 	FilePersistentDir          string = "siddhi-app-persistence"
 	WSO2Dir                    string = "wso2"
-	ParserDomain               string = "http://siddhi-parser."
+	ParserHTTP                 string = "http://"
 	ParserContext              string = ".svc.cluster.local:9090/siddhi-parser/parse"
+	ParserHealth               string = ".svc.cluster.local:9090/health"
 	PVCSize                    string = "1Gi"
 	NATSAPIVersion             string = "nats.io/v1alpha2"
 	STANAPIVersion             string = "streaming.nats.io/v1alpha1"
@@ -114,14 +115,21 @@ state.persistence:
 // These are all other relevant constants that used by the operator. But these constants are not configuration varibles.
 // That is why this has been seperated.
 const (
-	Push           string = "PUSH"
-	Pull           string = "PULL"
-	Failover       string = "failover"
-	Default        string = "default"
-	Distributed    string = "distributed"
-	ProcessApp     string = "process"
-	PassthroughApp string = "passthrough"
-	OperatorCMName string = "siddhi-operator-config"
+	Push            string = "PUSH"
+	Pull            string = "PULL"
+	Failover        string = "failover"
+	Default         string = "default"
+	Distributed     string = "distributed"
+	ProcessApp      string = "process"
+	PassthroughApp  string = "passthrough"
+	OperatorCMName  string = "siddhi-operator-config"
+	ParserParameter string = "-Dsiddhi-parser "
+	ParserName      string = "parser"
+	ParserPort      int32  = 9090
+	ParserReplicas  int32  = 1
+	ParserMinWait   int    = 5
+	ParserMaxWait   int    = 20
+	ParserMaxRetry  int    = 15
 )
 
 // Int - Type
@@ -166,8 +174,9 @@ type Configs struct {
 	PVCExt                     string
 	FilePersistentDir          string
 	WSO2Dir                    string
-	ParserDomain               string
+	ParserHTTP                 string
 	ParserContext              string
+	ParserHealth               string
 	PVCSize                    string
 	NATSAPIVersion             string
 	STANAPIVersion             string
@@ -391,8 +400,9 @@ func (rsp *ReconcileSiddhiProcess) Configurations(sp *siddhiv1alpha2.SiddhiProce
 		PVCExt:                     PVCExt,
 		FilePersistentDir:          FilePersistentDir,
 		WSO2Dir:                    WSO2Dir,
-		ParserDomain:               ParserDomain,
+		ParserHTTP:                 ParserHTTP,
 		ParserContext:              ParserContext,
+		ParserHealth:               ParserHealth,
 		PVCSize:                    PVCSize,
 		NATSAPIVersion:             NATSAPIVersion,
 		STANAPIVersion:             STANAPIVersion,

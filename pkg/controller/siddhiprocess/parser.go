@@ -19,8 +19,14 @@
 package siddhiprocess
 
 import (
+	"bytes"
+	"encoding/json"
+	"errors"
+	"net/http"
 	"strconv"
+	"time"
 
+	retryablehttp "github.com/hashicorp/go-retryablehttp"
 	siddhiv1alpha2 "github.com/siddhi-io/siddhi-operator/pkg/apis/siddhi/v1alpha2"
 	corev1 "k8s.io/api/core/v1"
 )
@@ -37,6 +43,7 @@ func (rsp *ReconcileSiddhiProcess) parseApp(sp *siddhiv1alpha2.SiddhiProcess, co
 	}
 	propertyMap := rsp.populateUserEnvs(sp)
 	siddhiParserRequest := populateParserRequest(sp, siddhiApps, propertyMap, configs)
+	err = rsp.deployParser(sp, configs)
 	siddhiAppConfigs, err := invokeParser(sp, siddhiParserRequest, configs)
 	if err != nil {
 		return
@@ -81,6 +88,90 @@ func (rsp *ReconcileSiddhiProcess) parseApp(sp *siddhiv1alpha2.SiddhiProcess, co
 		}
 		siddhiAppStructs = append(siddhiAppStructs, siddhiAppStruct)
 	}
-
+	err = rsp.cleanParser(sp)
+	if err != nil {
+		return
+	}
 	return siddhiAppStructs, err
+}
+
+// invokeParser simply invoke the siddhi parser within the k8s cluster
+func invokeParser(
+	sp *siddhiv1alpha2.SiddhiProcess,
+	siddhiParserRequest SiddhiParserRequest,
+	configs Configs,
+) (siddhiAppConfigs []SiddhiAppConfig, err error) {
+	url := configs.ParserHTTP + sp.Name + "." + sp.Namespace + configs.ParserContext
+	b, err := json.Marshal(siddhiParserRequest)
+	if err != nil {
+		return
+	}
+	var jsonStr = []byte(string(b))
+	req, err := http.NewRequest(http.MethodPost, url, bytes.NewBuffer(jsonStr))
+	req.Header.Set("Content-Type", "application/json")
+	client := &http.Client{}
+	resp, err := client.Do(req)
+	if err != nil {
+		return
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		err = errors.New(url + " invalid HTTP response status " + strconv.Itoa(resp.StatusCode))
+		return
+	}
+	err = json.NewDecoder(resp.Body).Decode(&siddhiAppConfigs)
+	if err != nil {
+		return
+	}
+	return
+}
+
+// populateParserRequest creates the request which send to the siddhi parser during the runtime.
+func populateParserRequest(
+	sp *siddhiv1alpha2.SiddhiProcess,
+	siddhiApps []string,
+	propertyMap map[string]string,
+	configs Configs,
+) (siddhiParserRequest SiddhiParserRequest) {
+	siddhiParserRequest = SiddhiParserRequest{
+		SiddhiApps:  siddhiApps,
+		PropertyMap: propertyMap,
+	}
+
+	ms := siddhiv1alpha2.MessagingSystem{}
+	if sp.Spec.MessagingSystem.TypeDefined() {
+		if sp.Spec.MessagingSystem.EmptyConfig() {
+			ms = siddhiv1alpha2.MessagingSystem{
+				Type: configs.NATSMSType,
+				Config: siddhiv1alpha2.MessagingConfig{
+					ClusterID: configs.STANClusterName,
+					BootstrapServers: []string{
+						configs.NATSDefaultURL,
+					},
+				},
+			}
+		} else {
+			ms = sp.Spec.MessagingSystem
+		}
+		siddhiParserRequest = SiddhiParserRequest{
+			SiddhiApps:      siddhiApps,
+			PropertyMap:     propertyMap,
+			MessagingSystem: &ms,
+		}
+	}
+
+	return
+}
+
+func waitForParser(url string) (err error) {
+	retryClient := retryablehttp.NewClient()
+	retryClient.RetryWaitMin = time.Duration(ParserMinWait) * time.Second
+	retryClient.RetryWaitMax = time.Duration(ParserMaxWait) * time.Second
+	retryClient.RetryMax = ParserMaxRetry
+	retryClient.Logger = nil
+	_, err = retryClient.Get(url)
+	if err == nil {
+		return
+	}
+	return
 }

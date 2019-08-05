@@ -46,9 +46,11 @@ func (rsp *ReconcileSiddhiProcess) deployApp(
 	var volumeMounts []corev1.VolumeMount
 	var imagePullSecrets []corev1.LocalObjectReference
 	var strategy appsv1.DeploymentStrategy
-	configMapData := make(map[string]string)
+	configParameter := ""
+	siddhiParameter := ""
+	siddhiAppsMap := make(map[string]string)
 	labels := labelsForSiddhiProcess(siddhiApp.Name, configs)
-	siddhiRunnerImage, siddhiHome, siddhiImageSecret := populateRunnerConfigs(sp, configs)
+	siddhiImage, siddhiHome, siddhiImageSecret := populateRunnerConfigs(sp, configs)
 	containerPorts := siddhiApp.ContainerPorts
 
 	if siddhiImageSecret != "" {
@@ -56,7 +58,6 @@ func (rsp *ReconcileSiddhiProcess) deployApp(
 		imagePullSecrets = append(imagePullSecrets, secret)
 	}
 
-	configParameter := ""
 	q := siddhiv1alpha2.PV{}
 	if siddhiApp.PersistenceEnabled {
 		if !sp.Spec.PV.Equals(&q) {
@@ -91,66 +92,71 @@ func (rsp *ReconcileSiddhiProcess) deployApp(
 		volumes = append(volumes, volume)
 		volumeMounts = append(volumeMounts, volumeMount)
 		configParameter = configs.DepConfParameter + mountPath + deployYAMLCMName
+	} else if sp.Spec.SiddhiConfig != "" {
+		deployYAMLCMName := sp.Name + configs.DepCMExt
+		data := map[string]string{
+			deployYAMLCMName: sp.Spec.SiddhiConfig,
+		}
+		err = rsp.CreateOrUpdateCM(sp, deployYAMLCMName, data)
+		if err != nil {
+			return
+		}
+		mountPath := configs.SiddhiHome + configs.DepConfMountPath
+		volume, volumeMount := createCMVolumes(deployYAMLCMName, mountPath)
+		volumes = append(volumes, volume)
+		volumeMounts = append(volumeMounts, volumeMount)
+		configParameter = configs.DepConfParameter + mountPath + deployYAMLCMName
+	}
+
+	maxUnavailable := intstr.IntOrString{
+		Type:   Int,
+		IntVal: configs.MaxUnavailable,
+	}
+	maxSurge := intstr.IntOrString{
+		Type:   Int,
+		IntVal: configs.MaxSurge,
+	}
+	rollingUpdate := appsv1.RollingUpdateDeployment{
+		MaxUnavailable: &maxUnavailable,
+		MaxSurge:       &maxSurge,
+	}
+	strategy = appsv1.DeploymentStrategy{
+		Type:          appsv1.RollingUpdateDeploymentStrategyType,
+		RollingUpdate: &rollingUpdate,
+	}
+
+	if len(siddhiApp.Apps) > 0 {
+		siddhiAppsCMName := siddhiApp.Name + strconv.Itoa(int(sp.Status.CurrentVersion))
+		for k, v := range siddhiApp.Apps {
+			key := k + configs.SiddhiExt
+			siddhiAppsMap[key] = v
+		}
+		err = rsp.CreateOrUpdateCM(sp, siddhiAppsCMName, siddhiAppsMap)
+		if err != nil {
+			return
+		}
+		siddhiFilesPath := configs.SiddhiHome + configs.SiddhiFilesDir
+		volume, volumeMount := createCMVolumes(siddhiAppsCMName, siddhiFilesPath)
+		volumes = append(volumes, volume)
+		volumeMounts = append(volumeMounts, volumeMount)
+		siddhiParameter = configs.AppConfParameter + siddhiFilesPath + " "
 	} else {
-		if sp.Spec.SiddhiConfig != "" {
-			deployYAMLCMName := sp.Name + configs.DepCMExt
-			data := map[string]string{
-				deployYAMLCMName: sp.Spec.SiddhiConfig,
-			}
-			err = rsp.CreateOrUpdateCM(sp, deployYAMLCMName, data)
-			if err != nil {
-				return
-			}
-			mountPath := configs.SiddhiHome + configs.DepConfMountPath
-			volume, volumeMount := createCMVolumes(deployYAMLCMName, mountPath)
-			volumes = append(volumes, volume)
-			volumeMounts = append(volumeMounts, volumeMount)
-			configParameter = configs.DepConfParameter + mountPath + deployYAMLCMName
-		}
-		maxUnavailable := intstr.IntOrString{
-			Type:   Int,
-			IntVal: configs.MaxUnavailable,
-		}
-		maxSurge := intstr.IntOrString{
-			Type:   Int,
-			IntVal: configs.MaxSurge,
-		}
-		rollingUpdate := appsv1.RollingUpdateDeployment{
-			MaxUnavailable: &maxUnavailable,
-			MaxSurge:       &maxSurge,
-		}
-		strategy = appsv1.DeploymentStrategy{
-			Type:          appsv1.RollingUpdateDeploymentStrategyType,
-			RollingUpdate: &rollingUpdate,
-		}
+		siddhiParameter = ParserParameter
 	}
-	configMapName := siddhiApp.Name + strconv.Itoa(int(sp.Status.CurrentVersion))
-	for k, v := range siddhiApp.Apps {
-		key := k + configs.SiddhiExt
-		configMapData[key] = v
-	}
-	err = rsp.CreateOrUpdateCM(sp, configMapName, configMapData)
-	if err != nil {
-		return
-	}
-	siddhiFilesPath := configs.SiddhiHome + configs.SiddhiFilesDir
-	volume, volumeMount := createCMVolumes(configMapName, siddhiFilesPath)
-	volumes = append(volumes, volume)
-	volumeMounts = append(volumeMounts, volumeMount)
-	siddhiFilesParameter := configs.AppConfParameter + siddhiFilesPath + " "
+
 	userID := int64(802)
-	operationResult, err = rsp.CreateOrUpdateDeployment(
+	operationResult, _ = rsp.CreateOrUpdateDeployment(
 		sp,
 		strings.ToLower(siddhiApp.Name),
 		sp.Namespace,
 		siddhiApp.Replicas,
 		labels,
-		siddhiRunnerImage,
+		siddhiImage,
 		configs.ContainerName,
 		[]string{configs.Shell},
 		[]string{
 			siddhiHome + configs.SiddhiBin + "/" + configs.SiddhiProfile + ".sh",
-			siddhiFilesParameter,
+			siddhiParameter,
 			configParameter,
 		},
 		containerPorts,
@@ -163,6 +169,36 @@ func (rsp *ReconcileSiddhiProcess) deployApp(
 		strategy,
 		configs,
 	)
+	return
+}
+
+func (rsp *ReconcileSiddhiProcess) deployParser(sp *siddhiv1alpha2.SiddhiProcess, configs Configs) (err error) {
+	siddhiApp := SiddhiApp{
+		Name: sp.Name,
+		ContainerPorts: []corev1.ContainerPort{
+			corev1.ContainerPort{
+				Name:          ParserName,
+				ContainerPort: ParserPort,
+				Protocol:      corev1.ProtocolTCP,
+			},
+		},
+		ServiceEnabled: true,
+		Replicas:       ParserReplicas,
+	}
+	_, err = rsp.deployApp(sp, siddhiApp, ER, configs)
+	if err != nil {
+		return
+	}
+	_, err = rsp.CreateOrUpdateService(sp, siddhiApp, configs)
+	if err != nil {
+		return
+	}
+
+	url := configs.ParserHTTP + sp.Name + "." + sp.Namespace + configs.ParserHealth
+	err = waitForParser(url)
+	if err != nil {
+		return
+	}
 	return
 }
 
@@ -472,74 +508,57 @@ func (rsp *ReconcileSiddhiProcess) cleanArtifacts(
 	if newSiddhiAppsLen < oldSiddhiAppsLen {
 		for i := newSiddhiAppsLen; i < oldSiddhiAppsLen; i++ {
 			artifactName := sp.Name + "-" + strconv.Itoa(i)
-			deployment := &appsv1.Deployment{}
-			er := rsp.client.Get(
-				context.TODO(),
-				types.NamespacedName{Name: artifactName, Namespace: sp.Namespace},
-				deployment,
-			)
-			if er == nil {
-				err = rsp.client.Delete(context.TODO(), deployment)
-				if err != nil {
-					return sp, err
-				}
-				sp = rsp.updateRunningStatus(
-					sp,
-					ER,
-					RUNNING,
-					"DeploymentDeleted",
-					(artifactName + " deployment deleted successfully"),
-				)
+			err = rsp.DeleteDeployment(artifactName, sp.Namespace)
+			if err != nil {
+				return sp, err
 			}
+			sp = rsp.updateRunningStatus(
+				sp,
+				ER,
+				RUNNING,
+				"DeploymentDeleted",
+				(artifactName + " deployment deleted successfully"),
+			)
 
-			service := &corev1.Service{}
-			er = rsp.client.Get(
-				context.TODO(),
-				types.NamespacedName{Name: artifactName, Namespace: sp.Namespace},
-				service,
-			)
-			if er == nil {
-				err = rsp.client.Delete(context.TODO(), service)
-				if err != nil {
-					return sp, err
-				}
-				sp = rsp.updateRunningStatus(
-					sp,
-					ER,
-					RUNNING,
-					"ServiceDeleted",
-					(artifactName + " service deleted successfully"),
-				)
+			err = rsp.DeleteService(artifactName, sp.Namespace)
+			if err != nil {
+				return sp, err
 			}
+			sp = rsp.updateRunningStatus(
+				sp,
+				ER,
+				RUNNING,
+				"ServiceDeleted",
+				(artifactName + " service deleted successfully"),
+			)
 
 			pvcName := artifactName + configs.PVCExt
-			pvc := &corev1.PersistentVolumeClaim{}
-			er = rsp.client.Get(
-				context.TODO(),
-				types.NamespacedName{Name: pvcName, Namespace: sp.Namespace},
-				pvc,
-			)
-			if er == nil {
-				err = rsp.client.Delete(context.TODO(), pvc)
-				if err != nil {
-					return sp, err
-				}
+			err = rsp.DeletePVC(pvcName, sp.Namespace)
+			if err != nil {
+				return sp, err
 			}
 
 			cmName := artifactName + strconv.Itoa(int(sp.Status.PreviousVersion))
-			cm := &corev1.ConfigMap{}
-			er = rsp.client.Get(
-				context.TODO(),
-				types.NamespacedName{Name: cmName, Namespace: sp.Namespace},
-				cm,
-			)
-			if er == nil {
-				err = rsp.client.Delete(context.TODO(), cm)
-				if err != nil {
-					return sp, err
-				}
+			err = rsp.DeleteConfigMap(cmName, sp.Namespace)
+			if err != nil {
+				return sp, err
 			}
 		}
 	}
 	return sp, err
+}
+
+// cleanParser simply remove the parser deployment and service created by the operator
+func (rsp *ReconcileSiddhiProcess) cleanParser(
+	sp *siddhiv1alpha2.SiddhiProcess,
+) (err error) {
+	err = rsp.DeleteDeployment(sp.Name, sp.Namespace)
+	if err != nil {
+		return
+	}
+	err = rsp.DeleteService(sp.Name, sp.Namespace)
+	if err != nil {
+		return
+	}
+	return
 }

@@ -19,13 +19,9 @@
 package siddhiprocess
 
 import (
-	"bytes"
-	"encoding/json"
 	"errors"
-	"net/http"
 	"reflect"
 	"regexp"
-	"strconv"
 	"strings"
 
 	siddhiv1alpha2 "github.com/siddhi-io/siddhi-operator/pkg/apis/siddhi/v1alpha2"
@@ -68,74 +64,6 @@ func getAppName(app string) (appName string, err error) {
 		return
 	}
 	err = errors.New("Siddhi app name extraction error")
-	return
-}
-
-// populateParserRequest creates the request which send to the siddhi parser during the runtime.
-func populateParserRequest(
-	sp *siddhiv1alpha2.SiddhiProcess,
-	siddhiApps []string,
-	propertyMap map[string]string,
-	configs Configs,
-) (siddhiParserRequest SiddhiParserRequest) {
-	siddhiParserRequest = SiddhiParserRequest{
-		SiddhiApps:  siddhiApps,
-		PropertyMap: propertyMap,
-	}
-
-	ms := siddhiv1alpha2.MessagingSystem{}
-	if sp.Spec.MessagingSystem.TypeDefined() {
-		if sp.Spec.MessagingSystem.EmptyConfig() {
-			ms = siddhiv1alpha2.MessagingSystem{
-				Type: configs.NATSMSType,
-				Config: siddhiv1alpha2.MessagingConfig{
-					ClusterID: configs.STANClusterName,
-					BootstrapServers: []string{
-						configs.NATSDefaultURL,
-					},
-				},
-			}
-		} else {
-			ms = sp.Spec.MessagingSystem
-		}
-		siddhiParserRequest = SiddhiParserRequest{
-			SiddhiApps:      siddhiApps,
-			PropertyMap:     propertyMap,
-			MessagingSystem: &ms,
-		}
-	}
-
-	return
-}
-
-// invokeParser simply invoke the siddhi parser within the k8s cluster
-func invokeParser(
-	sp *siddhiv1alpha2.SiddhiProcess,
-	siddhiParserRequest SiddhiParserRequest,
-	configs Configs,
-) (siddhiAppConfigs []SiddhiAppConfig, err error) {
-	url := configs.ParserDomain + sp.Namespace + configs.ParserContext
-	b, err := json.Marshal(siddhiParserRequest)
-	if err != nil {
-		return
-	}
-	var jsonStr = []byte(string(b))
-	req, err := http.NewRequest(http.MethodPost, url, bytes.NewBuffer(jsonStr))
-	req.Header.Set("Content-Type", "application/json")
-	client := &http.Client{}
-	resp, err := client.Do(req)
-	if err != nil {
-		return
-	}
-	defer resp.Body.Close()
-	if resp.StatusCode != http.StatusOK {
-		err = errors.New(url + " invalid HTTP response status " + strconv.Itoa(resp.StatusCode))
-		return
-	}
-	err = json.NewDecoder(resp.Body).Decode(&siddhiAppConfigs)
-	if err != nil {
-		return
-	}
 	return
 }
 
