@@ -71,14 +71,12 @@ Supported Version: nginx 0.22.0+
    NAME                READY     UP-TO-DATE   AVAILABLE   AGE
    power-surge-app-0   1/1       1            1           2m
    siddhi-operator     1/1       1            1           2m
-   siddhi-parser       1/1       1            1           2m
 
    $ kubectl get service
    NAME                TYPE        CLUSTER-IP       EXTERNAL-IP   PORT(S)    AGE
    kubernetes          ClusterIP   10.96.0.1       <none>        443/TCP    2d
    power-surge-app-0   ClusterIP   10.96.44.182    <none>        8080/TCP   2m
    siddhi-operator     ClusterIP   10.98.78.238    <none>        8383/TCP   2m
-   siddhi-parser       ClusterIP   10.110.82.200   <none>        9090/TCP   2m
 
    $ kubectl get ingress
    NAME      HOSTS     ADDRESS     PORTS     AGE
@@ -116,7 +114,6 @@ In order to disable the automatic ingress creation, you have to change the `auto
    NAME                                       READY     STATUS    RESTARTS   AGE
    power-surge-app-0-646c4f9dd5-rxzkq         1/1       Running   0          4m
    siddhi-operator-6698d8f69d-6rfb6           1/1       Running   0          4m
-   siddhi-parser-76448887d5-dqqv6             1/1       Running   0          4m
 
    $ kubectl logs power-surge-app-0-646c4f9dd5-rxzkq
 
