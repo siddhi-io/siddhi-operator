@@ -33,6 +33,18 @@ import (
 	"github.com/operator-framework/operator-sdk/pkg/test/e2eutil"
 )
 
+const (
+	StatePersistenceConf string = `
+state.persistence:
+  enabled: true
+  intervalInMin: 1
+  revisionsToKeep: 2
+  persistenceStore: io.siddhi.distribution.core.persistence.FileSystemPersistenceStore
+  config:
+    location: siddhi-app-persistence
+`
+)
+
 var script1 = `@App:name("MonitorApp")
 @App:description("Description of the plan") 
 
@@ -76,7 +88,7 @@ func siddhiDeploymentTest(t *testing.T, f *framework.Framework, ctx *framework.T
 	exampleSiddhi := &siddhiv1alpha2.SiddhiProcess{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "SiddhiProcess",
-			APIVersion: "siddhi.io/v1alpha1",
+			APIVersion: "siddhi.io/v1alpha2",
 		},
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "test-monitor-app",
@@ -119,7 +131,7 @@ func siddhiDeploymentTest(t *testing.T, f *framework.Framework, ctx *framework.T
 	if err != nil {
 		return err
 	}
-	_, err = f.KubeClient.CoreV1().ConfigMaps(namespace).Get("test-monitor-app-0-siddhi", metav1.GetOptions{IncludeUninitialized: true})
+	_, err = f.KubeClient.CoreV1().ConfigMaps(namespace).Get("test-monitor-app-00", metav1.GetOptions{IncludeUninitialized: true})
 	if err != nil {
 		return err
 	}
@@ -164,7 +176,7 @@ func siddhiConfigChangeTest(t *testing.T, f *framework.Framework, ctx *framework
 	exampleSiddhi := &siddhiv1alpha2.SiddhiProcess{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "SiddhiProcess",
-			APIVersion: "siddhi.io/v1alpha1",
+			APIVersion: "siddhi.io/v1alpha2",
 		},
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "test-monitor-app",
@@ -188,14 +200,7 @@ func siddhiConfigChangeTest(t *testing.T, f *framework.Framework, ctx *framework
 					},
 				},
 			},
-			SiddhiConfig: `
-				state.persistence:
-					enabled: true
-					intervalInMin: 5
-					revisionsToKeep: 2
-					persistenceStore: io.siddhi.distribution.core.persistence.FileSystemPersistenceStore
-					config:
-						location: siddhi-app-persistence`,
+			SiddhiConfig: StatePersistenceConf,
 		},
 	}
 

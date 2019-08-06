@@ -42,7 +42,7 @@ func failoverDeploymentTest(t *testing.T, f *framework.Framework, ctx *framework
 	exampleSiddhi := &siddhiv1alpha2.SiddhiProcess{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "SiddhiProcess",
-			APIVersion: "siddhi.io/v1alpha1",
+			APIVersion: "siddhi.io/v1alpha2",
 		},
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "failover-app",
@@ -77,12 +77,12 @@ func failoverDeploymentTest(t *testing.T, f *framework.Framework, ctx *framework
 		return err
 	}
 
-	err = e2eutil.WaitForDeployment(t, f.KubeClient, namespace, "failover-app-0", 1, retryInterval, timeout)
+	err = e2eutil.WaitForDeployment(t, f.KubeClient, namespace, "failover-app-0", 1, retryInterval, maxTimeout)
 	if err != nil {
 		return err
 	}
 
-	err = e2eutil.WaitForDeployment(t, f.KubeClient, namespace, "failover-app-1", 1, retryInterval, timeout)
+	err = e2eutil.WaitForDeployment(t, f.KubeClient, namespace, "failover-app-1", 1, retryInterval, maxTimeout)
 	if err != nil {
 		return err
 	}
@@ -119,7 +119,7 @@ func failoverConfigChangeTest(t *testing.T, f *framework.Framework, ctx *framewo
 	exampleSiddhi := &siddhiv1alpha2.SiddhiProcess{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "SiddhiProcess",
-			APIVersion: "siddhi.io/v1alpha1",
+			APIVersion: "siddhi.io/v1alpha2",
 		},
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "failover-app",
@@ -146,14 +146,7 @@ func failoverConfigChangeTest(t *testing.T, f *framework.Framework, ctx *framewo
 			MessagingSystem: siddhiv1alpha2.MessagingSystem{
 				Type: "nats",
 			},
-			SiddhiConfig: `
-				 state.persistence:
-					enabled: true
-					intervalInMin: 5
-					revisionsToKeep: 2
-					persistenceStore: io.siddhi.distribution.core.persistence.FileSystemPersistenceStore
-					config:
-						location: siddhi-app-persistence`,
+			SiddhiConfig: StatePersistenceConf,
 		},
 	}
 
@@ -162,12 +155,12 @@ func failoverConfigChangeTest(t *testing.T, f *framework.Framework, ctx *framewo
 		return err
 	}
 
-	err = e2eutil.WaitForDeployment(t, f.KubeClient, namespace, "failover-app-0", 1, retryInterval, timeout)
+	err = e2eutil.WaitForDeployment(t, f.KubeClient, namespace, "failover-app-0", 1, retryInterval, maxTimeout)
 	if err != nil {
 		return err
 	}
 
-	err = e2eutil.WaitForDeployment(t, f.KubeClient, namespace, "failover-app-1", 1, retryInterval, timeout)
+	err = e2eutil.WaitForDeployment(t, f.KubeClient, namespace, "failover-app-1", 1, retryInterval, maxTimeout)
 	if err != nil {
 		return err
 	}
@@ -242,12 +235,12 @@ func failoverPVCTest(t *testing.T, f *framework.Framework, ctx *framework.TestCt
 		return err
 	}
 
-	err = e2eutil.WaitForDeployment(t, f.KubeClient, namespace, "failover-test-app-0", 1, retryInterval, mtimeout)
+	err = e2eutil.WaitForDeployment(t, f.KubeClient, namespace, "failover-test-app-0", 1, retryInterval, maxTimeout)
 	if err != nil {
 		return err
 	}
 
-	err = e2eutil.WaitForDeployment(t, f.KubeClient, namespace, "failover-test-app-1", 1, retryInterval, mtimeout)
+	err = e2eutil.WaitForDeployment(t, f.KubeClient, namespace, "failover-test-app-1", 1, retryInterval, maxTimeout)
 	if err != nil {
 		return err
 	}
