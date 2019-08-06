@@ -33,7 +33,7 @@ import (
 // Default configurations stored as constants. Further these constants used by the Configurations() function.
 const (
 	SiddhiHome                 string = "/home/siddhi_user/siddhi-runner/"
-	SiddhiImage                string = "siddhiio/siddhi-runner-alpine:5.1.0-m1"
+	SiddhiImage                string = "siddhiio/siddhi-runner-alpine:5.1.0-m2"
 	SiddhiProfile              string = "runner"
 	SiddhiCMExt                string = "-siddhi"
 	SiddhiExt                  string = ".siddhi"
@@ -47,7 +47,7 @@ const (
 	SiddhiBin                  string = "bin"
 	HostName                   string = "siddhi"
 	OperatorName               string = "siddhi-operator"
-	OperatorVersion            string = "0.2.0-m1"
+	OperatorVersion            string = "0.2.0-m2"
 	CRDName                    string = "SiddhiProcess"
 	ReadWriteOnce              string = "ReadWriteOnce"
 	ReadOnlyMany               string = "ReadOnlyMany"
@@ -55,8 +55,9 @@ const (
 	PVCExt                     string = "-pvc"
 	FilePersistentDir          string = "siddhi-app-persistence"
 	WSO2Dir                    string = "wso2"
-	ParserDomain               string = "http://siddhi-parser."
+	ParserHTTP                 string = "http://"
 	ParserContext              string = ".svc.cluster.local:9090/siddhi-parser/parse"
+	ParserHealth               string = ".svc.cluster.local:9090/health"
 	PVCSize                    string = "1Gi"
 	NATSAPIVersion             string = "nats.io/v1alpha2"
 	STANAPIVersion             string = "streaming.nats.io/v1alpha1"
@@ -114,14 +115,21 @@ state.persistence:
 // These are all other relevant constants that used by the operator. But these constants are not configuration varibles.
 // That is why this has been seperated.
 const (
-	Push           string = "PUSH"
-	Pull           string = "PULL"
-	Failover       string = "failover"
-	Default        string = "default"
-	Distributed    string = "distributed"
-	ProcessApp     string = "process"
-	PassthroughApp string = "passthrough"
-	OperatorCMName string = "siddhi-operator-config"
+	Push            string = "PUSH"
+	Pull            string = "PULL"
+	Failover        string = "failover"
+	Default         string = "default"
+	Distributed     string = "distributed"
+	ProcessApp      string = "process"
+	PassthroughApp  string = "passthrough"
+	OperatorCMName  string = "siddhi-operator-config"
+	ParserParameter string = "-Dsiddhi-parser "
+	ParserName      string = "parser"
+	ParserPort      int32  = 9090
+	ParserReplicas  int32  = 1
+	ParserMinWait   int    = 5
+	ParserMaxWait   int    = 20
+	ParserMaxRetry  int    = 15
 )
 
 // Int - Type
@@ -166,8 +174,9 @@ type Configs struct {
 	PVCExt                     string
 	FilePersistentDir          string
 	WSO2Dir                    string
-	ParserDomain               string
+	ParserHTTP                 string
 	ParserContext              string
+	ParserHealth               string
 	PVCSize                    string
 	NATSAPIVersion             string
 	STANAPIVersion             string
@@ -391,8 +400,9 @@ func (rsp *ReconcileSiddhiProcess) Configurations(sp *siddhiv1alpha2.SiddhiProce
 		PVCExt:                     PVCExt,
 		FilePersistentDir:          FilePersistentDir,
 		WSO2Dir:                    WSO2Dir,
-		ParserDomain:               ParserDomain,
+		ParserHTTP:                 ParserHTTP,
 		ParserContext:              ParserContext,
+		ParserHealth:               ParserHealth,
 		PVCSize:                    PVCSize,
 		NATSAPIVersion:             NATSAPIVersion,
 		STANAPIVersion:             STANAPIVersion,

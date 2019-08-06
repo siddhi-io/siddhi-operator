@@ -427,6 +427,86 @@ func (rsp *ReconcileSiddhiProcess) CreateOrUpdateDeployment(
 	return
 }
 
+// DeleteService delete the service specify by the user
+func (rsp *ReconcileSiddhiProcess) DeleteService(
+	serviceName string,
+	namespace string,
+) (err error) {
+	service := &corev1.Service{}
+	er := rsp.client.Get(
+		context.TODO(),
+		types.NamespacedName{Name: serviceName, Namespace: namespace},
+		service,
+	)
+	if er == nil {
+		err = rsp.client.Delete(context.TODO(), service)
+		if err != nil {
+			return
+		}
+	}
+	return
+}
+
+// DeleteDeployment delete the deployment specify by the user
+func (rsp *ReconcileSiddhiProcess) DeleteDeployment(
+	deploymentName string,
+	namespace string,
+) (err error) {
+	deployment := &appsv1.Deployment{}
+	er := rsp.client.Get(
+		context.TODO(),
+		types.NamespacedName{Name: deploymentName, Namespace: namespace},
+		deployment,
+	)
+	if er == nil {
+		err = rsp.client.Delete(context.TODO(), deployment)
+		if err != nil {
+			return
+		}
+	}
+	return
+}
+
+// DeletePVC delete the PVC specify by the user
+func (rsp *ReconcileSiddhiProcess) DeletePVC(
+	pvcName string,
+	namespace string,
+) (err error) {
+	pvc := &corev1.PersistentVolumeClaim{}
+	er := rsp.client.Get(
+		context.TODO(),
+		types.NamespacedName{Name: pvcName, Namespace: namespace},
+		pvc,
+	)
+	if er == nil {
+		err = rsp.client.Delete(context.TODO(), pvc)
+		if err != nil {
+			return
+		}
+	}
+	return
+}
+
+// DeleteConfigMap delete the CM specify by the user
+func (rsp *ReconcileSiddhiProcess) DeleteConfigMap(
+	cmName string,
+	namespace string,
+) (err error) {
+	cm := &corev1.ConfigMap{}
+	er := rsp.client.Get(
+		context.TODO(),
+		types.NamespacedName{Name: cmName, Namespace: namespace},
+		cm,
+	)
+	if er == nil {
+		err = rsp.client.Delete(context.TODO(), cm)
+		if err != nil {
+			return
+		}
+	}
+	return
+}
+
 // ConfigMapMutateFunc is the mutate function for k8s config map creation
 func ConfigMapMutateFunc(data map[string]string) controllerutil.MutateFn {
 	return func(obj runtime.Object) error {
