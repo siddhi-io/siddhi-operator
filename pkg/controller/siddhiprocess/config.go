@@ -33,7 +33,7 @@ import (
 // Default configurations stored as constants. Further these constants used by the Configurations() function.
 const (
 	SiddhiHome                 string = "/home/siddhi_user/siddhi-runner/"
-	SiddhiImage                string = "siddhiio/siddhi-runner-alpine:5.1.0-m1"
+	SiddhiImage                string = "siddhiio/siddhi-runner-alpine:5.1.0-m2"
 	SiddhiProfile              string = "runner"
 	SiddhiCMExt                string = "-siddhi"
 	SiddhiExt                  string = ".siddhi"
@@ -47,7 +47,7 @@ const (
 	SiddhiBin                  string = "bin"
 	HostName                   string = "siddhi"
 	OperatorName               string = "siddhi-operator"
-	OperatorVersion            string = "0.2.0-m1"
+	OperatorVersion            string = "0.2.0-m2"
 	CRDName                    string = "SiddhiProcess"
 	ReadWriteOnce              string = "ReadWriteOnce"
 	ReadOnlyMany               string = "ReadOnlyMany"
