@@ -127,9 +127,9 @@ const (
 	ParserName      string = "parser"
 	ParserPort      int32  = 9090
 	ParserReplicas  int32  = 1
-	ParserMinWait   int    = 5
-	ParserMaxWait   int    = 20
-	ParserMaxRetry  int    = 15
+	ParserMinWait   int    = 3
+	ParserMaxWait   int    = 5
+	ParserMaxRetry  int    = 20
 )
 
 // Int - Type
