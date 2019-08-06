@@ -81,13 +81,13 @@ func SiddhiCluster(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// if err = siddhiDeploymentTest(t, f, ctx); err != nil {
-	// 	t.Fatal(err)
-	// }
+	if err = siddhiDeploymentTest(t, f, ctx); err != nil {
+		t.Fatal(err)
+	}
 
-	// if err = siddhiConfigChangeTest(t, f, ctx); err != nil {
-	// 	t.Fatal(err)
-	// }
+	if err = siddhiConfigChangeTest(t, f, ctx); err != nil {
+		t.Fatal(err)
+	}
 
 	if err = failoverDeploymentTest(t, f, ctx); err != nil {
 		t.Fatal(err)
