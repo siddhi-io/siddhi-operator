@@ -125,6 +125,7 @@ const (
 	OperatorCMName  string = "siddhi-operator-config"
 	ParserParameter string = "-Dsiddhi-parser "
 	ParserName      string = "parser"
+	ParserExtension string = "-parser"
 	ParserPort      int32  = 9090
 	ParserReplicas  int32  = 1
 	ParserMinWait   int    = 3
