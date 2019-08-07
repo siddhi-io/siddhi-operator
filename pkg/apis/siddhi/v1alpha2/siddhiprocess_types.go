@@ -48,7 +48,7 @@ type PV struct {
 
 // MessagingConfig contains the configs of the messaging layer
 type MessagingConfig struct {
-	ClusterID        string   `json:"clusterID"`
+	ClusterID        string   `json:"clusterId"`
 	BootstrapServers []string `json:"bootstrapServers"`
 }
 
