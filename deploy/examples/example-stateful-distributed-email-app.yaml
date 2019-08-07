@@ -58,7 +58,7 @@ spec:
     # config: 
     #   bootstrapServers: 
     #     - "nats://siddhi-nats:4222"
-    #   clusterID: siddhi-stan
+    #   clusterId: siddhi-stan
   
   persistentVolume: 
     accessModes: 
