@@ -101,7 +101,7 @@ func invokeParser(
 	siddhiParserRequest SiddhiParserRequest,
 	configs Configs,
 ) (siddhiAppConfigs []SiddhiAppConfig, err error) {
-	url := configs.ParserHTTP + sp.Name + "." + sp.Namespace + configs.ParserContext
+	url := configs.ParserHTTP + sp.Name + ParserExtension + "." + sp.Namespace + configs.ParserContext
 	b, err := json.Marshal(siddhiParserRequest)
 	if err != nil {
 		return

@@ -175,7 +175,7 @@ func (rsp *ReconcileSiddhiProcess) deployApp(
 func (rsp *ReconcileSiddhiProcess) deployParser(sp *siddhiv1alpha2.SiddhiProcess, configs Configs) (err error) {
 	reqLogger := log.WithValues("Request.Namespace", sp.Namespace, "Request.Name", sp.Name)
 	siddhiApp := SiddhiApp{
-		Name: sp.Name,
+		Name: sp.Name + ParserExtension,
 		ContainerPorts: []corev1.ContainerPort{
 			corev1.ContainerPort{
 				Name:          ParserName,
@@ -195,7 +195,7 @@ func (rsp *ReconcileSiddhiProcess) deployParser(sp *siddhiv1alpha2.SiddhiProcess
 		return
 	}
 
-	url := configs.ParserHTTP + sp.Name + "." + sp.Namespace + configs.ParserHealth
+	url := configs.ParserHTTP + sp.Name + ParserExtension + "." + sp.Namespace + configs.ParserHealth
 	reqLogger.Info("Waiting for parser", "deployment", sp.Name)
 	err = waitForParser(url)
 	if err != nil {
@@ -554,11 +554,11 @@ func (rsp *ReconcileSiddhiProcess) cleanArtifacts(
 func (rsp *ReconcileSiddhiProcess) cleanParser(
 	sp *siddhiv1alpha2.SiddhiProcess,
 ) (err error) {
-	err = rsp.DeleteDeployment(sp.Name, sp.Namespace)
+	err = rsp.DeleteDeployment(sp.Name+ParserExtension, sp.Namespace)
 	if err != nil {
 		return
 	}
-	err = rsp.DeleteService(sp.Name, sp.Namespace)
+	err = rsp.DeleteService(sp.Name+ParserExtension, sp.Namespace)
 	if err != nil {
 		return
 	}
