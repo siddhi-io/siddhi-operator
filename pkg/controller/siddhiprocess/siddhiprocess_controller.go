@@ -22,12 +22,18 @@ import (
 	"context"
 
 	siddhiv1alpha2 "github.com/siddhi-io/siddhi-operator/pkg/apis/siddhi/v1alpha2"
+	artifact "github.com/siddhi-io/siddhi-operator/pkg/controller/siddhiprocess/artifact"
+	deploymanager "github.com/siddhi-io/siddhi-operator/pkg/controller/siddhiprocess/deploymanager"
+	messaging "github.com/siddhi-io/siddhi-operator/pkg/controller/siddhiprocess/messaging"
+	parser "github.com/siddhi-io/siddhi-operator/pkg/controller/siddhiprocess/parser"
+	siddhicontroller "github.com/siddhi-io/siddhi-operator/pkg/controller/siddhiprocess/siddhicontroller"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	logf "sigs.k8s.io/controller-runtime/pkg/runtime/log"
 
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/tools/record"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
@@ -42,10 +48,10 @@ import (
 var log = logf.Log.WithName("siddhi")
 
 // SPContainer holds siddhi apps
-var SPContainer map[string][]SiddhiApp
+var SPContainer map[string][]deploymanager.Application
 
 // CMContainer holds the config map name along with CM listner for listen changes of the CM
-var CMContainer map[string]ConfigMapListner
+var CMContainer map[string]siddhicontroller.ConfigMapListner
 
 // ER recoder
 var ER record.EventRecorder
@@ -63,8 +69,8 @@ func newReconciler(mgr manager.Manager) reconcile.Reconciler {
 
 // add adds a new Controller to mgr with rsp as the reconcile.Reconciler
 func add(mgr manager.Manager, r reconcile.Reconciler) error {
-	SPContainer = make(map[string][]SiddhiApp)
-	CMContainer = make(map[string]ConfigMapListner)
+	SPContainer = make(map[string][]deploymanager.Application)
+	CMContainer = make(map[string]siddhicontroller.ConfigMapListner)
 	ER = mgr.GetRecorder("siddhiprocess-controller")
 
 	// Create a new controller
@@ -188,29 +194,137 @@ func (rsp *ReconcileSiddhiProcess) Reconcile(request reconcile.Request) (reconci
 		}
 		return reconcile.Result{}, err
 	}
-	if !SiddhiProcessChanged {
-		sp = rsp.upgradeVersion(sp)
+	siddhiController := &siddhicontroller.SiddhiController{
+		SiddhiProcess: sp,
+		EventRecorder: ER,
+		Logger:        logf.Log.WithValues("Namespace", sp.Namespace, "Name", sp.Name),
+		KubeClient: artifact.KubeClient{
+			Client: rsp.client,
+			Scheme: rsp.scheme,
+		},
 	}
-
-	configs := rsp.Configurations(sp)
-	sp, siddhiApps, err := rsp.populateSiddhiApps(sp, configs)
+	siddhiController.UpdateDefaultConfigs()
+	if !SiddhiProcessChanged {
+		siddhiController.UpgradeVersion()
+		sp = siddhiController.SiddhiProcess
+	}
+	siddhiApps, err := rsp.getSiddhiApps(sp)
 	if err != nil {
-		sp = rsp.updateErrorStatus(sp, ER, ERROR, "ParserFailed", err)
+		siddhiController.UpdateErrorStatus("AppReadError", err)
 		return reconcile.Result{}, nil
 	}
-
-	err = rsp.createMessagingSystem(sp, siddhiApps, configs)
+	parser := parser.Parser{
+		Name:      sp.Name,
+		Namespace: sp.Namespace,
+		Apps:      siddhiApps,
+		Image:     siddhiController.Image,
+		Logger:    logf.Log.WithValues("Namespace", sp.Namespace, "Name", sp.Name),
+		KubeClient: artifact.KubeClient{
+			Client: rsp.client,
+			Scheme: rsp.scheme,
+		},
+		SiddhiProcess:   sp,
+		Env:             rsp.populateUserEnvs(sp),
+		MessagingSystem: sp.Spec.MessagingSystem,
+	}
+	apps, err := rsp.populateSiddhiApps(sp, parser, siddhiController)
 	if err != nil {
-		sp = rsp.updateErrorStatus(sp, ER, ERROR, "NATSCreationError", err)
+		siddhiController.UpdateErrorStatus("ParserFailed", err)
+		return reconcile.Result{}, nil
+	}
+	sp = siddhiController.SiddhiProcess
+	messaging := messaging.Messaging{
+		KubeClient: artifact.KubeClient{
+			Client: rsp.client,
+			Scheme: rsp.scheme,
+		},
+		SiddhiProcess: sp,
+	}
+	messaging.CreateMessagingSystem(apps)
+	if err != nil {
+		siddhiController.UpdateErrorStatus("NATSCreationError", err)
 		return reconcile.Result{}, err
 	}
 
-	sp = rsp.createArtifacts(sp, siddhiApps, configs)
-	sp = rsp.checkDeployments(sp, siddhiApps)
+	siddhiController.CreateArtifacts(apps)
+	siddhiController.CheckDeployments(apps)
 	if !SiddhiProcessChanged {
 		cmListner := CMContainer[request.NamespacedName.Name]
 		cmListner.Changed = false
 		CMContainer[request.NamespacedName.Name] = cmListner
 	}
 	return reconcile.Result{Requeue: false}, nil
+}
+
+// populateSiddhiApps function invoke parserApp function to retrieve relevant siddhi apps.
+// Or else it will give you exixting siddhiApps list relevant to a particulat SiddhiProcess deployment.
+func (rsp *ReconcileSiddhiProcess) populateSiddhiApps(
+	sp *siddhiv1alpha2.SiddhiProcess,
+	parser parser.Parser,
+	siddhiController *siddhicontroller.SiddhiController,
+) ([]deploymanager.Application, error) {
+	var siddhiApps []deploymanager.Application
+	var err error
+	modified := false
+	if sp.Status.CurrentVersion > sp.Status.PreviousVersion {
+		modified = true
+	}
+	if modified {
+		newApps, err := parser.Parse()
+		if err != nil {
+			return newApps, err
+		}
+		oldApps := SPContainer[sp.Name]
+		err = siddhiController.CleanArtifacts(oldApps, newApps)
+		if err != nil {
+			return oldApps, err
+		}
+		SPContainer[sp.Name] = newApps
+		siddhiApps = newApps
+	} else {
+		if _, ok := SPContainer[sp.Name]; ok {
+			siddhiApps = SPContainer[sp.Name]
+		} else {
+			siddhiApps, err = parser.Parse()
+			if err != nil {
+				return siddhiApps, err
+			}
+			SPContainer[sp.Name] = siddhiApps
+		}
+	}
+	return siddhiApps, err
+}
+
+// getSiddhiApps used to retrieve siddhi apps as a list of strigs.
+func (rsp *ReconcileSiddhiProcess) getSiddhiApps(sp *siddhiv1alpha2.SiddhiProcess) (siddhiApps []string, err error) {
+	for _, app := range sp.Spec.Apps {
+		if app.ConfigMap != "" {
+			configMap := &corev1.ConfigMap{}
+			err = rsp.client.Get(context.TODO(), types.NamespacedName{Name: app.ConfigMap, Namespace: sp.Namespace}, configMap)
+			if err != nil {
+				return
+			}
+			cmListner := siddhicontroller.ConfigMapListner{
+				SiddhiProcess: sp.Name,
+				Changed:       false,
+			}
+			CMContainer[app.ConfigMap] = cmListner
+			for _, siddhiFileContent := range configMap.Data {
+				siddhiApps = append(siddhiApps, siddhiFileContent)
+			}
+		}
+		if app.Script != "" {
+			siddhiApps = append(siddhiApps, app.Script)
+		}
+	}
+	return
+}
+
+// PopulateUserEnvs returns a map for the ENVs in CRD
+func (rsp *ReconcileSiddhiProcess) populateUserEnvs(sp *siddhiv1alpha2.SiddhiProcess) (envs map[string]string) {
+	envs = make(map[string]string)
+	for _, env := range sp.Spec.Container.Env {
+		envs[env.Name] = env.Value
+	}
+	return envs
 }

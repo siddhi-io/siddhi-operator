@@ -40,7 +40,7 @@ type PVCResource struct {
 
 // PV contains the configurations of the persistence volume
 type PV struct {
-	AccessModes []string    `json:"accessModes"`
+	AccessModes []corev1.PersistentVolumeAccessMode    `json:"accessModes"`
 	VolumeMode  string      `json:"volumeMode"`
 	Class       string      `json:"storageClassName"`
 	Resources   PVCResource `json:"resources"`

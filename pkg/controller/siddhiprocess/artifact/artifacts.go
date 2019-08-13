@@ -16,16 +16,16 @@
  * under the License.
  */
 
-package siddhiprocess
+package artifacts
 
 import (
 	"context"
 	"errors"
+	"reflect"
 	"strconv"
 	"strings"
 
 	natsv1alpha2 "github.com/siddhi-io/siddhi-operator/pkg/apis/nats/v1alpha2"
-	siddhiv1alpha2 "github.com/siddhi-io/siddhi-operator/pkg/apis/siddhi/v1alpha2"
 	streamingv1alpha1 "github.com/siddhi-io/siddhi-operator/pkg/apis/streaming/v1alpha1"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -37,21 +37,28 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/intstr"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 )
 
-// CreateOrUpdateCM creates a k8s config map for given set of data.
-// This function initialize the config map object, set the controller reference, and then creates the config map.
-func (rsp *ReconcileSiddhiProcess) CreateOrUpdateCM(
-	sp *siddhiv1alpha2.SiddhiProcess,
-	configMapName string,
-	data map[string]string,
-) error {
+// KubeClient performs CRUD operations in the K8s cluster
+type KubeClient struct {
+	Client client.Client
+	Scheme *runtime.Scheme
+}
 
+// CreateOrUpdateCM creates a k8s config map for the given set of data.
+// This function initializes the config map object, set the controller reference, and then creates the config map.
+func (k *KubeClient) CreateOrUpdateCM(
+	name string,
+	namespace string,
+	data map[string]string,
+	owner metav1.Object,
+) error {
 	configMap := &corev1.ConfigMap{}
-	err := rsp.client.Get(
+	err := k.Client.Get(
 		context.TODO(),
-		types.NamespacedName{Name: configMapName, Namespace: sp.Namespace},
+		types.NamespacedName{Name: name, Namespace: namespace},
 		configMap,
 	)
 	configMap = &corev1.ConfigMap{
@@ -60,31 +67,32 @@ func (rsp *ReconcileSiddhiProcess) CreateOrUpdateCM(
 			Kind:       "ConfigMap",
 		},
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      configMapName,
-			Namespace: sp.Namespace,
+			Name:      name,
+			Namespace: namespace,
 		},
 		Data: data,
 	}
-	controllerutil.SetControllerReference(sp, configMap, rsp.scheme)
-	_, err = controllerutil.CreateOrUpdate(context.TODO(), rsp.client, configMap, ConfigMapMutateFunc(data))
+	controllerutil.SetControllerReference(owner, configMap, k.Scheme)
+	_, err = controllerutil.CreateOrUpdate(context.TODO(), k.Client, configMap, ConfigMapMutateFunc(data))
 	return err
 }
 
-// CreateOrUpdateIngress creates a NGINX Ingress load balancer object called siddhi
-func (rsp *ReconcileSiddhiProcess) CreateOrUpdateIngress(
-	sp *siddhiv1alpha2.SiddhiProcess,
-	siddhiApp SiddhiApp,
-	configs Configs,
+// CreateOrUpdateIngress creates an NGINX Ingress load balancer object called siddhi
+func (k *KubeClient) CreateOrUpdateIngress(
+	namespace string,
+	serviceName string,
+	tls string,
+	containerPorts []corev1.ContainerPort,
 ) (operationResult controllerutil.OperationResult, err error) {
 
 	var ingressPaths []extensionsv1beta1.HTTPIngressPath
-	for _, port := range siddhiApp.ContainerPorts {
-		path := "/" + strings.ToLower(siddhiApp.Name) +
+	for _, port := range containerPorts {
+		path := "/" + strings.ToLower(serviceName) +
 			"/" + strconv.Itoa(int(port.ContainerPort)) + "(/|$)(.*)"
 		ingressPath := extensionsv1beta1.HTTPIngressPath{
 			Path: path,
 			Backend: extensionsv1beta1.IngressBackend{
-				ServiceName: strings.ToLower(siddhiApp.Name),
+				ServiceName: strings.ToLower(serviceName),
 				ServicePort: intstr.IntOrString{
 					Type:   Int,
 					IntVal: port.ContainerPort,
@@ -94,17 +102,17 @@ func (rsp *ReconcileSiddhiProcess) CreateOrUpdateIngress(
 		ingressPaths = append(ingressPaths, ingressPath)
 	}
 	var ingressSpec extensionsv1beta1.IngressSpec
-	if configs.IngressTLS != "" {
+	if tls != "" {
 		ingressSpec = extensionsv1beta1.IngressSpec{
 			TLS: []extensionsv1beta1.IngressTLS{
 				extensionsv1beta1.IngressTLS{
-					Hosts:      []string{configs.HostName},
-					SecretName: configs.IngressTLS,
+					Hosts:      []string{IngressName},
+					SecretName: tls,
 				},
 			},
 			Rules: []extensionsv1beta1.IngressRule{
 				{
-					Host: configs.HostName,
+					Host: IngressName,
 					IngressRuleValue: extensionsv1beta1.IngressRuleValue{
 						HTTP: &extensionsv1beta1.HTTPIngressRuleValue{
 							Paths: ingressPaths,
@@ -117,7 +125,7 @@ func (rsp *ReconcileSiddhiProcess) CreateOrUpdateIngress(
 		ingressSpec = extensionsv1beta1.IngressSpec{
 			Rules: []extensionsv1beta1.IngressRule{
 				{
-					Host: configs.HostName,
+					Host: IngressName,
 					IngressRuleValue: extensionsv1beta1.IngressRuleValue{
 						HTTP: &extensionsv1beta1.HTTPIngressRuleValue{
 							Paths: ingressPaths,
@@ -133,8 +141,8 @@ func (rsp *ReconcileSiddhiProcess) CreateOrUpdateIngress(
 			Kind:       "Ingress",
 		},
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      configs.HostName,
-			Namespace: sp.Namespace,
+			Name:      IngressName,
+			Namespace: namespace,
 			Annotations: map[string]string{
 				"kubernetes.io/ingress.class":                "nginx",
 				"nginx.ingress.kubernetes.io/rewrite-target": "/$2",
@@ -144,9 +152,14 @@ func (rsp *ReconcileSiddhiProcess) CreateOrUpdateIngress(
 	}
 	operationResult, err = controllerutil.CreateOrUpdate(
 		context.TODO(),
-		rsp.client,
+		k.Client,
 		ingress,
-		IngressMutateFunc(siddhiApp, configs),
+		IngressMutateFunc(
+			namespace,
+			serviceName,
+			tls,
+			containerPorts,
+		),
 	)
 	return
 }
@@ -154,28 +167,28 @@ func (rsp *ReconcileSiddhiProcess) CreateOrUpdateIngress(
 // CreateNATS function creates a NATS cluster and a NATS streaming cluster
 // More about NATS cluster - https://github.com/nats-io/nats-operator
 // More about NATS streaming cluster - https://github.com/nats-io/nats-streaming-operator
-func (rsp *ReconcileSiddhiProcess) CreateNATS(sp *siddhiv1alpha2.SiddhiProcess, configs Configs) error {
+func (k *KubeClient) CreateNATS(namespace string) error {
 	natsCluster := &natsv1alpha2.NatsCluster{}
-	err := rsp.client.Get(
+	err := k.Client.Get(
 		context.TODO(),
-		types.NamespacedName{Name: configs.NATSClusterName, Namespace: sp.Namespace},
+		types.NamespacedName{Name: NATSClusterName, Namespace: namespace},
 		natsCluster,
 	)
 	if err != nil && apierrors.IsNotFound(err) {
 		natsCluster = &natsv1alpha2.NatsCluster{
 			TypeMeta: metav1.TypeMeta{
-				APIVersion: configs.NATSAPIVersion,
-				Kind:       configs.NATSKind,
+				APIVersion: NATSAPIVersion,
+				Kind:       NATSKind,
 			},
 			ObjectMeta: metav1.ObjectMeta{
-				Name:      configs.NATSClusterName,
-				Namespace: sp.Namespace,
+				Name:      NATSClusterName,
+				Namespace: namespace,
 			},
 			Spec: natsv1alpha2.ClusterSpec{
-				Size: configs.NATSSize,
+				Size: NATSClusterSize,
 			},
 		}
-		err = rsp.client.Create(context.TODO(), natsCluster)
+		err = k.Client.Create(context.TODO(), natsCluster)
 		if err != nil {
 			return err
 		}
@@ -184,27 +197,27 @@ func (rsp *ReconcileSiddhiProcess) CreateNATS(sp *siddhiv1alpha2.SiddhiProcess, 
 	}
 
 	stanCluster := &streamingv1alpha1.NatsStreamingCluster{}
-	err = rsp.client.Get(
+	err = k.Client.Get(
 		context.TODO(),
-		types.NamespacedName{Name: configs.STANClusterName, Namespace: sp.Namespace},
+		types.NamespacedName{Name: STANClusterName, Namespace: namespace},
 		stanCluster,
 	)
 	if err != nil && apierrors.IsNotFound(err) {
 		stanCluster = &streamingv1alpha1.NatsStreamingCluster{
 			TypeMeta: metav1.TypeMeta{
-				APIVersion: configs.STANAPIVersion,
-				Kind:       configs.STANKind,
+				APIVersion: STANAPIVersion,
+				Kind:       STANKind,
 			},
 			ObjectMeta: metav1.ObjectMeta{
-				Name:      configs.STANClusterName,
-				Namespace: sp.Namespace,
+				Name:      STANClusterName,
+				Namespace: namespace,
 			},
 			Spec: streamingv1alpha1.NatsStreamingClusterSpec{
-				Size:        int32(configs.NATSSize),
-				NatsService: configs.NATSClusterName,
+				Size:        STANClusterSize,
+				NatsService: NATSClusterName,
 			},
 		}
-		err = rsp.client.Create(context.TODO(), stanCluster)
+		err = k.Client.Create(context.TODO(), stanCluster)
 		if err != nil {
 			return err
 		}
@@ -212,37 +225,35 @@ func (rsp *ReconcileSiddhiProcess) CreateNATS(sp *siddhiv1alpha2.SiddhiProcess, 
 	return err
 }
 
-// CreateOrUpdatePVC function creates a persistence volume claim for a K8s cluster
-func (rsp *ReconcileSiddhiProcess) CreateOrUpdatePVC(
-	sp *siddhiv1alpha2.SiddhiProcess,
-	configs Configs,
-	pvcName string,
+// CreateOrUpdatePVC function creates a persistence volume claim in a K8s cluster
+func (k *KubeClient) CreateOrUpdatePVC(
+	name string,
+	namespace string,
+	accessModes []corev1.PersistentVolumeAccessMode,
+	storage string,
+	storageClassName string,
+	owner metav1.Object,
 ) error {
-	var accessModes []corev1.PersistentVolumeAccessMode
 	pvc := &corev1.PersistentVolumeClaim{}
-	p := sp.Spec.PV
-	err := rsp.client.Get(
+	err := k.Client.Get(
 		context.TODO(),
-		types.NamespacedName{Name: pvcName, Namespace: sp.Namespace},
+		types.NamespacedName{Name: name, Namespace: namespace},
 		pvc,
 	)
 	if err != nil && apierrors.IsNotFound(err) {
-		if len(p.AccessModes) == 1 && p.AccessModes[0] == ReadOnlyMany {
-			return errors.New("Restricted access mode " + ReadOnlyMany + " in " + pvcName)
+		accessGranted := false
+		for _, accessMode := range accessModes {
+			if accessMode == corev1.ReadWriteOnce {
+				accessGranted = true
+				break
+			}
+			if accessMode == corev1.ReadWriteMany {
+				accessGranted = true
+				break
+			}
 		}
-		for _, am := range p.AccessModes {
-			if am == configs.ReadWriteOnce {
-				accessModes = append(accessModes, corev1.ReadWriteOnce)
-				continue
-			}
-			if am == configs.ReadOnlyMany {
-				accessModes = append(accessModes, corev1.ReadOnlyMany)
-				continue
-			}
-			if am == configs.ReadWriteMany {
-				accessModes = append(accessModes, corev1.ReadWriteMany)
-				continue
-			}
+		if !accessGranted {
+			return errors.New("Restricted access mode in " + name)
 		}
 		pvc = &corev1.PersistentVolumeClaim{
 			TypeMeta: metav1.TypeMeta{
@@ -250,40 +261,40 @@ func (rsp *ReconcileSiddhiProcess) CreateOrUpdatePVC(
 				Kind:       "PersistentVolumeClaim",
 			},
 			ObjectMeta: metav1.ObjectMeta{
-				Name:      pvcName,
-				Namespace: sp.Namespace,
+				Name:      name,
+				Namespace: namespace,
 			},
 			Spec: corev1.PersistentVolumeClaimSpec{
 				AccessModes: accessModes,
 				Resources: corev1.ResourceRequirements{
 					Requests: corev1.ResourceList{
-						corev1.ResourceStorage: resource.MustParse(p.Resources.Requests.Storage),
+						corev1.ResourceStorage: resource.MustParse(storage),
 					},
 				},
-				StorageClassName: &p.Class,
+				StorageClassName: &storageClassName,
 			},
 		}
-		controllerutil.SetControllerReference(sp, pvc, rsp.scheme)
+		controllerutil.SetControllerReference(owner, pvc, k.Scheme)
 		_, err = controllerutil.CreateOrUpdate(
 			context.TODO(),
-			rsp.client,
+			k.Client,
 			pvc,
-			PVCMutateFunc(accessModes, p.Resources.Requests.Storage, p.Class),
+			PVCMutateFunc(accessModes, storage, storageClassName),
 		)
 	}
 	return err
 }
 
-// CreateOrUpdateService returns a Service object for a deployment
-func (rsp *ReconcileSiddhiProcess) CreateOrUpdateService(
-	sp *siddhiv1alpha2.SiddhiProcess,
-	siddhiApp SiddhiApp,
-	configs Configs,
+// CreateOrUpdateService returns a Service object for deployment
+func (k *KubeClient) CreateOrUpdateService(
+	name string,
+	namespace string,
+	containerPorts []corev1.ContainerPort,
+	selectors map[string]string,
+	owner metav1.Object,
 ) (operationResult controllerutil.OperationResult, err error) {
-
-	labels := labelsForSiddhiProcess(strings.ToLower(siddhiApp.Name), configs)
 	var servicePorts []corev1.ServicePort
-	for _, containerPort := range siddhiApp.ContainerPorts {
+	for _, containerPort := range containerPorts {
 		servicePort := corev1.ServicePort{
 			Port: containerPort.ContainerPort,
 			Name: containerPort.Name,
@@ -296,27 +307,27 @@ func (rsp *ReconcileSiddhiProcess) CreateOrUpdateService(
 			Kind:       "Service",
 		},
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      siddhiApp.Name,
-			Namespace: sp.Namespace,
+			Name:      name,
+			Namespace: namespace,
 		},
 		Spec: corev1.ServiceSpec{
-			Selector: labels,
+			Selector: selectors,
 			Ports:    servicePorts,
 			Type:     "ClusterIP",
 		},
 	}
-	controllerutil.SetControllerReference(sp, service, rsp.scheme)
+	controllerutil.SetControllerReference(owner, service, k.Scheme)
 	operationResult, err = controllerutil.CreateOrUpdate(
 		context.TODO(),
-		rsp.client, service,
-		ServiceMutateFunc(labels, servicePorts),
+		k.Client,
+		service,
+		ServiceMutateFunc(selectors, servicePorts),
 	)
 	return
 }
 
-// CreateOrUpdateDeployment creates a deployment for given set of configuration data
-func (rsp *ReconcileSiddhiProcess) CreateOrUpdateDeployment(
-	sp *siddhiv1alpha2.SiddhiProcess,
+// CreateOrUpdateDeployment creates a deployment for a given set of configuration data
+func (k *KubeClient) CreateOrUpdateDeployment(
 	name string,
 	namespace string,
 	replicas int32,
@@ -333,32 +344,32 @@ func (rsp *ReconcileSiddhiProcess) CreateOrUpdateDeployment(
 	secrets []corev1.LocalObjectReference,
 	volumes []corev1.Volume,
 	strategy appsv1.DeploymentStrategy,
-	configs Configs,
+	owner metav1.Object,
 ) (operationResult controllerutil.OperationResult, err error) {
 	httpGetAction := corev1.HTTPGetAction{
-		Path: configs.HealthPath,
+		Path: HealthPath,
 		Port: intstr.IntOrString{
 			Type:   Int,
-			IntVal: configs.HealthPort,
+			IntVal: HealthPort,
 		},
 	}
 	readyProbe := corev1.Probe{
 		Handler: corev1.Handler{
 			HTTPGet: &httpGetAction,
 		},
-		PeriodSeconds:       configs.ReadyPrPeriodSeconds,
-		InitialDelaySeconds: configs.ReadyPrInitialDelaySeconds,
+		PeriodSeconds:       ReadyPrPeriodSeconds,
+		InitialDelaySeconds: ReadyPrInitialDelaySeconds,
 	}
 	liveProbe := corev1.Probe{
 		Handler: corev1.Handler{
 			HTTPGet: &httpGetAction,
 		},
-		PeriodSeconds:       configs.LivePrPeriodSeconds,
-		InitialDelaySeconds: configs.LivePrInitialDelaySeconds,
+		PeriodSeconds:       LivePrPeriodSeconds,
+		InitialDelaySeconds: LivePrInitialDelaySeconds,
 	}
 	defaultPort := corev1.ContainerPort{
-		Name:          configs.HealthPortName,
-		ContainerPort: configs.HealthPort,
+		Name:          HealthPortName,
+		ContainerPort: HealthPort,
 		Protocol:      corev1.ProtocolTCP,
 	}
 	ports = append(ports, defaultPort)
@@ -403,10 +414,10 @@ func (rsp *ReconcileSiddhiProcess) CreateOrUpdateDeployment(
 			Strategy: strategy,
 		},
 	}
-	controllerutil.SetControllerReference(sp, deployment, rsp.scheme)
+	controllerutil.SetControllerReference(owner, deployment, k.Scheme)
 	operationResult, err = controllerutil.CreateOrUpdate(
 		context.TODO(),
-		rsp.client,
+		k.Client,
 		deployment,
 		DeploymentMutateFunc(
 			replicas,
@@ -427,19 +438,19 @@ func (rsp *ReconcileSiddhiProcess) CreateOrUpdateDeployment(
 	return
 }
 
-// DeleteService delete the service specify by the user
-func (rsp *ReconcileSiddhiProcess) DeleteService(
-	serviceName string,
+// DeleteService deletes the service specified by the user
+func (k *KubeClient) DeleteService(
+	name string,
 	namespace string,
 ) (err error) {
 	service := &corev1.Service{}
-	er := rsp.client.Get(
+	er := k.Client.Get(
 		context.TODO(),
-		types.NamespacedName{Name: serviceName, Namespace: namespace},
+		types.NamespacedName{Name: name, Namespace: namespace},
 		service,
 	)
 	if er == nil {
-		err = rsp.client.Delete(context.TODO(), service)
+		err = k.Client.Delete(context.TODO(), service)
 		if err != nil {
 			return
 		}
@@ -447,19 +458,19 @@ func (rsp *ReconcileSiddhiProcess) DeleteService(
 	return
 }
 
-// DeleteDeployment delete the deployment specify by the user
-func (rsp *ReconcileSiddhiProcess) DeleteDeployment(
-	deploymentName string,
+// DeleteDeployment deletes the deployment specify by the user
+func (k *KubeClient) DeleteDeployment(
+	name string,
 	namespace string,
 ) (err error) {
 	deployment := &appsv1.Deployment{}
-	er := rsp.client.Get(
+	er := k.Client.Get(
 		context.TODO(),
-		types.NamespacedName{Name: deploymentName, Namespace: namespace},
+		types.NamespacedName{Name: name, Namespace: namespace},
 		deployment,
 	)
 	if er == nil {
-		err = rsp.client.Delete(context.TODO(), deployment)
+		err = k.Client.Delete(context.TODO(), deployment)
 		if err != nil {
 			return
 		}
@@ -467,19 +478,19 @@ func (rsp *ReconcileSiddhiProcess) DeleteDeployment(
 	return
 }
 
-// DeletePVC delete the PVC specify by the user
-func (rsp *ReconcileSiddhiProcess) DeletePVC(
-	pvcName string,
+// DeletePVC deletes the PVC specify by the user
+func (k *KubeClient) DeletePVC(
+	name string,
 	namespace string,
 ) (err error) {
 	pvc := &corev1.PersistentVolumeClaim{}
-	er := rsp.client.Get(
+	er := k.Client.Get(
 		context.TODO(),
-		types.NamespacedName{Name: pvcName, Namespace: namespace},
+		types.NamespacedName{Name: name, Namespace: namespace},
 		pvc,
 	)
 	if er == nil {
-		err = rsp.client.Delete(context.TODO(), pvc)
+		err = k.Client.Delete(context.TODO(), pvc)
 		if err != nil {
 			return
 		}
@@ -487,19 +498,19 @@ func (rsp *ReconcileSiddhiProcess) DeletePVC(
 	return
 }
 
-// DeleteConfigMap delete the CM specify by the user
-func (rsp *ReconcileSiddhiProcess) DeleteConfigMap(
-	cmName string,
+// DeleteConfigMap deletes the CM specify by the user
+func (k *KubeClient) DeleteConfigMap(
+	name string,
 	namespace string,
 ) (err error) {
 	cm := &corev1.ConfigMap{}
-	er := rsp.client.Get(
+	er := k.Client.Get(
 		context.TODO(),
-		types.NamespacedName{Name: cmName, Namespace: namespace},
+		types.NamespacedName{Name: name, Namespace: namespace},
 		cm,
 	)
 	if er == nil {
-		err = rsp.client.Delete(context.TODO(), cm)
+		err = k.Client.Delete(context.TODO(), cm)
 		if err != nil {
 			return
 		}
@@ -507,7 +518,7 @@ func (rsp *ReconcileSiddhiProcess) DeleteConfigMap(
 	return
 }
 
-// ConfigMapMutateFunc is the mutate function for k8s config map creation
+// ConfigMapMutateFunc is the function for update k8s config maps gracefully
 func ConfigMapMutateFunc(data map[string]string) controllerutil.MutateFn {
 	return func(obj runtime.Object) error {
 		configMap := obj.(*corev1.ConfigMap)
@@ -516,7 +527,7 @@ func ConfigMapMutateFunc(data map[string]string) controllerutil.MutateFn {
 	}
 }
 
-// PVCMutateFunc is the mutate function for k8s pvc creation
+// PVCMutateFunc is the function for update k8s persistence volumes claims gracefully
 func PVCMutateFunc(
 	accessModes []corev1.PersistentVolumeAccessMode,
 	storage string,
@@ -533,17 +544,17 @@ func PVCMutateFunc(
 	}
 }
 
-// ServiceMutateFunc is the mutate function for k8s service creation
-func ServiceMutateFunc(labels map[string]string, ports []corev1.ServicePort) controllerutil.MutateFn {
+// ServiceMutateFunc is the function for update k8s services gracefully.
+func ServiceMutateFunc(selectors map[string]string, servicePorts []corev1.ServicePort) controllerutil.MutateFn {
 	return func(obj runtime.Object) error {
 		service := obj.(*corev1.Service)
-		service.Spec.Selector = labels
-		service.Spec.Ports = ports
+		service.Spec.Selector = selectors
+		service.Spec.Ports = servicePorts
 		return nil
 	}
 }
 
-// DeploymentMutateFunc is the mutate function for k8s deployment creation
+// DeploymentMutateFunc is the function for update k8s deployments gracefully
 func DeploymentMutateFunc(
 	replicas int32,
 	labels map[string]string,
@@ -582,18 +593,23 @@ func DeploymentMutateFunc(
 	}
 }
 
-// IngressMutateFunc is the mutate function for k8s ingress creation
-func IngressMutateFunc(siddhiApp SiddhiApp, configs Configs) controllerutil.MutateFn {
+// IngressMutateFunc is the function for update k8s ingress gracefully
+func IngressMutateFunc(
+	namespace string,
+	serviceName string,
+	tls string,
+	containerPorts []corev1.ContainerPort,
+) controllerutil.MutateFn {
 	return func(obj runtime.Object) error {
 		ingress := obj.(*extensionsv1beta1.Ingress)
 		var ingressPaths []extensionsv1beta1.HTTPIngressPath
-		for _, port := range siddhiApp.ContainerPorts {
-			path := "/" + strings.ToLower(siddhiApp.Name) +
+		for _, port := range containerPorts {
+			path := "/" + strings.ToLower(serviceName) +
 				"/" + strconv.Itoa(int(port.ContainerPort)) + "(/|$)(.*)"
 			ingressPath := extensionsv1beta1.HTTPIngressPath{
 				Path: path,
 				Backend: extensionsv1beta1.IngressBackend{
-					ServiceName: strings.ToLower(siddhiApp.Name),
+					ServiceName: strings.ToLower(serviceName),
 					ServicePort: intstr.IntOrString{
 						Type:   Int,
 						IntVal: port.ContainerPort,
@@ -609,12 +625,12 @@ func IngressMutateFunc(siddhiApp SiddhiApp, configs Configs) controllerutil.Muta
 			},
 		}
 		newRule := extensionsv1beta1.IngressRule{
-			Host:             configs.HostName,
+			Host:             IngressName,
 			IngressRuleValue: ruleValue,
 		}
 		ruleExists := false
 		for _, rule := range currentRules {
-			if rule.Host == configs.HostName {
+			if rule.Host == IngressName {
 				ruleExists = true
 				for _, path := range ingressPaths {
 					if !pathContains(rule.HTTP.Paths, path) {
@@ -627,12 +643,12 @@ func IngressMutateFunc(siddhiApp SiddhiApp, configs Configs) controllerutil.Muta
 			currentRules = append(currentRules, newRule)
 		}
 		var ingressSpec extensionsv1beta1.IngressSpec
-		if configs.IngressTLS != "" {
+		if tls != "" {
 			ingressSpec = extensionsv1beta1.IngressSpec{
 				TLS: []extensionsv1beta1.IngressTLS{
 					extensionsv1beta1.IngressTLS{
-						Hosts:      []string{configs.HostName},
-						SecretName: configs.IngressTLS,
+						Hosts:      []string{IngressName},
+						SecretName: tls,
 					},
 				},
 				Rules: currentRules,
@@ -645,4 +661,14 @@ func IngressMutateFunc(siddhiApp SiddhiApp, configs Configs) controllerutil.Muta
 		ingress.Spec = ingressSpec
 		return nil
 	}
+}
+
+// pathContains checks the given path is available on ingress path lists or not
+func pathContains(paths []extensionsv1beta1.HTTPIngressPath, path extensionsv1beta1.HTTPIngressPath) bool {
+	for _, p := range paths {
+		if reflect.DeepEqual(p, path) {
+			return true
+		}
+	}
+	return false
 }
