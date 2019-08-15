@@ -85,7 +85,7 @@ func (d *DeployManager) CreateLabels() {
 	d.Labels = labels
 }
 
-// Deploy creates a deployment according to the given SiddhiProcess specs.
+// Deploy creates a deployment according to the given Application specs.
 // It create and mount volumes, create config maps, populates envs that needs to the deployment.
 func (d *DeployManager) Deploy() (operationResult controllerutil.OperationResult, err error) {
 

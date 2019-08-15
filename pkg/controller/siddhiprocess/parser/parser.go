@@ -158,7 +158,7 @@ func (p *Parser) deploy() (err error) {
 		return
 	}
 	_, err = p.KubeClient.CreateOrUpdateService(
-		p.Name,
+		p.Name+ParserExtension,
 		p.SiddhiProcess.Namespace,
 		containerPorts,
 		deployManeger.Labels,

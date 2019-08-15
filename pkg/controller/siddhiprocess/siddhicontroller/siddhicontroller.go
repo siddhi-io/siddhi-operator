@@ -326,13 +326,13 @@ func (sc *SiddhiController) UpdateDefaultConfigs() {
 	if err == nil {
 		if configMap.Data["siddhiHome"] != "" {
 			sc.Image.Home = configMap.Data["siddhiHome"]
-			if sc.SiddhiProcess.Spec.Container.Image != "" {
-				sc.Image.Home = sc.SiddhiProcess.Spec.Container.Image
-			}
 		}
 
 		if configMap.Data["siddhiImage"] != "" {
 			sc.Image.Name = configMap.Data["siddhiImage"]
+			if sc.SiddhiProcess.Spec.Container.Image != "" {
+				sc.Image.Name = sc.SiddhiProcess.Spec.Container.Image
+			}
 		}
 
 		if configMap.Data["siddhiImageSecret"] != "" {
