@@ -230,7 +230,7 @@ func (k *KubeClient) CreateOrUpdatePVC(
 	name string,
 	namespace string,
 	accessModes []corev1.PersistentVolumeAccessMode,
-	storage string,
+	storage resource.Quantity,
 	storageClassName string,
 	owner metav1.Object,
 ) error {
@@ -268,7 +268,7 @@ func (k *KubeClient) CreateOrUpdatePVC(
 				AccessModes: accessModes,
 				Resources: corev1.ResourceRequirements{
 					Requests: corev1.ResourceList{
-						corev1.ResourceStorage: resource.MustParse(storage),
+						corev1.ResourceStorage: storage,
 					},
 				},
 				StorageClassName: &storageClassName,
@@ -530,14 +530,14 @@ func ConfigMapMutateFunc(data map[string]string) controllerutil.MutateFn {
 // PVCMutateFunc is the function for update k8s persistence volumes claims gracefully
 func PVCMutateFunc(
 	accessModes []corev1.PersistentVolumeAccessMode,
-	storage string,
+	storage resource.Quantity,
 	class string,
 ) controllerutil.MutateFn {
 	return func(obj runtime.Object) error {
 		pvc := obj.(*corev1.PersistentVolumeClaim)
 		pvc.Spec.AccessModes = accessModes
 		pvc.Spec.Resources.Requests = corev1.ResourceList{
-			corev1.ResourceStorage: resource.MustParse(storage),
+			corev1.ResourceStorage: storage,
 		}
 		pvc.Spec.StorageClassName = &class
 		return nil
