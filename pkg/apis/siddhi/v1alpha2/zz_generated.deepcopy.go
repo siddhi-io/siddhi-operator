@@ -23,6 +23,7 @@
 package v1alpha2
 
 import (
+	v1 "k8s.io/api/core/v1"
 	runtime "k8s.io/apimachinery/pkg/runtime"
 )
 
@@ -103,7 +104,7 @@ func (in *PV) DeepCopyInto(out *PV) {
 	*out = *in
 	if in.AccessModes != nil {
 		in, out := &in.AccessModes, &out.AccessModes
-		*out = make([]string, len(*in))
+		*out = make([]v1.PersistentVolumeAccessMode, len(*in))
 		copy(*out, *in)
 	}
 	out.Resources = in.Resources

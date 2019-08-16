@@ -33,8 +33,6 @@ func (p *PV) Equals(q *PV) bool {
 	if len(p.AccessModes) != len(q.AccessModes) {
 		return false
 	}
-	sort.Strings(p.AccessModes)
-	sort.Strings(q.AccessModes)
 	for i := range p.AccessModes {
 		if p.AccessModes[i] != q.AccessModes[i] {
 			return false
