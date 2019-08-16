@@ -28,24 +28,6 @@ type TLS struct {
 	SecretName string `json:"ingressSecret"`
 }
 
-// PVCRequest hold resource details of the PVC
-type PVCRequest struct {
-	Storage string `json:"storage"`
-}
-
-// PVCResource contains PVC resource details
-type PVCResource struct {
-	Requests PVCRequest `json:"requests"`
-}
-
-// PV contains the configurations of the persistence volume
-type PV struct {
-	AccessModes []corev1.PersistentVolumeAccessMode    `json:"accessModes"`
-	VolumeMode  string      `json:"volumeMode"`
-	Class       string      `json:"storageClassName"`
-	Resources   PVCResource `json:"resources"`
-}
-
 // MessagingConfig contains the configs of the messaging layer
 type MessagingConfig struct {
 	ClusterID        string   `json:"clusterId"`
@@ -58,13 +40,6 @@ type MessagingSystem struct {
 	Config MessagingConfig `json:"config"`
 }
 
-// DeploymentConfig contains the config details of the SiddhiProcess deployment
-type DeploymentConfig struct {
-	Mode            string          `json:"mode"`
-	MessagingSystem MessagingSystem `json:"messagingSystem"`
-	PV              PV              `json:"persistenceVolume"`
-}
-
 // Apps siddhi apps
 type Apps struct {
 	ConfigMap string `json:"configMap"`
@@ -74,21 +49,21 @@ type Apps struct {
 // SiddhiProcessSpec defines the desired state of SiddhiProcess
 // +k8s:openapi-gen=true
 type SiddhiProcessSpec struct {
-	Apps            []Apps           `json:"apps"`
-	SiddhiConfig    string           `json:"runner"`
-	Container       corev1.Container `json:"container"`
-	MessagingSystem MessagingSystem  `json:"messagingSystem"`
-	PV              PV               `json:"persistentVolume"`
-	ImagePullSecret string           `json:"imagePullSecret"`
+	Apps            []Apps                           `json:"apps"`
+	SiddhiConfig    string                           `json:"runner"`
+	Container       corev1.Container                 `json:"container"`
+	MessagingSystem MessagingSystem                  `json:"messagingSystem"`
+	PVC             corev1.PersistentVolumeClaimSpec `json:"persistentVolumeClaim"`
+	ImagePullSecret string                           `json:"imagePullSecret"`
 }
 
 // SiddhiProcessStatus defines the observed state of SiddhiProcess
 // +k8s:openapi-gen=true
 type SiddhiProcessStatus struct {
-	Status string   `json:"status"`
-	Ready  string   `json:"ready"`
-	CurrentVersion int64 `json:"currentVersion"`
-	PreviousVersion int64 `json:"previousVersion"`
+	Status          string `json:"status"`
+	Ready           string `json:"ready"`
+	CurrentVersion  int64  `json:"currentVersion"`
+	PreviousVersion int64  `json:"previousVersion"`
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object

@@ -30,6 +30,7 @@ import (
 	extensionsv1beta1 "k8s.io/api/extensions/v1beta1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
+	"k8s.io/apimachinery/pkg/api/resource"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/kubernetes/scheme"
@@ -154,7 +155,7 @@ func TestCreateOrUpdatePVC(t *testing.T) {
 		corev1.ReadWriteOnce,
 		corev1.ReadWriteMany,
 	}
-	storage := "1Gi"
+	storage := resource.MustParse("1Gi")
 	storageClassName := "standard"
 	err := kubeClient.CreateOrUpdatePVC(name, namespace, accessModes, storage, storageClassName, sampleDeployment)
 	if err != nil {

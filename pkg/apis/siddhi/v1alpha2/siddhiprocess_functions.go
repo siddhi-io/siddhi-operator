@@ -19,17 +19,20 @@
 package v1alpha2
 
 import (
-	"sort"
 	"reflect"
+	"sort"
 
 	corev1 "k8s.io/api/core/v1"
 )
 
-// Equals function of PV check the equality of two PV structs
-func (p *PV) Equals(q *PV) bool {
+// EqualsPVCSpec function of PVC check the equality of two PV structs
+func EqualsPVCSpec(p *corev1.PersistentVolumeClaimSpec, q *corev1.PersistentVolumeClaimSpec) bool {
 	vmEq := p.VolumeMode == q.VolumeMode
-	classEq := p.Class == q.Class
-	resourceEq := p.Resources == q.Resources
+	classEq := false
+	if p.StorageClassName != nil && q.StorageClassName != nil {
+		classEq = *p.StorageClassName == *q.StorageClassName
+	}
+	resourceEq := reflect.DeepEqual(p.Resources, q.Resources)
 	if len(p.AccessModes) != len(q.AccessModes) {
 		return false
 	}
@@ -62,17 +65,17 @@ func (p *MessagingSystem) Equals(q *MessagingSystem) bool {
 func (p *SiddhiProcessSpec) Equals(q *SiddhiProcessSpec) bool {
 	if !EqualApps(p.Apps, q.Apps) {
 		return false
-	} 
+	}
 	if p.SiddhiConfig != q.SiddhiConfig {
 		return false
 	}
-	if !EqualContainers(&p.Container, &q.Container){
+	if !EqualContainers(&p.Container, &q.Container) {
 		return false
 	}
 	if !p.MessagingSystem.Equals(&q.MessagingSystem) {
 		return false
 	}
-	if !p.PV.Equals(&q.PV) {
+	if EqualsPVCSpec(&p.PVC, &q.PVC) {
 		return false
 	}
 	if p.ImagePullSecret != q.ImagePullSecret {

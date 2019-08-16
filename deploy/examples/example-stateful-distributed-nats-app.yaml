@@ -17,7 +17,7 @@ spec:
         @source(
           type='http',
           receiver.url='${RECEIVER_URL}',
-          basic.auth.enabled='false',
+          basic.auth.enabled='${BASIC_AUTH_ENABLED}',
           @map(type='json')
         )
         define stream DevicePowerStream(deviceType string, power int);
@@ -50,7 +50,7 @@ spec:
         - "nats://nats-siddhi:4222"
       clusterId: stan-siddhi
   
-  persistentVolume: 
+  persistentVolumeClaim: 
     accessModes: 
       - ReadWriteOnce
     resources: 

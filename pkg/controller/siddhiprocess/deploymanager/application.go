@@ -104,16 +104,16 @@ func (d *DeployManager) Deploy() (operationResult controllerutil.OperationResult
 		imagePullSecrets = append(imagePullSecrets, secret)
 	}
 
-	q := siddhiv1alpha2.PV{}
+	q := corev1.PersistentVolumeClaimSpec{}
 	if d.Application.PersistenceEnabled {
-		if !d.SiddhiProcess.Spec.PV.Equals(&q) {
+		if !siddhiv1alpha2.EqualsPVCSpec(&d.SiddhiProcess.Spec.PVC, &q) {
 			pvcName := d.Application.Name + PVCExtension
 			err = d.KubeClient.CreateOrUpdatePVC(
 				pvcName,
 				d.SiddhiProcess.Namespace,
-				d.SiddhiProcess.Spec.PV.AccessModes,
-				d.SiddhiProcess.Spec.PV.Resources.Requests.Storage,
-				d.SiddhiProcess.Spec.PV.Class,
+				d.SiddhiProcess.Spec.PVC.AccessModes,
+				d.SiddhiProcess.Spec.PVC.Resources.Requests[corev1.ResourceStorage],
+				*d.SiddhiProcess.Spec.PVC.StorageClassName,
 				d.SiddhiProcess,
 			)
 			if err != nil {
