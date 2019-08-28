@@ -165,7 +165,13 @@ Now you can install the operator as describe in [previous installation](https://
 Execute the below command to start the unit tests.
 
 ```sh
-$ go test ./pkg/controller/siddhiprocess/
+$ go test ./pkg/controller/siddhiprocess/<PACKAGE_NAME>
+```
+
+For example, run the unit tests for package `artifact`.
+
+```sh
+$ go test ./pkg/controller/siddhiprocess/artifact
 ```
 
 #### E2E Tests

@@ -30,7 +30,7 @@ type TLS struct {
 
 // MessagingConfig contains the configs of the messaging layer
 type MessagingConfig struct {
-	ClusterID        string   `json:"clusterId"`
+	ClusterID        string   `json:"streamingClusterId"`
 	BootstrapServers []string `json:"bootstrapServers"`
 }
 
