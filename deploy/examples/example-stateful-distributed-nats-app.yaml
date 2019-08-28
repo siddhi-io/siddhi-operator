@@ -48,7 +48,7 @@ spec:
     config: 
       bootstrapServers: 
         - "nats://nats-siddhi:4222"
-      clusterId: stan-siddhi
+      streamingClusterId: stan-siddhi
   
   persistentVolumeClaim: 
     accessModes: 
