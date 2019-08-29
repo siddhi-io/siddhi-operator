@@ -155,9 +155,17 @@ func TestCreateOrUpdatePVC(t *testing.T) {
 		corev1.ReadWriteOnce,
 		corev1.ReadWriteMany,
 	}
-	storage := resource.MustParse("1Gi")
 	storageClassName := "standard"
-	err := kubeClient.CreateOrUpdatePVC(name, namespace, accessModes, storage, storageClassName, sampleDeployment)
+	pvcSpec := corev1.PersistentVolumeClaimSpec{
+		AccessModes:      accessModes,
+		StorageClassName: &storageClassName,
+		Resources: corev1.ResourceRequirements{
+			Requests: corev1.ResourceList{
+				corev1.ResourceStorage: *resource.NewQuantity(1*1024*1024*1024, resource.BinarySI),
+			},
+		},
+	}
+	err := kubeClient.CreateOrUpdatePVC(name, namespace, pvcSpec, sampleDeployment)
 	if err != nil {
 		t.Error(err)
 	}

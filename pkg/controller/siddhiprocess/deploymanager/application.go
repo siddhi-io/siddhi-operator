@@ -111,9 +111,7 @@ func (d *DeployManager) Deploy() (operationResult controllerutil.OperationResult
 			err = d.KubeClient.CreateOrUpdatePVC(
 				pvcName,
 				d.SiddhiProcess.Namespace,
-				d.SiddhiProcess.Spec.PVC.AccessModes,
-				d.SiddhiProcess.Spec.PVC.Resources.Requests[corev1.ResourceStorage],
-				*d.SiddhiProcess.Spec.PVC.StorageClassName,
+				d.SiddhiProcess.Spec.PVC,
 				d.SiddhiProcess,
 			)
 			if err != nil {

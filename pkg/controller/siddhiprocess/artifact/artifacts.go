@@ -33,7 +33,6 @@ import (
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-	"k8s.io/apimachinery/pkg/api/resource"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/intstr"
@@ -229,9 +228,7 @@ func (k *KubeClient) CreateNATS(namespace string) error {
 func (k *KubeClient) CreateOrUpdatePVC(
 	name string,
 	namespace string,
-	accessModes []corev1.PersistentVolumeAccessMode,
-	storage resource.Quantity,
-	storageClassName string,
+	pvcSpec corev1.PersistentVolumeClaimSpec,
 	owner metav1.Object,
 ) error {
 	pvc := &corev1.PersistentVolumeClaim{}
@@ -241,19 +238,21 @@ func (k *KubeClient) CreateOrUpdatePVC(
 		pvc,
 	)
 	if err != nil && apierrors.IsNotFound(err) {
-		accessGranted := false
-		for _, accessMode := range accessModes {
-			if accessMode == corev1.ReadWriteOnce {
-				accessGranted = true
-				break
+		if pvcSpec.AccessModes != nil {
+			accessGranted := false
+			for _, accessMode := range pvcSpec.AccessModes {
+				if accessMode == corev1.ReadWriteOnce {
+					accessGranted = true
+					break
+				}
+				if accessMode == corev1.ReadWriteMany {
+					accessGranted = true
+					break
+				}
 			}
-			if accessMode == corev1.ReadWriteMany {
-				accessGranted = true
-				break
+			if !accessGranted {
+				return errors.New("Restricted access mode in " + name)
 			}
-		}
-		if !accessGranted {
-			return errors.New("Restricted access mode in " + name)
 		}
 		pvc = &corev1.PersistentVolumeClaim{
 			TypeMeta: metav1.TypeMeta{
@@ -264,22 +263,14 @@ func (k *KubeClient) CreateOrUpdatePVC(
 				Name:      name,
 				Namespace: namespace,
 			},
-			Spec: corev1.PersistentVolumeClaimSpec{
-				AccessModes: accessModes,
-				Resources: corev1.ResourceRequirements{
-					Requests: corev1.ResourceList{
-						corev1.ResourceStorage: storage,
-					},
-				},
-				StorageClassName: &storageClassName,
-			},
+			Spec: pvcSpec,
 		}
 		controllerutil.SetControllerReference(owner, pvc, k.Scheme)
 		_, err = controllerutil.CreateOrUpdate(
 			context.TODO(),
 			k.Client,
 			pvc,
-			PVCMutateFunc(accessModes, storage, storageClassName),
+			PVCMutateFunc(pvcSpec),
 		)
 	}
 	return err
@@ -529,17 +520,11 @@ func ConfigMapMutateFunc(data map[string]string) controllerutil.MutateFn {
 
 // PVCMutateFunc is the function for update k8s persistence volumes claims gracefully
 func PVCMutateFunc(
-	accessModes []corev1.PersistentVolumeAccessMode,
-	storage resource.Quantity,
-	class string,
+	pvcSpec corev1.PersistentVolumeClaimSpec,
 ) controllerutil.MutateFn {
 	return func(obj runtime.Object) error {
 		pvc := obj.(*corev1.PersistentVolumeClaim)
-		pvc.Spec.AccessModes = accessModes
-		pvc.Spec.Resources.Requests = corev1.ResourceList{
-			corev1.ResourceStorage: storage,
-		}
-		pvc.Spec.StorageClassName = &class
+		pvc.Spec = pvcSpec
 		return nil
 	}
 }
