@@ -28,6 +28,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"github.com/operator-framework/operator-sdk/pkg/test/e2eutil"
+	"k8s.io/apimachinery/pkg/api/resource"
 )
 
 // failoverDeploymentTest check the failover deployment of a siddhi app.
@@ -37,7 +38,7 @@ func failoverDeploymentTest(t *testing.T, f *framework.Framework, ctx *framework
 	if err != nil {
 		t.Fatalf("could not get namespace: %v", err)
 	}
-
+	standardStorageClass := "standard"
 	// create SiddhiProcess custom resource
 	exampleSiddhi := &siddhiv1alpha2.SiddhiProcess{
 		TypeMeta: metav1.TypeMeta{
@@ -68,6 +69,17 @@ func failoverDeploymentTest(t *testing.T, f *framework.Framework, ctx *framework
 			},
 			MessagingSystem: siddhiv1alpha2.MessagingSystem{
 				Type: "nats",
+			},
+			PVC: corev1.PersistentVolumeClaimSpec{
+				AccessModes: []corev1.PersistentVolumeAccessMode{
+					corev1.ReadWriteOnce,
+				},
+				Resources: corev1.ResourceRequirements{
+					Requests: corev1.ResourceList{
+						corev1.ResourceStorage: *resource.NewQuantity(1*1024*1024*1024, resource.BinarySI),
+					},
+				},
+				StorageClassName: &standardStorageClass,
 			},
 		},
 	}
@@ -114,7 +126,7 @@ func failoverConfigChangeTest(t *testing.T, f *framework.Framework, ctx *framewo
 	if err != nil {
 		t.Fatalf("could not get namespace: %v", err)
 	}
-
+	standardStorageClass := "standard"
 	// create SiddhiProcess custom resource
 	exampleSiddhi := &siddhiv1alpha2.SiddhiProcess{
 		TypeMeta: metav1.TypeMeta{
@@ -147,6 +159,17 @@ func failoverConfigChangeTest(t *testing.T, f *framework.Framework, ctx *framewo
 				Type: "nats",
 			},
 			SiddhiConfig: StatePersistenceConf,
+			PVC: corev1.PersistentVolumeClaimSpec{
+				AccessModes: []corev1.PersistentVolumeAccessMode{
+					corev1.ReadWriteOnce,
+				},
+				Resources: corev1.ResourceRequirements{
+					Requests: corev1.ResourceList{
+						corev1.ResourceStorage: *resource.NewQuantity(1*1024*1024*1024, resource.BinarySI),
+					},
+				},
+				StorageClassName: &standardStorageClass,
+			},
 		},
 	}
 
@@ -184,11 +207,12 @@ func failoverPVCTest(t *testing.T, f *framework.Framework, ctx *framework.TestCt
 		t.Fatalf("could not get namespace: %v", err)
 	}
 
+	standardStorageClass := "standard"
 	// create SiddhiProcess custom resource
 	exampleSiddhi := &siddhiv1alpha2.SiddhiProcess{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "SiddhiProcess",
-			APIVersion: "siddhi.io/v1alpha1",
+			APIVersion: "siddhi.io/v1alpha2",
 		},
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "failover-test-app",
@@ -215,17 +239,16 @@ func failoverPVCTest(t *testing.T, f *framework.Framework, ctx *framework.TestCt
 			MessagingSystem: siddhiv1alpha2.MessagingSystem{
 				Type: "nats",
 			},
-			PV: siddhiv1alpha2.PV{
-				AccessModes: []string{
-					"ReadWriteOnce",
+			PVC: corev1.PersistentVolumeClaimSpec{
+				AccessModes: []corev1.PersistentVolumeAccessMode{
+					corev1.ReadWriteOnce,
 				},
-				VolumeMode: "Filesystem",
-				Resources: siddhiv1alpha2.PVCResource{
-					Requests: siddhiv1alpha2.PVCRequest{
-						Storage: "1Gi",
+				Resources: corev1.ResourceRequirements{
+					Requests: corev1.ResourceList{
+						corev1.ResourceStorage: *resource.NewQuantity(1*1024*1024*1024, resource.BinarySI),
 					},
 				},
-				Class: "standard",
+				StorageClassName: &standardStorageClass,
 			},
 		},
 	}

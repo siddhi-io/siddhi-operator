@@ -31,9 +31,9 @@ import (
 )
 
 var (
-	retryInterval        = time.Second * 5
+	retryInterval        = time.Second * 20
 	timeout              = time.Second * 80
-	maxTimeout           = time.Second * 100
+	maxTimeout           = time.Second * 150
 	cleanupRetryInterval = time.Second * 1
 	cleanupTimeout       = time.Second * 5
 )
@@ -48,7 +48,7 @@ func TestSiddhiProcess(t *testing.T) {
 	siddhiList := &siddhiv1alpha2.SiddhiProcessList{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "SiddhiProcess",
-			APIVersion: "siddhi.io/v1alpha1",
+			APIVersion: "siddhi.io/v1alpha2",
 		},
 	}
 	err := framework.AddToFrameworkScheme(apis.AddToScheme, siddhiList)
