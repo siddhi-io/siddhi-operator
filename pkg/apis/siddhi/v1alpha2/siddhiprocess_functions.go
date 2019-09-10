@@ -27,10 +27,17 @@ import (
 
 // EqualsPVCSpec function of PVC check the equality of two PV structs
 func EqualsPVCSpec(p *corev1.PersistentVolumeClaimSpec, q *corev1.PersistentVolumeClaimSpec) bool {
-	vmEq := p.VolumeMode == q.VolumeMode
+	vmEq := false
+	if p.VolumeMode != nil && q.VolumeMode != nil {
+		vmEq = *p.VolumeMode == *q.VolumeMode
+	} else if p.VolumeMode == nil && q.VolumeMode == nil {
+		vmEq = true
+	}
 	classEq := false
 	if p.StorageClassName != nil && q.StorageClassName != nil {
 		classEq = *p.StorageClassName == *q.StorageClassName
+	} else if p.StorageClassName == nil && q.StorageClassName == nil {
+		classEq = true
 	}
 	resourceEq := reflect.DeepEqual(p.Resources, q.Resources)
 	if len(p.AccessModes) != len(q.AccessModes) {
@@ -75,7 +82,7 @@ func (p *SiddhiProcessSpec) Equals(q *SiddhiProcessSpec) bool {
 	if !p.MessagingSystem.Equals(&q.MessagingSystem) {
 		return false
 	}
-	if EqualsPVCSpec(&p.PVC, &q.PVC) {
+	if !EqualsPVCSpec(&p.PVC, &q.PVC) {
 		return false
 	}
 	if p.ImagePullSecret != q.ImagePullSecret {
