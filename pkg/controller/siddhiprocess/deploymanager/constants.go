@@ -21,7 +21,7 @@ package deploymanager
 // Constants for the DeployManager
 const (
 	OperatorName     string = "siddhi-operator"
-	OperatorVersion  string = "0.2.0-alpha"
+	OperatorVersion  string = "0.2.0-beta"
 	CRDName          string = "SiddhiProcess"
 	PVCExtension     string = "-pvc"
 	DepCMExtension   string = "-depyml"

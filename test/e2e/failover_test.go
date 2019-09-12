@@ -46,7 +46,7 @@ func failoverDeploymentTest(t *testing.T, f *framework.Framework, ctx *framework
 			APIVersion: "siddhi.io/v1alpha2",
 		},
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      "failover-app",
+			Name:      "failover-app-dep",
 			Namespace: namespace,
 		},
 		Spec: siddhiv1alpha2.SiddhiProcessSpec{
@@ -89,12 +89,12 @@ func failoverDeploymentTest(t *testing.T, f *framework.Framework, ctx *framework
 		return err
 	}
 
-	err = e2eutil.WaitForDeployment(t, f.KubeClient, namespace, "failover-app-0", 1, retryInterval, maxTimeout)
+	err = e2eutil.WaitForDeployment(t, f.KubeClient, namespace, "failover-app-dep-0", 1, retryInterval, maxTimeout)
 	if err != nil {
 		return err
 	}
 
-	err = e2eutil.WaitForDeployment(t, f.KubeClient, namespace, "failover-app-1", 1, retryInterval, maxTimeout)
+	err = e2eutil.WaitForDeployment(t, f.KubeClient, namespace, "failover-app-dep-1", 1, retryInterval, maxTimeout)
 	if err != nil {
 		return err
 	}
@@ -104,7 +104,7 @@ func failoverDeploymentTest(t *testing.T, f *framework.Framework, ctx *framework
 		return err
 	}
 
-	_, err = f.KubeClient.CoreV1().Services(namespace).Get("failover-app-0", metav1.GetOptions{IncludeUninitialized: true})
+	_, err = f.KubeClient.CoreV1().Services(namespace).Get("failover-app-dep-0", metav1.GetOptions{IncludeUninitialized: true})
 	if err != nil {
 		return err
 	}
@@ -134,7 +134,7 @@ func failoverConfigChangeTest(t *testing.T, f *framework.Framework, ctx *framewo
 			APIVersion: "siddhi.io/v1alpha2",
 		},
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      "failover-app",
+			Name:      "failover-app-conf",
 			Namespace: namespace,
 		},
 		Spec: siddhiv1alpha2.SiddhiProcessSpec{
@@ -178,17 +178,17 @@ func failoverConfigChangeTest(t *testing.T, f *framework.Framework, ctx *framewo
 		return err
 	}
 
-	err = e2eutil.WaitForDeployment(t, f.KubeClient, namespace, "failover-app-0", 1, retryInterval, maxTimeout)
+	err = e2eutil.WaitForDeployment(t, f.KubeClient, namespace, "failover-app-conf-0", 1, retryInterval, maxTimeout)
 	if err != nil {
 		return err
 	}
 
-	err = e2eutil.WaitForDeployment(t, f.KubeClient, namespace, "failover-app-1", 1, retryInterval, maxTimeout)
+	err = e2eutil.WaitForDeployment(t, f.KubeClient, namespace, "failover-app-conf-1", 1, retryInterval, maxTimeout)
 	if err != nil {
 		return err
 	}
 
-	_, err = f.KubeClient.CoreV1().ConfigMaps(namespace).Get("failover-app-depyml", metav1.GetOptions{IncludeUninitialized: true})
+	_, err = f.KubeClient.CoreV1().ConfigMaps(namespace).Get("failover-app-conf-depyml", metav1.GetOptions{IncludeUninitialized: true})
 	if err != nil {
 		return err
 	}
@@ -215,7 +215,7 @@ func failoverPVCTest(t *testing.T, f *framework.Framework, ctx *framework.TestCt
 			APIVersion: "siddhi.io/v1alpha2",
 		},
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      "failover-test-app",
+			Name:      "failover-app-pvc",
 			Namespace: namespace,
 		},
 		Spec: siddhiv1alpha2.SiddhiProcessSpec{
@@ -258,17 +258,17 @@ func failoverPVCTest(t *testing.T, f *framework.Framework, ctx *framework.TestCt
 		return err
 	}
 
-	err = e2eutil.WaitForDeployment(t, f.KubeClient, namespace, "failover-test-app-0", 1, retryInterval, maxTimeout)
+	err = e2eutil.WaitForDeployment(t, f.KubeClient, namespace, "failover-app-pvc-0", 1, retryInterval, maxTimeout)
 	if err != nil {
 		return err
 	}
 
-	err = e2eutil.WaitForDeployment(t, f.KubeClient, namespace, "failover-test-app-1", 1, retryInterval, maxTimeout)
+	err = e2eutil.WaitForDeployment(t, f.KubeClient, namespace, "failover-app-pvc-1", 1, retryInterval, maxTimeout)
 	if err != nil {
 		return err
 	}
 
-	_, err = f.KubeClient.CoreV1().PersistentVolumeClaims(namespace).Get("failover-test-app-1-pvc", metav1.GetOptions{IncludeUninitialized: true})
+	_, err = f.KubeClient.CoreV1().PersistentVolumeClaims(namespace).Get("failover-app-pvc-1-pvc", metav1.GetOptions{IncludeUninitialized: true})
 	if err != nil {
 		return err
 	}
