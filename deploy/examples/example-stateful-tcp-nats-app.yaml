@@ -6,7 +6,7 @@ spec:
   apps: 
     - script: |
         @App:name("PowerConsumptionSurgeDetection")
-        @App:description("App consumes events from HTTP as a JSON message of { 'deviceType': 'dryer', 'power': 6000 } format and inserts the events into DevicePowerStream, and alerts the user if the power consumption in 1 minute is greater than or equal to 10000W by printing a message in the log for every 30 seconds.")
+        @App:description("App consumes events from NATS as a text message of { 'deviceType': 'dryer', 'power': 6000 } format and inserts the events into DevicePowerStream, and alerts the user if the power consumption in 1 minute is greater than or equal to 10000W by printing a message in the log for every 30 seconds.")
 
         /*
             Input: deviceType string and powerConsuption int(Joules)
@@ -15,18 +15,19 @@ spec:
         */
 
         @source(
-          type='http',
-          receiver.url='${RECEIVER_URL}',
-          basic.auth.enabled='${BASIC_AUTH_ENABLED}',
-          @map(type='json')
+          type='nats',
+          cluster.id='siddhi-stan',
+          destination = 'PowerStream', 
+          bootstrap.servers='nats://nats-siddhi:4222',
+          @map(type='text')
         )
         define stream DevicePowerStream(deviceType string, power int);
 
-        @sink(type='log', prefix='LOGGER') 
-        define stream PowerSurgeAlertStream(deviceType string, powerConsumed long); 
+        @sink(type='log', prefix='LOGGER')
+        define stream PowerSurgeAlertStream(deviceType string, powerConsumed long);
 
-        @info(name='surge-detector')  
-        from DevicePowerStream#window.time(1 min) 
+        @info(name='surge-detector')
+        from DevicePowerStream#window.time(1 min)
         select deviceType, sum(power) as powerConsumed
         group by deviceType
         having powerConsumed > 10000
@@ -34,21 +35,7 @@ spec:
         insert into PowerSurgeAlertStream;
 
   container: 
-    env: 
-      - 
-        name: RECEIVER_URL
-        value: "http://0.0.0.0:8080/checkPower"
-      - 
-        name: BASIC_AUTH_ENABLED
-        value: "false"
     image: "siddhiio/siddhi-runner-ubuntu:5.1.0-beta"
-  
-  messagingSystem:
-    type: nats
-    config: 
-      bootstrapServers: 
-        - "nats://nats-siddhi:4222"
-      streamingClusterId: stan-siddhi
   
   persistentVolumeClaim: 
     accessModes: 
