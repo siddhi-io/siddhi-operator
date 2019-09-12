@@ -18,7 +18,7 @@ spec:
           type='nats',
           cluster.id='siddhi-stan',
           destination = 'PowerStream', 
-          bootstrap.servers='nats://siddhi-nats:4222',
+          bootstrap.servers='nats://nats-siddhi:4222',
           @map(type='text')
         )
         define stream DevicePowerStream(deviceType string, power int);
