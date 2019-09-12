@@ -35,7 +35,7 @@ spec:
         insert into PowerSurgeAlertStream;
 
   container: 
-    image: "siddhiio/siddhi-runner-ubuntu:5.1.0-alpha"
+    image: "siddhiio/siddhi-runner-ubuntu:5.1.0-beta"
   
   persistentVolumeClaim: 
     accessModes: 

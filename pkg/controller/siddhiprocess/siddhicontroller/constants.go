@@ -22,7 +22,7 @@ package siddhicontroller
 const (
 	OperatorCMName    string = "siddhi-operator-config"
 	SiddhiHome        string = "/home/siddhi_user/siddhi-runner/"
-	SiddhiImage       string = "siddhiio/siddhi-runner-alpine:5.1.0-alpha"
+	SiddhiImage       string = "siddhiio/siddhi-runner-alpine:5.1.0-beta"
 	SiddhiProfile     string = "runner"
 	AutoCreateIngress bool   = true
 )
