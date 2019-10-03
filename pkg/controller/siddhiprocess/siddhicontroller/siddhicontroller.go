@@ -330,16 +330,10 @@ func (sc *SiddhiController) UpdateDefaultConfigs() {
 
 		if configMap.Data["siddhiImage"] != "" {
 			sc.Image.Name = configMap.Data["siddhiImage"]
-			if sc.SiddhiProcess.Spec.Container.Image != "" {
-				sc.Image.Name = sc.SiddhiProcess.Spec.Container.Image
-			}
 		}
 
 		if configMap.Data["siddhiImageSecret"] != "" {
 			sc.Image.Secret = configMap.Data["siddhiImageSecret"]
-			if sc.SiddhiProcess.Spec.ImagePullSecret != "" {
-				sc.Image.Secret = sc.SiddhiProcess.Spec.ImagePullSecret
-			}
 		}
 
 		if configMap.Data["siddhiProfile"] != "" {
@@ -356,5 +350,11 @@ func (sc *SiddhiController) UpdateDefaultConfigs() {
 			sc.TLS = configMap.Data["ingressTLS"]
 		}
 
+	}
+	if sc.SiddhiProcess.Spec.Container.Image != "" {
+		sc.Image.Name = sc.SiddhiProcess.Spec.Container.Image
+	}
+	if sc.SiddhiProcess.Spec.ImagePullSecret != "" {
+		sc.Image.Secret = sc.SiddhiProcess.Spec.ImagePullSecret
 	}
 }

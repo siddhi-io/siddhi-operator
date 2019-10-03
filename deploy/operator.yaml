@@ -9,6 +9,7 @@ data:
   siddhiProfile: runner
   siddhiImage: siddhiio/siddhi-runner-alpine:5.1.0-beta
   autoIngressCreation: "true"
+  # siddhiImageSecret: siddhiio
   # ingressTLS: siddhi-tls
 ---
 
