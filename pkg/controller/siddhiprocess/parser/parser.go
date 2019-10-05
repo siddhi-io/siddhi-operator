@@ -98,8 +98,9 @@ func (p *Parser) Parse() (applications []deploymanager.Application, err error) {
 		if err != nil {
 			return applications, err
 		}
+		portList := []int{}
 		for _, deploymentConf := range appConfig.DeploymentConfigs {
-			if !deploymentConf.IsPulling {
+			if !deploymentConf.IsPulling && !ContainsInt(portList, deploymentConf.Port) {
 				serviceEnabled = true
 				port := corev1.ContainerPort{
 					Name:          "p" + strconv.Itoa(deploymentConf.Port),
@@ -107,6 +108,7 @@ func (p *Parser) Parse() (applications []deploymanager.Application, err error) {
 					Protocol:      corev1.Protocol(deploymentConf.ServiceProtocol),
 				}
 				ports = append(ports, port)
+				portList = append(portList, deploymentConf.Port)
 				protocols = append(protocols, deploymentConf.ServiceProtocol)
 				tls = append(tls, deploymentConf.Secured)
 			}
@@ -280,5 +282,17 @@ func getAppName(app string) (appName string, err error) {
 		return
 	}
 	err = errors.New("Siddhi app name extraction error")
+	return
+}
+
+// ContainsInt function to check given int is in the given slice or not
+func ContainsInt(slice []int, value int) (contain bool) {
+	contain = false
+	for _, s := range slice {
+		if s == value {
+			contain = true
+			return
+		}
+	}
 	return
 }
