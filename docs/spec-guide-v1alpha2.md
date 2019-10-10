@@ -41,9 +41,9 @@ The users can specify Siddhi apps in two different ways:
 
     ```yaml
     spec:
-	  apps:
-	    - configMap: power-surge-cm1
-		- configMap: power-surge-cm2
+      apps:
+        - configMap: power-surge-cm1
+        - configMap: power-surge-cm2
     ```
 
 ## Change Siddhi Runtime Configurations
@@ -136,12 +136,12 @@ You can use the following spec to setup a NATS messaging system cluster for the 
 1. If you create a NATS messaging system by yourself and then input those configurations in the SiddhiProcess, the partial Siddhi apps will connect to your messaging system. In this example, I have created a NATS cluster called `nats-siddhi` and a NATS streaming cluster called `stan-siddhi`.
 
 	```yaml
-	messagingSystem:
-	  type: nats
-	  config: 
-		  bootstrapServers: 
-		  - "nats://nats-siddhi:4222"
-		  streamingClusterId: stan-siddhi
+	  messagingSystem:
+	    type: nats
+	    config: 
+	      bootstrapServers: 
+	      - "nats://nats-siddhi:4222"
+	      streamingClusterId: stan-siddhi
 	```
 
 ## Enable Periodic State Persistence
