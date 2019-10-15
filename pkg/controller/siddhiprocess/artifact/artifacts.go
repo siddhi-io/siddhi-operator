@@ -424,6 +424,9 @@ func (k *KubeClient) CreateOrUpdateDeployment(
 			ipp,
 			secrets,
 			volumes,
+			readyProbe,
+			liveProbe,
+			strategy,
 		),
 	)
 	return
@@ -554,6 +557,9 @@ func DeploymentMutateFunc(
 	ipp corev1.PullPolicy,
 	secrets []corev1.LocalObjectReference,
 	volumes []corev1.Volume,
+	readyProbe corev1.Probe,
+	liveProbe corev1.Probe,
+	strategy appsv1.DeploymentStrategy,
 ) controllerutil.MutateFn {
 	return func(obj runtime.Object) error {
 		deployment := obj.(*appsv1.Deployment)
@@ -569,11 +575,14 @@ func DeploymentMutateFunc(
 					Env:             envs,
 					SecurityContext: &sc,
 					ImagePullPolicy: ipp,
+					ReadinessProbe:  &readyProbe,
+					LivenessProbe:   &liveProbe,
 				},
 			},
 			ImagePullSecrets: secrets,
 			Volumes:          volumes,
 		}
+		deployment.Spec.Strategy = strategy
 		return nil
 	}
 }
