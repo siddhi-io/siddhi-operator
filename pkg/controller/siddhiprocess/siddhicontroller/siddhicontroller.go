@@ -343,6 +343,8 @@ func (sc *SiddhiController) UpdateDefaultConfigs() {
 		if configMap.Data["autoIngressCreation"] != "" {
 			if configMap.Data["autoIngressCreation"] == "true" {
 				sc.AutoCreateIngress = true
+			} else {
+				sc.AutoCreateIngress = false
 			}
 		}
 
