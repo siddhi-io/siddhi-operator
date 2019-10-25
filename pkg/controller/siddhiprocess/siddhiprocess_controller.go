@@ -204,6 +204,7 @@ func (rsp *ReconcileSiddhiProcess) Reconcile(request reconcile.Request) (reconci
 		},
 	}
 	siddhiController.UpdateDefaultConfigs()
+	siddhiController.SetDefaultPendingState()
 	if !SiddhiProcessChanged {
 		siddhiController.UpgradeVersion()
 		sp = siddhiController.SiddhiProcess

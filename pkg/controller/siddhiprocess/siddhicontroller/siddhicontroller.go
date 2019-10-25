@@ -88,7 +88,6 @@ func (sc *SiddhiController) UpdateWarningStatus(
 }
 
 // UpdateRunningStatus update the status of the CR object and send events to the SiddhiProcess object using EventRecorder object
-// These status can be Pending, Running
 func (sc *SiddhiController) UpdateRunningStatus(
 	reason string,
 	message string,
@@ -98,6 +97,28 @@ func (sc *SiddhiController) UpdateRunningStatus(
 	sc.SiddhiProcess.Status.Status = st
 	sc.EventRecorder.Event(sc.SiddhiProcess, getStatus(NORMAL), reason, message)
 	sc.Logger.Info(message)
+	err := sc.KubeClient.Client.Status().Update(context.TODO(), sc.SiddhiProcess)
+	if err != nil {
+		sc.SiddhiProcess = s
+	}
+}
+
+// UpdatePendingStatus update the status of the CR object to Pending status
+func (sc *SiddhiController) UpdatePendingStatus() {
+	st := getStatus(PENDING)
+	s := sc.SiddhiProcess
+	sc.SiddhiProcess.Status.Status = st
+	err := sc.KubeClient.Client.Status().Update(context.TODO(), sc.SiddhiProcess)
+	if err != nil {
+		sc.SiddhiProcess = s
+	}
+}
+
+// UpdateUpdatingtatus update the status of the CR object to Updating status
+func (sc *SiddhiController) UpdateUpdatingtatus() {
+	st := getStatus(UPDATING)
+	s := sc.SiddhiProcess
+	sc.SiddhiProcess.Status.Status = st
 	err := sc.KubeClient.Client.Status().Update(context.TODO(), sc.SiddhiProcess)
 	if err != nil {
 		sc.SiddhiProcess = s
@@ -124,6 +145,10 @@ func (sc *SiddhiController) CreateArtifacts(applications []deploymanager.Applica
 		sc.SiddhiProcess.Status.CurrentVersion,
 		sc.SiddhiProcess.Status.PreviousVersion,
 	)
+
+	if (eventType == controllerutil.OperationResultUpdated) && (sc.GetDeploymentCount(applications) > 0) {
+		sc.UpdateUpdatingtatus()
+	}
 
 	for _, application := range applications {
 		if (eventType == controllerutil.OperationResultCreated) ||
@@ -358,5 +383,29 @@ func (sc *SiddhiController) UpdateDefaultConfigs() {
 	}
 	if sc.SiddhiProcess.Spec.ImagePullSecret != "" {
 		sc.Image.Secret = sc.SiddhiProcess.Spec.ImagePullSecret
+	}
+}
+
+// GetDeploymentCount returns the deployment count to a given set of applications
+func (sc *SiddhiController) GetDeploymentCount(applications []deploymanager.Application) (count int) {
+	count = 0
+	isDeployExists := false
+	for _, application := range applications {
+		_, isDeployExists = sc.KubeClient.GetDeployment(application.Name, sc.SiddhiProcess.Namespace)
+		if isDeployExists {
+			count = count + 1
+		}
+	}
+	return
+}
+
+// SetDefaultPendingState set the default state of a SiddhiProcess object to Pending
+func (sc *SiddhiController) SetDefaultPendingState() {
+	eventType := getEventType(
+		sc.SiddhiProcess.Status.CurrentVersion,
+		sc.SiddhiProcess.Status.PreviousVersion,
+	)
+	if (eventType == controllerutil.OperationResultCreated) && (sc.SiddhiProcess.Status.Status == "") {
+		sc.UpdatePendingStatus()
 	}
 }

@@ -35,4 +35,5 @@ const (
 	ERROR
 	WARNING
 	NORMAL
+	UPDATING
 )
