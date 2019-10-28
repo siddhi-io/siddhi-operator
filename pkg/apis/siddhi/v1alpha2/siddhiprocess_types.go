@@ -64,6 +64,7 @@ type SiddhiProcessStatus struct {
 	Ready           string `json:"ready"`
 	CurrentVersion  int64  `json:"currentVersion"`
 	PreviousVersion int64  `json:"previousVersion"`
+	EventType       string `json:"eventType"`
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object

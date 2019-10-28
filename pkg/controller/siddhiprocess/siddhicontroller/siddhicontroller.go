@@ -95,8 +95,10 @@ func (sc *SiddhiController) UpdateRunningStatus(
 	st := getStatus(RUNNING)
 	s := sc.SiddhiProcess
 	sc.SiddhiProcess.Status.Status = st
-	sc.EventRecorder.Event(sc.SiddhiProcess, getStatus(NORMAL), reason, message)
-	sc.Logger.Info(message)
+	if reason != "" && message != "" {
+		sc.EventRecorder.Event(sc.SiddhiProcess, getStatus(NORMAL), reason, message)
+		sc.Logger.Info(message)
+	}
 	err := sc.KubeClient.Client.Status().Update(context.TODO(), sc.SiddhiProcess)
 	if err != nil {
 		sc.SiddhiProcess = s
@@ -230,7 +232,7 @@ func (sc *SiddhiController) CreateArtifacts(applications []deploymanager.Applica
 	sc.SyncVersion()
 	if (eventType == controllerutil.OperationResultCreated) ||
 		(eventType == controllerutil.OperationResultUpdated) {
-		sc.UpdateReady(availableDep, needDep)
+		sc.UpdateReady(0, needDep)
 	}
 	return
 }
@@ -256,6 +258,35 @@ func (sc *SiddhiController) CheckDeployments(applications []deploymanager.Applic
 			}
 		}
 	}
+}
+
+// CheckAvailableDeployments function check the availability of deployments and the replications of the deployments.
+func (sc *SiddhiController) CheckAvailableDeployments(applications []deploymanager.Application) (terminate bool) {
+	availableDeployments := 0
+	needDeployments := 0
+	for _, application := range applications {
+		deployment := &appsv1.Deployment{}
+		err := sc.KubeClient.Client.Get(
+			context.TODO(),
+			types.NamespacedName{
+				Name:      strings.ToLower(application.Name),
+				Namespace: sc.SiddhiProcess.Namespace,
+			},
+			deployment,
+		)
+		needDeployments++
+		if err == nil && &deployment.Status.AvailableReplicas != nil {
+			availableDeployments += int(deployment.Status.AvailableReplicas)
+		}
+	}
+	sc.UpdateReady(availableDeployments, needDeployments)
+	if needDeployments == availableDeployments {
+		terminate = true
+		sc.UpdateRunningStatus("", "")
+		return
+	}
+	terminate = false
+	return
 }
 
 // SyncVersion synchronize the siddhi process internal version number
