@@ -216,7 +216,7 @@ func (rsp *ReconcileSiddhiProcess) Reconcile(request reconcile.Request) (reconci
 				return reconcile.Result{Requeue: false}, nil
 			}
 		}
-		return reconcile.Result{RequeueAfter: time.Second * 5}, nil
+		return reconcile.Result{RequeueAfter: time.Second * time.Duration(ReconcileTime)}, nil
 	}
 
 	siddhiController.SetDefaultPendingState()
@@ -269,7 +269,7 @@ func (rsp *ReconcileSiddhiProcess) Reconcile(request reconcile.Request) (reconci
 		cmListner.Changed = false
 		CMContainer[request.NamespacedName.Name] = cmListner
 	}
-	return reconcile.Result{RequeueAfter: time.Second * 5}, nil
+	return reconcile.Result{RequeueAfter: time.Second * time.Duration(ReconcileTime)}, nil
 }
 
 // populateSiddhiApps function invoke parserApp function to retrieve relevant siddhi apps.

@@ -21,6 +21,11 @@ package siddhiprocess
 // EventType holds the type of a event
 type EventType int
 
+// siddhiprocess package constants
+const (
+	ReconcileTime int = 5
+)
+
 // Type of events that publishes to the reconcile loop
 const (
 	CREATE EventType = iota
