@@ -95,8 +95,10 @@ func (sc *SiddhiController) UpdateRunningStatus(
 	st := getStatus(RUNNING)
 	s := sc.SiddhiProcess
 	sc.SiddhiProcess.Status.Status = st
-	sc.EventRecorder.Event(sc.SiddhiProcess, getStatus(NORMAL), reason, message)
-	sc.Logger.Info(message)
+	if reason != "" && message != "" {
+		sc.EventRecorder.Event(sc.SiddhiProcess, getStatus(NORMAL), reason, message)
+		sc.Logger.Info(message)
+	}
 	err := sc.KubeClient.Client.Status().Update(context.TODO(), sc.SiddhiProcess)
 	if err != nil {
 		sc.SiddhiProcess = s
@@ -280,6 +282,7 @@ func (sc *SiddhiController) CheckAvailableDeployments(applications []deploymanag
 	sc.UpdateReady(availableDeployments, needDeployments)
 	if needDeployments == availableDeployments {
 		terminate = true
+		sc.UpdateRunningStatus("", "")
 		return
 	}
 	terminate = false
