@@ -20,6 +20,7 @@ package siddhiprocess
 
 import (
 	"context"
+	"time"
 
 	siddhiv1alpha2 "github.com/siddhi-io/siddhi-operator/pkg/apis/siddhi/v1alpha2"
 	artifact "github.com/siddhi-io/siddhi-operator/pkg/controller/siddhiprocess/artifact"
@@ -91,8 +92,10 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 			newObject := e.ObjectNew.(*siddhiv1alpha2.SiddhiProcess)
 			if !oldObject.Spec.Equals(&newObject.Spec) {
 				newObject.Status.CurrentVersion++
+				newObject.Status.EventType = getEventType(UPDATE)
 				return true
 			}
+			newObject.Status.EventType = getEventType(TIMER)
 			return false
 		},
 		CreateFunc: func(e event.CreateEvent) bool {
@@ -179,12 +182,12 @@ func (rsp *ReconcileSiddhiProcess) Reconcile(request reconcile.Request) (reconci
 	sp := &siddhiv1alpha2.SiddhiProcess{}
 	cm := &corev1.ConfigMap{}
 	siddhiProcessName := request.NamespacedName
-	SiddhiProcessChanged := true
+	siddhiProcessChanged := true
 	err := rsp.client.Get(context.TODO(), request.NamespacedName, cm)
 	if err == nil {
 		cmListner := CMContainer[request.NamespacedName.Name]
 		siddhiProcessName.Name = cmListner.SiddhiProcess
-		SiddhiProcessChanged = false
+		siddhiProcessChanged = false
 	}
 
 	err = rsp.client.Get(context.TODO(), siddhiProcessName, sp)
@@ -194,6 +197,7 @@ func (rsp *ReconcileSiddhiProcess) Reconcile(request reconcile.Request) (reconci
 		}
 		return reconcile.Result{}, err
 	}
+
 	siddhiController := &siddhicontroller.SiddhiController{
 		SiddhiProcess: sp,
 		EventRecorder: ER,
@@ -204,8 +208,19 @@ func (rsp *ReconcileSiddhiProcess) Reconcile(request reconcile.Request) (reconci
 		},
 	}
 	siddhiController.UpdateDefaultConfigs()
+
+	if sp.Status.EventType == getEventType(TIMER) {
+		if SPContainer[sp.Name] != nil {
+			terminate := siddhiController.CheckAvailableDeployments(SPContainer[sp.Name])
+			if terminate {
+				return reconcile.Result{Requeue: false}, nil
+			}
+		}
+		return reconcile.Result{RequeueAfter: time.Second * 5}, nil
+	}
+
 	siddhiController.SetDefaultPendingState()
-	if !SiddhiProcessChanged {
+	if !siddhiProcessChanged {
 		siddhiController.UpgradeVersion()
 		sp = siddhiController.SiddhiProcess
 	}
@@ -249,12 +264,12 @@ func (rsp *ReconcileSiddhiProcess) Reconcile(request reconcile.Request) (reconci
 
 	siddhiController.CreateArtifacts(apps)
 	siddhiController.CheckDeployments(apps)
-	if !SiddhiProcessChanged {
+	if !siddhiProcessChanged {
 		cmListner := CMContainer[request.NamespacedName.Name]
 		cmListner.Changed = false
 		CMContainer[request.NamespacedName.Name] = cmListner
 	}
-	return reconcile.Result{Requeue: false}, nil
+	return reconcile.Result{RequeueAfter: time.Second * 5}, nil
 }
 
 // populateSiddhiApps function invoke parserApp function to retrieve relevant siddhi apps.
