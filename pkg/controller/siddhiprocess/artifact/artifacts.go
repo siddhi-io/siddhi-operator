@@ -512,6 +512,23 @@ func (k *KubeClient) DeleteConfigMap(
 	return
 }
 
+// GetDeployment return the deployment struct if it is exists along with a flag indicating whether it is exists or not
+func (k *KubeClient) GetDeployment(
+	name string,
+	namespace string,
+) (*appsv1.Deployment, bool) {
+	deployment := &appsv1.Deployment{}
+	err := k.Client.Get(
+		context.TODO(),
+		types.NamespacedName{Name: strings.ToLower(name), Namespace: namespace},
+		deployment,
+	)
+	if err == nil {
+		return deployment, true
+	}
+	return deployment, false
+}
+
 // ConfigMapMutateFunc is the function for update k8s config maps gracefully
 func ConfigMapMutateFunc(data map[string]string) controllerutil.MutateFn {
 	return func(obj runtime.Object) error {
