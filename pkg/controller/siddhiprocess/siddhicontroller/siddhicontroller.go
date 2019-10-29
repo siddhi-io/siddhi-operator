@@ -171,9 +171,6 @@ func (sc *SiddhiController) CreateArtifacts(applications []deploymanager.Applica
 		sc.SiddhiProcess.Status.PreviousVersion,
 	)
 
-	if (eventType == controllerutil.OperationResultUpdated) && (sc.GetDeploymentCount(applications) > 0) {
-		sc.UpdateUpdatingtatus()
-	}
 	sc.UpdatePartialAppStatus(applications)
 	for _, application := range applications {
 		if (eventType == controllerutil.OperationResultCreated) ||
@@ -461,5 +458,16 @@ func (sc *SiddhiController) SetDefaultPendingState() {
 	)
 	if (eventType == controllerutil.OperationResultCreated) && (sc.SiddhiProcess.Status.Status == "") {
 		sc.UpdatePendingStatus()
+	}
+}
+
+// SetUpdatingState set the state of a SiddhiProcess object to Updating
+func (sc *SiddhiController) SetUpdatingState() {
+	eventType := getEventType(
+		sc.SiddhiProcess.Status.CurrentVersion,
+		sc.SiddhiProcess.Status.PreviousVersion,
+	)
+	if eventType == controllerutil.OperationResultUpdated {
+		sc.UpdateUpdatingtatus()
 	}
 }
