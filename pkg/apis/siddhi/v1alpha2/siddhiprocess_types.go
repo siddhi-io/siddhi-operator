@@ -46,6 +46,12 @@ type Apps struct {
 	Script    string `json:"script"`
 }
 
+// PartialApp siddhi partial app
+type PartialApp struct {
+	DeploymentName string   `json:"deploymentName"`
+	Apps           []string `json:"apps"`
+}
+
 // SiddhiProcessSpec defines the desired state of SiddhiProcess
 // +k8s:openapi-gen=true
 type SiddhiProcessSpec struct {
@@ -60,11 +66,12 @@ type SiddhiProcessSpec struct {
 // SiddhiProcessStatus defines the observed state of SiddhiProcess
 // +k8s:openapi-gen=true
 type SiddhiProcessStatus struct {
-	Status          string `json:"status"`
-	Ready           string `json:"ready"`
-	CurrentVersion  int64  `json:"currentVersion"`
-	PreviousVersion int64  `json:"previousVersion"`
-	EventType       string `json:"eventType"`
+	Status          string       `json:"status"`
+	Ready           string       `json:"ready"`
+	CurrentVersion  int64        `json:"currentVersion"`
+	PreviousVersion int64        `json:"previousVersion"`
+	EventType       string       `json:"eventType"`
+	PartialApps     []PartialApp `json:"partialApps"`
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object

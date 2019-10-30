@@ -105,6 +105,29 @@ func (sc *SiddhiController) UpdateRunningStatus(
 	}
 }
 
+// UpdatePartialAppStatus update the status of the CR object to Pending status
+func (sc *SiddhiController) UpdatePartialAppStatus(applications []deploymanager.Application) {
+	s := sc.SiddhiProcess
+	partialApps := []siddhiv1alpha2.PartialApp{}
+	for _, application := range applications {
+		apps := []string{}
+		for _, app := range application.Apps {
+			apps = append(apps, app)
+		}
+		partialApp := siddhiv1alpha2.PartialApp{
+			DeploymentName: application.Name,
+			Apps:           apps,
+		}
+		partialApps = append(partialApps, partialApp)
+	}
+
+	sc.SiddhiProcess.Status.PartialApps = partialApps
+	err := sc.KubeClient.Client.Status().Update(context.TODO(), sc.SiddhiProcess)
+	if err != nil {
+		sc.SiddhiProcess = s
+	}
+}
+
 // UpdatePendingStatus update the status of the CR object to Pending status
 func (sc *SiddhiController) UpdatePendingStatus() {
 	st := getStatus(PENDING)
@@ -148,10 +171,7 @@ func (sc *SiddhiController) CreateArtifacts(applications []deploymanager.Applica
 		sc.SiddhiProcess.Status.PreviousVersion,
 	)
 
-	if (eventType == controllerutil.OperationResultUpdated) && (sc.GetDeploymentCount(applications) > 0) {
-		sc.UpdateUpdatingtatus()
-	}
-
+	sc.UpdatePartialAppStatus(applications)
 	for _, application := range applications {
 		if (eventType == controllerutil.OperationResultCreated) ||
 			(eventType == controllerutil.OperationResultUpdated) {
@@ -438,5 +458,16 @@ func (sc *SiddhiController) SetDefaultPendingState() {
 	)
 	if (eventType == controllerutil.OperationResultCreated) && (sc.SiddhiProcess.Status.Status == "") {
 		sc.UpdatePendingStatus()
+	}
+}
+
+// SetUpdatingState set the state of a SiddhiProcess object to Updating
+func (sc *SiddhiController) SetUpdatingState() {
+	eventType := getEventType(
+		sc.SiddhiProcess.Status.CurrentVersion,
+		sc.SiddhiProcess.Status.PreviousVersion,
+	)
+	if eventType == controllerutil.OperationResultUpdated {
+		sc.UpdateUpdatingtatus()
 	}
 }
