@@ -220,7 +220,7 @@ func (rsp *ReconcileSiddhiProcess) Reconcile(request reconcile.Request) (reconci
 	}
 
 	siddhiController.SetDefaultPendingState()
-	siddhiController.SetUpdatingState()
+	siddhiController.SetNotReadyState()
 	if !siddhiProcessChanged {
 		siddhiController.UpgradeVersion()
 		sp = siddhiController.SiddhiProcess

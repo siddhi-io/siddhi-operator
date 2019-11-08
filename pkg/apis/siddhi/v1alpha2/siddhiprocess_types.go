@@ -49,7 +49,7 @@ type Apps struct {
 // PartialApp siddhi partial app
 type PartialApp struct {
 	DeploymentName string   `json:"deploymentName"`
-	Apps           []string `json:"apps"`
+	Apps           []string `json:"app"`
 }
 
 // SiddhiProcessSpec defines the desired state of SiddhiProcess

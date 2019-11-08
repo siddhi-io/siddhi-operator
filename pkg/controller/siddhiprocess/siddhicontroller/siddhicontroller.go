@@ -87,14 +87,12 @@ func (sc *SiddhiController) UpdateWarningStatus(
 	}
 }
 
-// UpdateRunningStatus update the status of the CR object and send events to the SiddhiProcess object using EventRecorder object
+// UpdateRunningStatus send events to the SiddhiProcess object using EventRecorder object
 func (sc *SiddhiController) UpdateRunningStatus(
 	reason string,
 	message string,
 ) {
-	st := getStatus(RUNNING)
 	s := sc.SiddhiProcess
-	sc.SiddhiProcess.Status.Status = st
 	if reason != "" && message != "" {
 		sc.EventRecorder.Event(sc.SiddhiProcess, getStatus(NORMAL), reason, message)
 		sc.Logger.Info(message)
@@ -139,9 +137,9 @@ func (sc *SiddhiController) UpdatePendingStatus() {
 	}
 }
 
-// UpdateUpdatingtatus update the status of the CR object to Updating status
-func (sc *SiddhiController) UpdateUpdatingtatus() {
-	st := getStatus(UPDATING)
+// UpdateNotReadytatus update the status of the CR object to Not Ready status
+func (sc *SiddhiController) UpdateNotReadytatus() {
+	st := getStatus(NOTREADY)
 	s := sc.SiddhiProcess
 	sc.SiddhiProcess.Status.Status = st
 	err := sc.KubeClient.Client.Status().Update(context.TODO(), sc.SiddhiProcess)
@@ -150,9 +148,20 @@ func (sc *SiddhiController) UpdateUpdatingtatus() {
 	}
 }
 
-// UpdateReady update ready attribute of the CR object
+// UpdateReadyStatus update the status of the CR object to Ready status
+func (sc *SiddhiController) UpdateReadyStatus() {
+	st := getStatus(READY)
+	s := sc.SiddhiProcess
+	sc.SiddhiProcess.Status.Status = st
+	err := sc.KubeClient.Client.Status().Update(context.TODO(), sc.SiddhiProcess)
+	if err != nil {
+		sc.SiddhiProcess = s
+	}
+}
+
+// UpdateReadyDeployments update ready attribute of the CR object
 // Ready attribute contains the number of deployments are complete and running out of requested deployments
-func (sc *SiddhiController) UpdateReady(available int, need int) {
+func (sc *SiddhiController) UpdateReadyDeployments(available int, need int) {
 	s := sc.SiddhiProcess
 	s.Status.Ready = strconv.Itoa(available) + "/" + strconv.Itoa(need)
 	err := sc.KubeClient.Client.Status().Update(context.TODO(), sc.SiddhiProcess)
@@ -252,7 +261,7 @@ func (sc *SiddhiController) CreateArtifacts(applications []deploymanager.Applica
 	sc.SyncVersion()
 	if (eventType == controllerutil.OperationResultCreated) ||
 		(eventType == controllerutil.OperationResultUpdated) {
-		sc.UpdateReady(0, needDep)
+		sc.UpdateReadyDeployments(0, needDep)
 	}
 	return
 }
@@ -284,6 +293,11 @@ func (sc *SiddhiController) CheckDeployments(applications []deploymanager.Applic
 func (sc *SiddhiController) CheckAvailableDeployments(applications []deploymanager.Application) (terminate bool) {
 	availableDeployments := 0
 	needDeployments := 0
+	isStatelessReady := true
+	needStatefulDeployments := 0
+	availableStatefuleDeployments := 0
+	needStatelessDeployments := 0
+	availableStatelesseDeployments := 0
 	for _, application := range applications {
 		deployment := &appsv1.Deployment{}
 		err := sc.KubeClient.Client.Get(
@@ -294,16 +308,35 @@ func (sc *SiddhiController) CheckAvailableDeployments(applications []deploymanag
 			},
 			deployment,
 		)
-		needDeployments++
+		needDeployments += int(application.Replicas)
 		if err == nil && &deployment.Status.AvailableReplicas != nil {
 			availableDeployments += int(deployment.Status.AvailableReplicas)
 		}
+
+		if application.PersistenceEnabled {
+			needStatefulDeployments += int(application.Replicas)
+			if err == nil && &deployment.Status.AvailableReplicas != nil {
+				availableStatefuleDeployments += int(deployment.Status.AvailableReplicas)
+			}
+		} else {
+			needStatelessDeployments += int(application.Replicas)
+			if err == nil && &deployment.Status.AvailableReplicas != nil {
+				availableStatelesseDeployments += int(deployment.Status.AvailableReplicas)
+				if int(deployment.Status.AvailableReplicas) == 0 {
+					isStatelessReady = false
+				}
+			}
+		}
 	}
-	sc.UpdateReady(availableDeployments, needDeployments)
+	sc.UpdateReadyDeployments(availableDeployments, needDeployments)
 	if needDeployments == availableDeployments {
 		terminate = true
-		sc.UpdateRunningStatus("", "")
+		sc.UpdateReadyStatus()
 		return
+	} else if isStatelessReady && (needStatefulDeployments == availableStatefuleDeployments) {
+		sc.UpdateReadyStatus()
+	} else {
+		sc.UpdateNotReadytatus()
 	}
 	terminate = false
 	return
@@ -461,13 +494,13 @@ func (sc *SiddhiController) SetDefaultPendingState() {
 	}
 }
 
-// SetUpdatingState set the state of a SiddhiProcess object to Updating
-func (sc *SiddhiController) SetUpdatingState() {
+// SetNotReadyState set the state of a SiddhiProcess object to Updating
+func (sc *SiddhiController) SetNotReadyState() {
 	eventType := getEventType(
 		sc.SiddhiProcess.Status.CurrentVersion,
 		sc.SiddhiProcess.Status.PreviousVersion,
 	)
 	if eventType == controllerutil.OperationResultUpdated {
-		sc.UpdateUpdatingtatus()
+		sc.UpdateNotReadytatus()
 	}
 }
