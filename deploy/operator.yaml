@@ -31,7 +31,7 @@ spec:
       serviceAccountName: siddhi-operator
       containers:
         - name: siddhi-operator
-          image: siddhiio/siddhi-operator:0.2.0
+          image: siddhiio/siddhi-operator:0.2.1-rc1
           command:
           - siddhi-operator
           imagePullPolicy: Always
@@ -47,6 +47,6 @@ spec:
             - name: OPERATOR_NAME
               value: siddhi-operator
             - name: OPERATOR_VERSION
-              value: 0.2.0
+              value: 0.2.1-rc1
             - name: OPERATOR_CONFIGMAP
               value: siddhi-operator-config
