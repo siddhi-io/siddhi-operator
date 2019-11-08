@@ -29,7 +29,7 @@ var status = []string{
 	"Error",
 	"Warning",
 	"Normal",
-	"Updating",
+	"Not Ready",
 }
 
 // getStatus return relevant status to a given integer. This uses status array and the constants list.
