@@ -35,7 +35,7 @@ import (
 
 const (
 	StatePersistenceConf string = `
-state.persistence:
+statePersistence:
   enabled: true
   intervalInMin: 1
   revisionsToKeep: 2

@@ -71,7 +71,7 @@ type StatePersistence struct {
 
 // Config contains the siddhi config block
 type Config struct {
-	StatePersistence StatePersistence `yaml:"state.persistence"`
+	StatePersistence StatePersistence `yaml:"statePersistence"`
 }
 
 // CreateLabels creates labels for each deployment

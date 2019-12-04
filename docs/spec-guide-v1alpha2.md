@@ -52,7 +52,7 @@ Internally Siddhi operator has been using Siddhi runner deployments to deploy ev
 
 ```yaml
   runner: |
-    state.persistence:
+    statePersistence:
       enabled: true
       intervalInMin: 1
       revisionsToKeep: 2
