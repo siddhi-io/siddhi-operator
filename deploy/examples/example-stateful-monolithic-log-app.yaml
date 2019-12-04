@@ -53,7 +53,7 @@ spec:
     volumeMode: Filesystem
   
   runner: |
-    state.persistence:
+    statePersistence:
       enabled: true
       intervalInMin: 1
       revisionsToKeep: 2

@@ -48,7 +48,7 @@ const (
 // which used to change the deployment.yaml file of the siddhi-runner image.
 const (
 	StatePersistenceConf string = `
-state.persistence:
+statePersistence:
   enabled: true
   intervalInMin: 1
   revisionsToKeep: 2
