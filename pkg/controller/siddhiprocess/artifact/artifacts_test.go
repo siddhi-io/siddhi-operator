@@ -217,7 +217,7 @@ func TestCreateOrUpdateDeployment(t *testing.T) {
 		"app":     "sample",
 		"version": "0.1.0",
 	}
-	image := "siddhiio/siddhi-operator:0.2.1"
+	image := "siddhiio/siddhi-operator:0.2.2"
 	_, err := kubeClient.CreateOrUpdateDeployment(
 		name,
 		namespace,
