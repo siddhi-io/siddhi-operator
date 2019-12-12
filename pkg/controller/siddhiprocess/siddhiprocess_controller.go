@@ -215,8 +215,8 @@ func (rsp *ReconcileSiddhiProcess) Reconcile(request reconcile.Request) (reconci
 			if terminate {
 				return reconcile.Result{Requeue: false}, nil
 			}
+			return reconcile.Result{RequeueAfter: time.Minute * time.Duration(ParserFailRetryTime)}, nil
 		}
-		return reconcile.Result{RequeueAfter: time.Second * time.Duration(ReconcileTime)}, nil
 	}
 
 	siddhiController.SetDefaultPendingState()
@@ -247,7 +247,7 @@ func (rsp *ReconcileSiddhiProcess) Reconcile(request reconcile.Request) (reconci
 	apps, err := rsp.populateSiddhiApps(sp, parser, siddhiController)
 	if err != nil {
 		siddhiController.UpdateErrorStatus("ParserFailed", err)
-		return reconcile.Result{}, nil
+		return reconcile.Result{RequeueAfter: time.Second * time.Duration(ParserFailRetryTime)}, nil
 	}
 	sp = siddhiController.SiddhiProcess
 	messaging := messaging.Messaging{

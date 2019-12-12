@@ -23,7 +23,8 @@ type EventType int
 
 // siddhiprocess package constants
 const (
-	ReconcileTime int = 5
+	ReconcileTime       int = 2
+	ParserFailRetryTime int = 1
 )
 
 // Type of events that publishes to the reconcile loop

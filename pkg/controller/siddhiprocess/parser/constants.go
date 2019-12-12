@@ -31,6 +31,6 @@ const (
 	ParserPort        int32  = 9090
 	ParserReplicas    int32  = 1
 	ParserMinWait     int    = 3
-	ParserMaxWait     int    = 5
-	ParserMaxRetry    int    = 20
+	ParserMaxWait     int    = 10
+	ParserMaxRetry    int    = 40
 )
