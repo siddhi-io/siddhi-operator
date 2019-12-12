@@ -32,5 +32,5 @@ const (
 	ParserReplicas    int32  = 1
 	ParserMinWait     int    = 3
 	ParserMaxWait     int    = 10
-	ParserMaxRetry    int    = 40
+	ParserMaxRetry    int    = 6
 )
