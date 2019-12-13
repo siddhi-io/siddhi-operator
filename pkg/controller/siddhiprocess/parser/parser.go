@@ -135,6 +135,7 @@ func (p *Parser) Parse() (applications []deploymanager.Application, err error) {
 }
 
 func (p *Parser) deploy() (err error) {
+	generatedParserName := p.Name + ParserExtension
 	containerPorts := []corev1.ContainerPort{
 		corev1.ContainerPort{
 			Name:          ParserName,
@@ -143,7 +144,7 @@ func (p *Parser) deploy() (err error) {
 		},
 	}
 	application := deploymanager.Application{
-		Name:           p.Name + ParserExtension,
+		Name:           generatedParserName,
 		ContainerPorts: containerPorts,
 		ServiceEnabled: true,
 		Replicas:       ParserReplicas,
@@ -160,7 +161,7 @@ func (p *Parser) deploy() (err error) {
 		return
 	}
 	_, err = p.KubeClient.CreateOrUpdateService(
-		p.Name+ParserExtension,
+		generatedParserName,
 		p.SiddhiProcess.Namespace,
 		containerPorts,
 		deployManeger.Labels,
@@ -170,7 +171,7 @@ func (p *Parser) deploy() (err error) {
 		return
 	}
 
-	url := ParserHTTP + p.Name + ParserExtension + "." + p.SiddhiProcess.Namespace + ParserHealth
+	url := ParserHTTP + generatedParserName + "." + p.SiddhiProcess.Namespace + ParserHealth
 	p.Logger.Info("Waiting for parser", "deployment", p.Name)
 	err = waitForParser(url)
 	if err != nil {
