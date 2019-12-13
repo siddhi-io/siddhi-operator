@@ -115,12 +115,11 @@ func (d *DeployManager) Deploy() (operationResult controllerutil.OperationResult
 				d.SiddhiProcess,
 			)
 			if err != nil {
-				return
+				return operationResult, err
 			}
-			mountPath := ""
-			mountPath, err = populateMountPath(d.SiddhiProcess, d.Image.Home, d.Image.Profile)
+			mountPath, err := populateMountPath(d.SiddhiProcess, d.Image.Home, d.Image.Profile)
 			if err != nil {
-				return
+				return operationResult, err
 			}
 			volume, volumeMount := createPVCVolumes(pvcName, mountPath)
 			volumes = append(volumes, volume)
@@ -136,7 +135,7 @@ func (d *DeployManager) Deploy() (operationResult controllerutil.OperationResult
 		}
 		err = d.KubeClient.CreateOrUpdateCM(deployYAMLCMName, d.SiddhiProcess.Namespace, data, d.SiddhiProcess)
 		if err != nil {
-			return
+			return operationResult, err
 		}
 		mountPath := d.Image.Home + DepConfMountPath
 		volume, volumeMount := createCMVolumes(deployYAMLCMName, mountPath)
@@ -150,7 +149,7 @@ func (d *DeployManager) Deploy() (operationResult controllerutil.OperationResult
 		}
 		err = d.KubeClient.CreateOrUpdateCM(deployYAMLCMName, d.SiddhiProcess.Namespace, data, d.SiddhiProcess)
 		if err != nil {
-			return
+			return operationResult, err
 		}
 		mountPath := d.Image.Home + DepConfMountPath
 		volume, volumeMount := createCMVolumes(deployYAMLCMName, mountPath)
@@ -184,7 +183,7 @@ func (d *DeployManager) Deploy() (operationResult controllerutil.OperationResult
 		}
 		err = d.KubeClient.CreateOrUpdateCM(appsCMName, d.SiddhiProcess.Namespace, appsMap, d.SiddhiProcess)
 		if err != nil {
-			return
+			return operationResult, err
 		}
 		appsPath := d.Image.Home + SiddhiFilesDir
 		volume, volumeMount := createCMVolumes(appsCMName, appsPath)
@@ -205,7 +204,7 @@ func (d *DeployManager) Deploy() (operationResult controllerutil.OperationResult
 		ContainerName,
 		[]string{Shell},
 		[]string{
-			d.Image.Home + SiddhiBin + "/" + d.Image.Profile + ".sh",
+			filepath.Join(d.Image.Home, SiddhiBin, (d.Image.Profile + ".sh")),
 			appParameter,
 			configParameter,
 		},
@@ -219,15 +218,14 @@ func (d *DeployManager) Deploy() (operationResult controllerutil.OperationResult
 		depStrategy,
 		d.SiddhiProcess,
 	)
-	return
+	return operationResult, err
 }
 
 // createLocalObjectReference creates a local object reference secret to download docker images from private registries.
 func createLocalObjectReference(secret string) (localObjectRef corev1.LocalObjectReference) {
-	localObjectRef = corev1.LocalObjectReference{
+	return corev1.LocalObjectReference{
 		Name: secret,
 	}
-	return
 }
 
 // populateMountPath reads the runner configs given by the user.
@@ -240,11 +238,11 @@ func populateMountPath(sp *siddhiv1alpha2.SiddhiProcess, home string, profile st
 	if err != nil {
 		return
 	}
-	mountPath = home + WSO2Dir + "/" + profile + "/" + FilePersistentDir
+	mountPath = filepath.Join(home, WSO2Dir, profile, FilePersistentDir)
 	if config.StatePersistence.SPConfig.Location != "" && filepath.IsAbs(config.StatePersistence.SPConfig.Location) {
 		mountPath = config.StatePersistence.SPConfig.Location
 	} else if config.StatePersistence.SPConfig.Location != "" {
-		mountPath = home + WSO2Dir + "/" + profile + "/" + config.StatePersistence.SPConfig.Location
+		mountPath = filepath.Join(home, WSO2Dir, profile, config.StatePersistence.SPConfig.Location)
 	}
 	return
 }
