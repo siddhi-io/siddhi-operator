@@ -182,8 +182,8 @@ func (sc *SiddhiController) CreateArtifacts(applications []deploymanager.Applica
 
 	sc.UpdatePartialAppStatus(applications)
 	for _, application := range applications {
-		if (eventType == controllerutil.OperationResultCreated) ||
-			(eventType == controllerutil.OperationResultUpdated) {
+		if eventType == controllerutil.OperationResultCreated ||
+			eventType == controllerutil.OperationResultUpdated {
 			deployManeger := deploymanager.DeployManager{
 				Application:   application,
 				KubeClient:    sc.KubeClient,
@@ -196,14 +196,14 @@ func (sc *SiddhiController) CreateArtifacts(applications []deploymanager.Applica
 				sc.UpdateErrorStatus("AppDeploymentError", err)
 				continue
 			}
-			if (eventType == controllerutil.OperationResultCreated) &&
-				(operationResult == controllerutil.OperationResultCreated) {
+			if eventType == controllerutil.OperationResultCreated &&
+				operationResult == controllerutil.OperationResultCreated {
 				sc.UpdateRunningStatus(
 					"DeploymentCreated",
 					(application.Name + " deployment created successfully"),
 				)
-			} else if (eventType == controllerutil.OperationResultUpdated) &&
-				(operationResult == controllerutil.OperationResultUpdated) {
+			} else if eventType == controllerutil.OperationResultUpdated &&
+				operationResult == controllerutil.OperationResultUpdated {
 				sc.UpdateRunningStatus(
 					"DeploymentUpdated",
 					(application.Name + " deployment updated successfully"),
@@ -222,14 +222,14 @@ func (sc *SiddhiController) CreateArtifacts(applications []deploymanager.Applica
 					sc.UpdateErrorStatus("ServiceCreationError", err)
 					continue
 				}
-				if (eventType == controllerutil.OperationResultCreated) &&
-					(operationResult == controllerutil.OperationResultCreated) {
+				if eventType == controllerutil.OperationResultCreated &&
+					operationResult == controllerutil.OperationResultCreated {
 					sc.UpdateRunningStatus(
 						"ServiceCreated",
 						(application.Name + " service created successfully"),
 					)
-				} else if (eventType == controllerutil.OperationResultUpdated) &&
-					(operationResult == controllerutil.OperationResultUpdated) {
+				} else if eventType == controllerutil.OperationResultUpdated &&
+					operationResult == controllerutil.OperationResultUpdated {
 					sc.UpdateRunningStatus(
 						"ServiceUpdated",
 						(application.Name + " service updated successfully"),
@@ -247,11 +247,11 @@ func (sc *SiddhiController) CreateArtifacts(applications []deploymanager.Applica
 						sc.UpdateErrorStatus("IngressCreationError", err)
 						continue
 					}
-					if (eventType == controllerutil.OperationResultCreated) &&
-						(operationResult == controllerutil.OperationResultCreated) {
+					if eventType == controllerutil.OperationResultCreated &&
+						operationResult == controllerutil.OperationResultCreated {
 						sc.Logger.Info("Ingress created", "Ingress.Name", artifact.IngressName)
-					} else if (eventType == controllerutil.OperationResultUpdated) &&
-						(operationResult == controllerutil.OperationResultUpdated) {
+					} else if eventType == controllerutil.OperationResultUpdated &&
+						operationResult == controllerutil.OperationResultUpdated {
 						sc.Logger.Info("Ingress changed", "Ingress.Name", artifact.IngressName)
 					}
 				}
@@ -259,8 +259,7 @@ func (sc *SiddhiController) CreateArtifacts(applications []deploymanager.Applica
 		}
 	}
 	sc.SyncVersion()
-	if (eventType == controllerutil.OperationResultCreated) ||
-		(eventType == controllerutil.OperationResultUpdated) {
+	if eventType == controllerutil.OperationResultCreated || eventType == controllerutil.OperationResultUpdated {
 		sc.UpdateReadyDeployments(0, needDep)
 	}
 	return
@@ -433,32 +432,32 @@ func (sc *SiddhiController) UpdateDefaultConfigs() {
 		configMap,
 	)
 	if err == nil {
-		if configMap.Data["siddhiHome"] != "" {
-			sc.Image.Home = configMap.Data["siddhiHome"]
+		if v, ok := configMap.Data["siddhiHome"]; ok {
+			sc.Image.Home = v
 		}
 
-		if configMap.Data["siddhiImage"] != "" {
-			sc.Image.Name = configMap.Data["siddhiImage"]
+		if v, ok := configMap.Data["siddhiImage"]; ok {
+			sc.Image.Name = v
 		}
 
-		if configMap.Data["siddhiImageSecret"] != "" {
-			sc.Image.Secret = configMap.Data["siddhiImageSecret"]
+		if v, ok := configMap.Data["siddhiImageSecret"]; ok {
+			sc.Image.Secret = v
 		}
 
-		if configMap.Data["siddhiProfile"] != "" {
-			sc.Image.Profile = configMap.Data["siddhiProfile"]
+		if v, ok := configMap.Data["siddhiProfile"]; ok {
+			sc.Image.Profile = v
 		}
 
-		if configMap.Data["autoIngressCreation"] != "" {
-			if configMap.Data["autoIngressCreation"] == "true" {
+		if v, ok := configMap.Data["autoIngressCreation"]; ok {
+			if v == "true" {
 				sc.AutoCreateIngress = true
 			} else {
 				sc.AutoCreateIngress = false
 			}
 		}
 
-		if configMap.Data["ingressTLS"] != "" {
-			sc.TLS = configMap.Data["ingressTLS"]
+		if v, ok := configMap.Data["ingressTLS"]; ok {
+			sc.TLS = v
 		}
 
 	}
@@ -489,7 +488,7 @@ func (sc *SiddhiController) SetDefaultPendingState() {
 		sc.SiddhiProcess.Status.CurrentVersion,
 		sc.SiddhiProcess.Status.PreviousVersion,
 	)
-	if (eventType == controllerutil.OperationResultCreated) && (sc.SiddhiProcess.Status.Status == "") {
+	if eventType == controllerutil.OperationResultCreated && sc.SiddhiProcess.Status.Status == "" {
 		sc.UpdatePendingStatus()
 	}
 }

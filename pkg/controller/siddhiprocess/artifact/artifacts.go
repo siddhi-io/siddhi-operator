@@ -21,6 +21,7 @@ package artifacts
 import (
 	"context"
 	"errors"
+	"path"
 	"reflect"
 	"strconv"
 	"strings"
@@ -86,8 +87,7 @@ func (k *KubeClient) CreateOrUpdateIngress(
 
 	var ingressPaths []extensionsv1beta1.HTTPIngressPath
 	for _, port := range containerPorts {
-		path := "/" + strings.ToLower(serviceName) +
-			"/" + strconv.Itoa(int(port.ContainerPort)) + "(/|$)(.*)"
+		path := path.Join("/", strings.ToLower(serviceName), (strconv.Itoa(int(port.ContainerPort)) + "(/|$)(.*)"))
 		ingressPath := extensionsv1beta1.HTTPIngressPath{
 			Path: path,
 			Backend: extensionsv1beta1.IngressBackend{
@@ -615,8 +615,7 @@ func IngressMutateFunc(
 		ingress := obj.(*extensionsv1beta1.Ingress)
 		var ingressPaths []extensionsv1beta1.HTTPIngressPath
 		for _, port := range containerPorts {
-			path := "/" + strings.ToLower(serviceName) +
-				"/" + strconv.Itoa(int(port.ContainerPort)) + "(/|$)(.*)"
+			path := path.Join("/", strings.ToLower(serviceName), (strconv.Itoa(int(port.ContainerPort)) + "(/|$)(.*)"))
 			ingressPath := extensionsv1beta1.HTTPIngressPath{
 				Path: path,
 				Backend: extensionsv1beta1.IngressBackend{

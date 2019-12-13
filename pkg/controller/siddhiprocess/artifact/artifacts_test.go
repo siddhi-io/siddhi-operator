@@ -20,7 +20,7 @@ package artifacts
 
 import (
 	"context"
-	"strconv"
+	"fmt"
 	"testing"
 
 	natsv1alpha2 "github.com/siddhi-io/siddhi-operator/pkg/apis/nats/v1alpha2"
@@ -31,7 +31,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"k8s.io/apimachinery/pkg/api/resource"
-	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/kubernetes/scheme"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
@@ -39,7 +38,7 @@ import (
 
 var kubeClient = KubeClient{
 	Scheme: scheme.Scheme,
-	Client: fake.NewFakeClient([]runtime.Object{}...),
+	Client: fake.NewFakeClient(),
 }
 
 // apps to run tests
@@ -115,7 +114,7 @@ func TestCreateOrUpdateIngress(t *testing.T) {
 		t.Error(err)
 	}
 	if len(ingress.Spec.Rules[0].HTTP.Paths) != 2 {
-		t.Error("Ingress update error. Expected entries 2, but found " + strconv.Itoa(len(ingress.Spec.Rules)))
+		t.Error(fmt.Sprint("Ingress update error. Expected entries 2, but found", len(ingress.Spec.Rules)))
 	}
 }
 
