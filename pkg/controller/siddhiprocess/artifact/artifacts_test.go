@@ -160,7 +160,7 @@ func TestCreateOrUpdatePVC(t *testing.T) {
 		StorageClassName: &storageClassName,
 		Resources: corev1.ResourceRequirements{
 			Requests: corev1.ResourceList{
-				corev1.ResourceStorage: *resource.NewQuantity(1*1024*1024*1024, resource.BinarySI),
+				corev1.ResourceStorage: *resource.NewQuantity(1*GigaByte, resource.BinarySI),
 			},
 		},
 	}

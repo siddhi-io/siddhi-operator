@@ -33,6 +33,7 @@ const (
 	STANKind        string = "NatsStreamingCluster"
 	NATSClusterSize int    = 1
 	STANClusterSize int32  = 1
+	GigaByte        int64  = 1024 * 1024 * 1024
 )
 
 // Constants for K8s deployment

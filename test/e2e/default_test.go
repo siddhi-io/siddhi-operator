@@ -34,6 +34,7 @@ import (
 )
 
 const (
+	GigaByte int64  = 1024*1024*1024
 	StatePersistenceConf string = `
 statePersistence:
   enabled: true
