@@ -76,7 +76,7 @@ func failoverDeploymentTest(t *testing.T, f *framework.Framework, ctx *framework
 				},
 				Resources: corev1.ResourceRequirements{
 					Requests: corev1.ResourceList{
-						corev1.ResourceStorage: *resource.NewQuantity(1*1024*1024*1024, resource.BinarySI),
+						corev1.ResourceStorage: *resource.NewQuantity(1*GigaByte, resource.BinarySI),
 					},
 				},
 				StorageClassName: &standardStorageClass,
@@ -165,7 +165,7 @@ func failoverConfigChangeTest(t *testing.T, f *framework.Framework, ctx *framewo
 				},
 				Resources: corev1.ResourceRequirements{
 					Requests: corev1.ResourceList{
-						corev1.ResourceStorage: *resource.NewQuantity(1*1024*1024*1024, resource.BinarySI),
+						corev1.ResourceStorage: *resource.NewQuantity(1*GigaByte, resource.BinarySI),
 					},
 				},
 				StorageClassName: &standardStorageClass,
@@ -245,7 +245,7 @@ func failoverPVCTest(t *testing.T, f *framework.Framework, ctx *framework.TestCt
 				},
 				Resources: corev1.ResourceRequirements{
 					Requests: corev1.ResourceList{
-						corev1.ResourceStorage: *resource.NewQuantity(1*1024*1024*1024, resource.BinarySI),
+						corev1.ResourceStorage: *resource.NewQuantity(1*GigaByte, resource.BinarySI),
 					},
 				},
 				StorageClassName: &standardStorageClass,
