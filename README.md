@@ -40,6 +40,9 @@ please refer the official documentation, [NGINX Ingress Controller Installation 
 
 Supported Version: nginx 0.22.0+
 
+## Enable NATS Server and NATS Streaming Server
+The [distributed deployment](https://siddhi.io/en/v5.1/docs/siddhi-as-a-kubernetes-microservice/#deploy-and-run-siddhi-app-in-distributed-mode) of a Siddhi app uses NATS as the intermediate messaging system. The distributed deployment creates partial Siddhi apps and each partial Siddhi apps connected using NATS. The Siddhi operator supports NATS operator v0.5.0+ and NATS streaming operator v0.2.2. To install NATS server and NATS streaming server please refer to [this documentation](https://github.com/nats-io/nats-streaming-operator/blob/master/README.md).
+
 ## Install Siddhi Operator in Kubernetes cluster
 
 1. Clone Siddhi Operator Git repository.  
