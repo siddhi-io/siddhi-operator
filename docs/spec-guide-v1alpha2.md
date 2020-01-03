@@ -74,7 +74,7 @@ To change the image and add relevant environmental variables to the Siddhi runti
       - 
         name: BASIC_AUTH_ENABLED
         value: "false"
-    image: "siddhiio/siddhi-runner-ubuntu:latest"
+    image: "siddhiio/siddhi-runner-alpine:latest"
 ```
 
 You can use the following methods to generate a custom Siddhi runner Docker image.

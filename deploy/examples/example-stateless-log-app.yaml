@@ -6,7 +6,7 @@ spec:
   apps: 
     - script: |
         @App:name("PowerSurgeDetection")
-        @App:description("App consumes events from HTTP as a JSON message of { 'deviceType': 'dryer', 'power': 6000 } format and inserts the events into DevicePowerStream, and alerts the user if the power level is greater than or equal to 600W by printing a message in the log.")
+        @App:description("App consumes events from HTTP as a JSON message of { 'deviceType': 'dryer', 'power': 6000 } format and inserts the events into DevicePowerStream, and alerts the user if the device type is dryer and power level is greater than or equal to 600W by printing a message in the log.")
 
         /*
             Input: deviceType string and powerConsuption int(Watt)
@@ -37,4 +37,4 @@ spec:
       - 
         name: BASIC_AUTH_ENABLED
         value: "false"
-    image: "siddhiio/siddhi-runner-ubuntu:5.1.2"
+    image: "siddhiio/siddhi-runner-alpine:5.1.2"
