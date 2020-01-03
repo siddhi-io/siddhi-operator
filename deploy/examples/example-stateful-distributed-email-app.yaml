@@ -51,7 +51,7 @@ spec:
       - 
         name: BASIC_AUTH_ENABLED
         value: "false"
-    image: "siddhiio/siddhi-runner-ubuntu:5.1.2"
+    image: "siddhiio/siddhi-runner-alpine:5.1.2"
   
   messagingSystem:
     type: nats
