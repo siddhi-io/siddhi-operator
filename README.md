@@ -41,7 +41,13 @@ please refer the official documentation, [NGINX Ingress Controller Installation 
 Supported Version: nginx 0.22.0+
 
 ## Enable NATS Server and NATS Streaming Server
-The [distributed deployment](https://siddhi.io/en/v5.1/docs/siddhi-as-a-kubernetes-microservice/#deploy-and-run-siddhi-app-in-distributed-mode) of a Siddhi app uses NATS as the intermediate messaging system. The distributed deployment creates partial Siddhi apps and each partial Siddhi apps connected using NATS. The Siddhi operator supports NATS operator v0.5.0+ and NATS streaming operator v0.2.2. To install NATS server and NATS streaming server please refer to [this documentation](https://github.com/nats-io/nats-streaming-operator/blob/master/README.md).
+The [distributed deployment](https://siddhi.io/en/v5.1/docs/siddhi-as-a-kubernetes-microservice/#deploy-and-run-siddhi-app-in-distributed-mode) of a Siddhi app uses NATS as the intermediate messaging system. The distributed deployment creates partial Siddhi apps and each partial Siddhi apps connected using NATS. 
+
+The Siddhi operator supports [NATS operator v0.5.0+](https://github.com/nats-io/nats-operator/releases/tag/v0.6.0) and [NATS streaming operator v0.2.2+](https://github.com/nats-io/nats-streaming-operator/releases/tag/v0.3.0). 
+
+Note that if your Kubernetes version is v1.16 or higher, then use the [NATS streaming operator v0.3.0+ versions](https://github.com/nats-io/nats-streaming-operator/releases/tag/v0.3.0). If your Kubernetes version is less than v1.16, then you have to use [NATS streaming operator v0.2.2 version](https://github.com/nats-io/nats-streaming-operator/releases/tag/v0.2.2). The reason for this version incompatibility is Kubernetes v1.16 was [removed the apps/v1beta2 API group](https://kubernetes.io/blog/2019/07/18/api-deprecations-in-1-16/).
+
+
 
 ## Install Siddhi Operator in Kubernetes cluster
 
