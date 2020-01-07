@@ -19,6 +19,8 @@
 package messaging
 
 import (
+	"errors"
+
 	siddhiv1alpha2 "github.com/siddhi-io/siddhi-operator/pkg/apis/siddhi/v1alpha2"
 	artifact "github.com/siddhi-io/siddhi-operator/pkg/controller/siddhiprocess/artifact"
 	deploymanager "github.com/siddhi-io/siddhi-operator/pkg/controller/siddhiprocess/deploymanager"
@@ -43,10 +45,25 @@ func (m *Messaging) CreateMessagingSystem(
 		}
 	}
 	if m.SiddhiProcess.Spec.MessagingSystem.TypeDefined() && m.SiddhiProcess.Spec.MessagingSystem.EmptyConfig() && persistenceEnabled {
+		if !m.CheckMessagingSystem() {
+			return errors.New("Automatic NATS creation fails. NATS not configured in the cluster")
+		}
 		err = m.KubeClient.CreateNATS(m.SiddhiProcess.Namespace)
 		if err != nil {
 			return
 		}
 	}
 	return
+}
+
+// CheckMessagingSystem checks the availability of the NATS operator and
+// NATS streaming operator. Then it returns true if both are enabled, otherwise return false.
+func (m *Messaging) CheckMessagingSystem() bool {
+	_, isNatsAvailable := m.KubeClient.GetDeployment(NATSOperatorName, m.SiddhiProcess.Namespace)
+	_, isStanAvailable := m.KubeClient.GetDeployment(STANOperatorName, m.SiddhiProcess.Namespace)
+
+	if isNatsAvailable && isStanAvailable {
+		return true
+	}
+	return false
 }

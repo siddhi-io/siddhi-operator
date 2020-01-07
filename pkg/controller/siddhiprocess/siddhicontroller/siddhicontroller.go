@@ -74,17 +74,11 @@ func (sc *SiddhiController) UpdateErrorStatus(
 // These status can be Warning, Error
 func (sc *SiddhiController) UpdateWarningStatus(
 	reason string,
-	er error,
+	message string,
 ) {
-	st := getStatus(WARNING)
-	s := sc.SiddhiProcess
-	sc.SiddhiProcess.Status.Status = st
-	sc.EventRecorder.Event(sc.SiddhiProcess, getStatus(WARNING), reason, er.Error())
-	sc.Logger.Info(er.Error())
-	err := sc.KubeClient.Client.Status().Update(context.TODO(), sc.SiddhiProcess)
-	if err != nil {
-		sc.SiddhiProcess = s
-	}
+	sc.EventRecorder.Event(sc.SiddhiProcess, getStatus(WARNING), reason, message)
+	sc.Logger.Info(message)
+	_ = sc.KubeClient.Client.Status().Update(context.TODO(), sc.SiddhiProcess)
 }
 
 // UpdateRunningStatus send events to the SiddhiProcess object using EventRecorder object
@@ -334,7 +328,7 @@ func (sc *SiddhiController) CheckAvailableDeployments(applications []deploymanag
 		return
 	} else if isStatelessReady && (needStatefulDeployments == availableStatefuleDeployments) {
 		sc.UpdateReadyStatus()
-	} else {
+	} else if sc.SiddhiProcess.Status.Status != getStatus(ERROR) {
 		sc.UpdateNotReadytatus()
 	}
 	terminate = false
