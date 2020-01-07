@@ -57,6 +57,9 @@ var CMContainer map[string]siddhicontroller.ConfigMapListner
 // ER recoder
 var ER record.EventRecorder
 
+// LoggedMessagingAvailability indicating messaging system availability pronted or not
+var LoggedMessagingAvailability bool
+
 // Add creates a new SiddhiProcess Controller and adds it to the Manager. The Manager will set fields on the Controller
 // and Start it when the Manager is Started.
 func Add(mgr manager.Manager) error {
@@ -72,6 +75,7 @@ func newReconciler(mgr manager.Manager) reconcile.Reconciler {
 func add(mgr manager.Manager, r reconcile.Reconciler) error {
 	SPContainer = make(map[string][]deploymanager.Application)
 	CMContainer = make(map[string]siddhicontroller.ConfigMapListner)
+	LoggedMessagingAvailability = false
 	ER = mgr.GetRecorder("siddhiprocess-controller")
 
 	// Create a new controller
@@ -230,6 +234,18 @@ func (rsp *ReconcileSiddhiProcess) Reconcile(request reconcile.Request) (reconci
 		siddhiController.UpdateErrorStatus("AppReadError", err)
 		return reconcile.Result{}, nil
 	}
+
+	messaging := messaging.Messaging{
+		KubeClient: artifact.KubeClient{
+			Client: rsp.client,
+			Scheme: rsp.scheme,
+		},
+		SiddhiProcess: sp,
+	}
+	if !LoggedMessagingAvailability && !messaging.CheckMessagingSystem() {
+		siddhiController.UpdateWarningStatus("MessagingSystem", "Messaging system not configured. Now Siddhi operator only allows non-distributed deployments.")
+		LoggedMessagingAvailability = true
+	}
 	parser := parser.Parser{
 		Name:      sp.Name,
 		Namespace: sp.Namespace,
@@ -250,14 +266,8 @@ func (rsp *ReconcileSiddhiProcess) Reconcile(request reconcile.Request) (reconci
 		return reconcile.Result{RequeueAfter: time.Minute * time.Duration(ParserFailRetryTime)}, nil
 	}
 	sp = siddhiController.SiddhiProcess
-	messaging := messaging.Messaging{
-		KubeClient: artifact.KubeClient{
-			Client: rsp.client,
-			Scheme: rsp.scheme,
-		},
-		SiddhiProcess: sp,
-	}
-	messaging.CreateMessagingSystem(apps)
+	messaging.SiddhiProcess = sp
+	err = messaging.CreateMessagingSystem(apps)
 	if err != nil {
 		siddhiController.UpdateErrorStatus("NATSCreationError", err)
 		return reconcile.Result{}, err
